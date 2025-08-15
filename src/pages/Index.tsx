@@ -1,6 +1,5 @@
 import { Header } from "@/components/layout/Header"
-import { DashboardStats } from "@/components/dashboard/DashboardStats"
-import { BillboardGrid } from "@/components/billboard/BillboardGrid"
+import { EnhancedInventoryManager } from "@/components/inventory/EnhancedInventoryManager"
 
 const Index = () => {
   return (
@@ -10,13 +9,11 @@ const Index = () => {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
           <p className="text-muted-foreground">
-            Gestiona tu inventario de vallas publicitarias y reservas
+            Gestiona tu inventario de vallas publicitarias con herramientas avanzadas
           </p>
         </div>
         
-        <DashboardStats />
-        
-        <BillboardGrid />
+        <EnhancedInventoryManager />
       </main>
     </div>
   );
