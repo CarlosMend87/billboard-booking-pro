@@ -38,9 +38,9 @@ export function InventoryTable({
   const someSelected = selectedBillboards.length > 0 && selectedBillboards.length < billboards.length
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'EUR',
+      currency: 'MXN',
       minimumFractionDigits: 0
     }).format(price)
   }
