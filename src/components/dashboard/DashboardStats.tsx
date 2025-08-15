@@ -233,8 +233,11 @@ export function DashboardStats() {
             <stat.icon className={`h-4 w-4 ${stat.color}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-xs text-muted-foreground">{stat.description}</p>
+            <div className="text-3xl font-bold">{stat.value}</div>
+            <p className="text-sm font-semibold text-muted-foreground">{stat.description}</p>
+            {stat.details && (
+              <p className="text-xs text-muted-foreground mt-1">{stat.details}</p>
+            )}
           </CardContent>
         </Card>
       ))}
