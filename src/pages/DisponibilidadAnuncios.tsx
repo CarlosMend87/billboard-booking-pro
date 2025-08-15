@@ -1,0 +1,128 @@
+import { useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { OwnerFilter } from "@/components/advertiser/OwnerFilter";
+import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFilter";
+import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
+import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
+import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, List, Search, Filter } from "lucide-react";
+
+export interface InventoryFilters {
+  owners: string[];
+  locationKeywords: string[];
+  dateRange: {
+    startDate: Date | null;
+    endDate: Date | null;
+  };
+  billboardType?: string;
+}
+
+export default function DisponibilidadAnuncios() {
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const [filters, setFilters] = useState<InventoryFilters>({
+    owners: [],
+    locationKeywords: [],
+    dateRange: {
+      startDate: null,
+      endDate: null
+    }
+  });
+
+  const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const activeFiltersCount = filters.owners.length + filters.locationKeywords.length + 
+    (filters.dateRange.startDate && filters.dateRange.endDate ? 1 : 0);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Disponibilidad de Anuncios
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Encuentra y reserva espacios publicitarios disponibles de diferentes propietarios
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                {activeFiltersCount} filtros activos
+              </Badge>
+              
+              <div className="flex bg-muted rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center gap-1"
+                >
+                  <List className="h-4 w-4" />
+                  Lista
+                </Button>
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('map')}
+                  className="flex items-center gap-1"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Mapa
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Filters Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Filtros de Búsqueda
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <OwnerFilter 
+                  selectedOwners={filters.owners}
+                  onOwnerChange={(owners) => handleFilterChange({ owners })}
+                />
+                
+                <LocationKeywordFilter
+                  selectedKeywords={filters.locationKeywords}
+                  onKeywordChange={(locationKeywords) => handleFilterChange({ locationKeywords })}
+                />
+                
+                <DateAvailabilityFilter
+                  dateRange={filters.dateRange}
+                  onDateRangeChange={(dateRange) => handleFilterChange({ dateRange })}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {viewMode === 'map' ? (
+              <AvailableInventoryMap filters={filters} />
+            ) : (
+              <AvailableInventoryList filters={filters} />
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
