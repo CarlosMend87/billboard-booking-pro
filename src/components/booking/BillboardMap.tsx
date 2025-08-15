@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Settings } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { BookingDates, SelectedBillboard } from "@/types/booking";
 import { Billboard } from "@/types/billboard";
+import { Loader } from "@googlemaps/js-api-loader";
 
 // Mock data - En producción esto vendría de la API
 const mockBillboards: Billboard[] = [
@@ -48,53 +49,112 @@ export function BillboardMap({
   onBillboardSelect,
   selectedBillboards 
 }: BillboardMapProps) {
-  const [mapboxToken, setMapboxToken] = useState<string>("");
-  const [needsToken, setNeedsToken] = useState(true);
-
-  // Simulamos el token por ahora
-  useEffect(() => {
-    // En producción, el token vendría de las variables de entorno
-    const token = process.env.MAPBOX_ACCESS_TOKEN || "";
-    if (token) {
-      setMapboxToken(token);
-      setNeedsToken(false);
-    }
-  }, []);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const availableBillboards = selectedDates 
     ? mockBillboards.filter(b => b.status === "available")
     : [];
 
-  if (needsToken) {
+  useEffect(() => {
+    const initMap = async () => {
+      if (!mapRef.current) return;
+
+      const loader = new Loader({
+        apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
+        version: "weekly",
+        libraries: ["places", "geometry"]
+      });
+
+      try {
+        await loader.load();
+        
+        const mapInstance = new google.maps.Map(mapRef.current, {
+          center: { lat: 19.4326, lng: -99.1332 }, // CDMX
+          zoom: 11,
+          styles: [
+            {
+              featureType: "poi",
+              elementType: "labels",
+              stylers: [{ visibility: "off" }]
+            }
+          ]
+        });
+
+        // Add markers for available billboards
+        availableBillboards.forEach((billboard, index) => {
+          // Mock coordinates for demo - in production these would come from the billboard data
+          const lat = 19.4326 + (Math.random() - 0.5) * 0.1;
+          const lng = -99.1332 + (Math.random() - 0.5) * 0.1;
+          
+          const marker = new google.maps.Marker({
+            position: { lat, lng },
+            map: mapInstance,
+            title: billboard.location,
+            icon: {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="20" cy="20" r="15" fill="${billboard.type === 'fixed' ? '#ef4444' : '#3b82f6'}" stroke="white" stroke-width="3"/>
+                  <text x="20" y="25" text-anchor="middle" fill="white" font-size="12" font-weight="bold">$</text>
+                </svg>
+              `),
+              scaledSize: new google.maps.Size(40, 40),
+            }
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div class="p-2">
+                <div class="font-semibold">${billboard.location}</div>
+                <div class="text-sm text-gray-600">${billboard.size.width_meters}m × ${billboard.size.height_meters}m</div>
+                <div class="text-lg font-bold text-green-600">
+                  $${(billboard.type === "fixed" ? billboard.monthlyPrice : billboard.pricePerMonth || 0).toLocaleString('es-MX')} MXN/mes
+                </div>
+                <button class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600" 
+                        onclick="window.selectBillboard('${billboard.id}')">
+                  Seleccionar
+                </button>
+              </div>
+            `
+          });
+
+          marker.addListener("click", () => {
+            infoWindow.open(mapInstance, marker);
+          });
+
+          // Make billboard selection available globally for the info window button
+          (window as any).selectBillboard = (billboardId: string) => {
+            const selectedBillboard = availableBillboards.find(b => b.id === billboardId);
+            if (selectedBillboard) {
+              onBillboardSelect(selectedBillboard);
+              infoWindow.close();
+            }
+          };
+        });
+
+        setMap(mapInstance);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error loading Google Maps:", error);
+        setIsLoading(false);
+      }
+    };
+
+    if (selectedDates) {
+      initMap();
+    }
+  }, [selectedDates, onBillboardSelect]);
+
+  if (isLoading) {
     return (
       <Card className="h-[600px] flex items-center justify-center">
         <CardContent className="text-center space-y-4">
-          <MapPin className="h-12 w-12 text-muted-foreground mx-auto" />
+          <MapPin className="h-12 w-12 text-muted-foreground mx-auto animate-pulse" />
           <div>
-            <h3 className="text-lg font-semibold mb-2">Configuración de Mapa</h3>
-            <p className="text-muted-foreground mb-4">
-              Para mostrar el mapa interactivo, necesitas configurar tu token de Mapbox
-            </p>
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Ingresa tu token de Mapbox"
-                className="w-full max-w-md px-3 py-2 border rounded-md"
-                onChange={(e) => setMapboxToken(e.target.value)}
-              />
-              <Button 
-                onClick={() => setNeedsToken(false)}
-                disabled={!mapboxToken}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Configurar Mapa
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Obtén tu token gratuito en{" "}
-              <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                mapbox.com
-              </a>
+            <h3 className="text-lg font-semibold mb-2">Cargando Mapa</h3>
+            <p className="text-muted-foreground">
+              Preparando el mapa interactivo con los anuncios disponibles...
             </p>
           </div>
         </CardContent>
@@ -104,22 +164,9 @@ export function BillboardMap({
 
   return (
     <div className="space-y-4">
-      {/* Mapa simulado */}
-      <Card className="h-[400px] bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-dashed">
-        <CardContent className="h-full flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <MapPin className="h-8 w-8 text-primary mx-auto" />
-            <p className="text-lg font-medium">Mapa Interactivo</p>
-            <p className="text-sm text-muted-foreground">
-              Vista de anuncios disponibles en {selectedDates ? "las fechas seleccionadas" : "tiempo real"}
-            </p>
-            {selectedDates && (
-              <Badge variant="secondary">
-                {availableBillboards.length} anuncios disponibles
-              </Badge>
-            )}
-          </div>
-        </CardContent>
+      {/* Google Maps */}
+      <Card className="h-[500px] overflow-hidden">
+        <div ref={mapRef} className="w-full h-full" />
       </Card>
 
       {/* Lista de anuncios en el mapa */}
