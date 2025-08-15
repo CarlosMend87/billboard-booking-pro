@@ -24,7 +24,7 @@ export function Header() {
             <Link to="/add-billboard">
               <Button className="bg-gradient-primary hover:bg-primary-hover">
                 <Plus className="h-4 w-4 mr-2" />
-                Agregar Valla
+                Agregar Anuncio
               </Button>
             </Link>
             <Button variant="ghost" size="sm" className="relative">

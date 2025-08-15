@@ -60,11 +60,11 @@ const AddBillboard = () => {
 
   const onSubmit = (data: BillboardFormData) => {
     if (isBulkMode) {
-      // Lógica para crear múltiples vallas
-      toast.success(`${bulkCount} vallas agregadas exitosamente`)
+      // Lógica para crear múltiples anuncios
+      toast.success(`${bulkCount} anuncios agregados exitosamente`)
     } else {
-      // Lógica para crear una valla
-      toast.success("Valla agregada exitosamente")
+      // Lógica para crear un anuncio
+      toast.success("Anuncio agregado exitosamente")
     }
     console.log("Form data:", data)
   }
@@ -81,9 +81,9 @@ const AddBillboard = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Agregar Nueva Valla</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Agregar Nuevo Anuncio</h1>
                 <p className="text-muted-foreground">
-                  Registra nuevas vallas publicitarias en tu inventario
+                  Registra nuevos anuncios publicitarios en tu inventario
                 </p>
               </div>
               
@@ -99,7 +99,7 @@ const AddBillboard = () => {
                 
                 {isBulkMode && (
                   <Badge variant="secondary" className="text-sm">
-                    {bulkCount} vallas
+                    {bulkCount} anuncios
                   </Badge>
                 )}
               </div>
@@ -116,7 +116,7 @@ const AddBillboard = () => {
                 <CardContent>
                   <div className="flex items-center space-x-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Cantidad de vallas</label>
+                      <label className="text-sm font-medium">Cantidad de anuncios</label>
                       <Input
                         type="number"
                         min="1"
@@ -127,7 +127,7 @@ const AddBillboard = () => {
                       />
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Se crearán {bulkCount} vallas con la misma configuración base.
+                      Se crearán {bulkCount} anuncios con la misma configuración base.
                       Podrás editar individualmente después.
                     </div>
                   </div>
@@ -141,10 +141,10 @@ const AddBillboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5 text-primary" />
-                Información de la Valla
+                Información del Anuncio
               </CardTitle>
               <CardDescription>
-                Completa todos los campos requeridos para registrar la valla
+                Completa todos los campos requeridos para registrar el anuncio
               </CardDescription>
             </CardHeader>
             
@@ -152,9 +152,9 @@ const AddBillboard = () => {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                   
-                  {/* Tipo de Valla */}
+                  {/* Tipo de Anuncio */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Tipo de Valla</h3>
+                    <h3 className="text-lg font-semibold">Tipo de Anuncio</h3>
                     <FormField
                       control={form.control}
                       name="type"
@@ -175,13 +175,13 @@ const AddBillboard = () => {
                                 <SelectItem value="fixed">
                                   <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-status-available"></div>
-                                    Valla Fija
+                                    Anuncio Fijo
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="digital">
                                   <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-primary"></div>
-                                    Valla Digital
+                                    Anuncio Digital
                                   </div>
                                 </SelectItem>
                               </SelectContent>
@@ -294,7 +294,7 @@ const AddBillboard = () => {
                       name="photo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Imagen de la valla *</FormLabel>
+                          <FormLabel>Imagen del anuncio *</FormLabel>
                           <FormControl>
                             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                               <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
@@ -460,7 +460,7 @@ const AddBillboard = () => {
                       Cancelar
                     </Button>
                     <Button type="submit" className="bg-gradient-primary">
-                      {isBulkMode ? `Crear ${bulkCount} Vallas` : "Crear Valla"}
+                      {isBulkMode ? `Crear ${bulkCount} Anuncios` : "Crear Anuncio"}
                     </Button>
                   </div>
                 </form>
