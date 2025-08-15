@@ -5,7 +5,7 @@ import { DigitalBillboardCard } from "./DigitalBillboardCard"
 import { Billboard, FixedBillboard, DigitalBillboard } from "@/types/billboard"
 
 const mockBillboards: Billboard[] = [
-  // Vallas Fijas
+  // Anuncios Fijos
   {
     id: "VF001",
     type: "fixed",
@@ -47,7 +47,7 @@ const mockBillboards: Billboard[] = [
     contractMonths: 1
   } as FixedBillboard,
   
-  // Vallas Digitales (DOOH)
+  // Anuncios Digitales (DOOH)
   {
     id: "VD001",
     type: "digital",
@@ -135,9 +135,9 @@ export function BillboardGrid() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Inventario de Vallas</h2>
+        <h2 className="text-2xl font-bold">Inventario de Anuncios</h2>
         <Button className="bg-gradient-primary text-white hover:opacity-90 transition-opacity">
-          Agregar Nueva Valla
+          Agregar Nuevo Anuncio
         </Button>
       </div>
       

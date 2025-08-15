@@ -4,7 +4,7 @@ import { Billboard, FixedBillboard, DigitalBillboard } from "@/types/billboard"
 
 // Datos mock - en una app real vendrían de una API
 const mockBillboards: Billboard[] = [
-  // Vallas Fijas
+  // Anuncios Fijos
   {
     id: "VF001",
     type: "fixed",
@@ -46,7 +46,7 @@ const mockBillboards: Billboard[] = [
     contractMonths: 1
   } as FixedBillboard,
   
-  // Vallas Digitales (DOOH)
+  // Anuncios Digitales (DOOH)
   {
     id: "VD001",
     type: "digital",
@@ -133,13 +133,13 @@ function calculateStats() {
   const fixedBillboards = mockBillboards.filter(b => b.type === "fixed") as FixedBillboard[]
   const digitalBillboards = mockBillboards.filter(b => b.type === "digital") as DigitalBillboard[]
   
-  // Estadísticas Vallas Fijas
+  // Estadísticas Anuncios Fijos
   const fixedReserved = fixedBillboards.filter(b => b.status === "reserved").length
   const fixedConfirmed = fixedBillboards.filter(b => b.status === "confirmed").length
   const fixedTotal = fixedBillboards.length
   const fixedOccupancy = fixedTotal > 0 ? ((fixedReserved + fixedConfirmed) / fixedTotal) * 100 : 0
   
-  // Estadísticas Vallas Digitales (basado en slots)
+  // Estadísticas Anuncios Digitales (basado en slots)
   const digitalTotalSlots = digitalBillboards.reduce((acc, b) => acc + b.maxClients, 0)
   const digitalOccupiedSlots = digitalBillboards.reduce((acc, b) => acc + b.currentClients.length, 0)
   const digitalAvailableSlots = digitalBillboards.reduce((acc, b) => acc + b.availableSlots, 0)

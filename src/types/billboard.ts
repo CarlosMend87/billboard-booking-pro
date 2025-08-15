@@ -2,7 +2,7 @@ export type BillboardStatus = "available" | "reserved" | "confirmed" | "occupied
 export type SalesChannel = "platform" | "direct"
 export type BillboardType = "fixed" | "digital"
 
-// Unidades de venta para vallas digitales
+// Unidades de venta para anuncios digitales
 export type DigitalSaleUnit = "spot" | "hour" | "day" | "week" | "month"
 
 export interface BillboardSize {

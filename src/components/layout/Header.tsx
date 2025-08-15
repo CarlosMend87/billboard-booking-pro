@@ -13,7 +13,7 @@ export function Header() {
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">OOH</span>
               </div>
-              <h1 className="text-xl font-bold">CRM Vallas Publicitarias</h1>
+              <h1 className="text-xl font-bold">Detalle Marketplace</h1>
             </Link>
             <Badge variant="secondary" className="hidden sm:inline-flex">
               Panel Propietario

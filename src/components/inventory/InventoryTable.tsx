@@ -204,7 +204,7 @@ export function InventoryTable({
       
       {billboards.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
-          No se encontraron vallas que coincidan con los filtros aplicados.
+          No se encontraron anuncios que coincidan con los filtros aplicados.
         </div>
       )}
     </div>

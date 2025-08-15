@@ -149,12 +149,12 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Vallas Fijas</span>
+                  <span className="text-sm font-medium">Anuncios Fijos</span>
                   <span className="text-sm">{Math.round(fixedOccupancyRate)}%</span>
                 </div>
                 <Progress value={fixedOccupancyRate} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {occupiedFixed} de {totalFixed} vallas ocupadas
+                  {occupiedFixed} de {totalFixed} anuncios ocupados
                 </p>
               </div>
               
@@ -184,7 +184,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Vallas Fijas</span>
+                  <span className="text-sm font-medium">Anuncios Fijos</span>
                   <span className="text-sm font-bold">€{fixedRevenue.toLocaleString()}</span>
                 </div>
                 <Progress 
@@ -233,7 +233,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
                     <Badge variant="outline">{index + 1}</Badge>
                     <span className="text-sm font-medium">{location}</span>
                   </div>
-                  <span className="text-sm">{count} vallas</span>
+                  <span className="text-sm">{count} anuncios</span>
                 </div>
               ))}
             </div>
@@ -286,7 +286,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-2 bg-warning/10 rounded">
-                <span className="text-sm">Vallas sin ocupar</span>
+                <span className="text-sm">Anuncios sin ocupar</span>
                 <Badge variant="outline">{underperformingBillboards}</Badge>
               </div>
               

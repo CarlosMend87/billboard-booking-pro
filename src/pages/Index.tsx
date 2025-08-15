@@ -9,7 +9,7 @@ const Index = () => {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
           <p className="text-muted-foreground">
-            Gestiona tu inventario de vallas publicitarias con herramientas avanzadas
+            Gestiona tu inventario de anuncios publicitarios con herramientas avanzadas
           </p>
         </div>
         

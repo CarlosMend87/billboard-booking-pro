@@ -126,7 +126,7 @@ export function EnhancedInventoryManager() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'inventario-vallas.csv'
+    a.download = 'inventario-anuncios.csv'
     a.click()
   }
 
@@ -142,7 +142,7 @@ export function EnhancedInventoryManager() {
             <div>
               <CardTitle className="text-2xl">Gestión de Inventario</CardTitle>
               <p className="text-muted-foreground">
-                {filteredBillboards.length} de {allBillboards.length} vallas
+                {filteredBillboards.length} de {allBillboards.length} anuncios
                 {selectedBillboards.length > 0 && ` • ${selectedBillboards.length} seleccionadas`}
               </p>
             </div>
