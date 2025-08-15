@@ -158,10 +158,16 @@ function calculateStats() {
   
   return {
     fixedTotal,
+    fixedReserved,
+    fixedConfirmed,
     fixedOccupancy,
+    fixedIncome,
     digitalTotal: digitalBillboards.length,
+    digitalTotalSlots,
+    digitalOccupiedSlots,
     digitalOccupancy,
     digitalAvailableSlots,
+    digitalIncome,
     totalIncome
   }
 }
@@ -170,38 +176,54 @@ const stats = calculateStats()
 
 const statsConfig = [
   {
-    title: "Vallas Fijas",
+    title: "Inventario Fijo",
     value: `${stats.fixedTotal}`,
-    description: `${stats.fixedOccupancy.toFixed(0)}% ocupación`,
+    description: `${stats.fixedOccupancy.toFixed(0)}% ocupación total`,
     icon: Building2,
-    color: "text-primary"
+    color: "text-primary",
+    details: `Reservado: ${((stats.fixedReserved / stats.fixedTotal) * 100).toFixed(0)}% | Confirmado: ${((stats.fixedConfirmed / stats.fixedTotal) * 100).toFixed(0)}%`
   },
   {
-    title: "Vallas Digitales",
+    title: "Inventario Digital",
     value: `${stats.digitalTotal}`,
     description: `${stats.digitalOccupancy.toFixed(0)}% slots ocupados`,
     icon: Eye,
-    color: "text-blue-600"
+    color: "text-status-confirmed",
+    details: `${stats.digitalTotalSlots} slots totales | ${stats.digitalOccupiedSlots} ocupados`
   },
   {
-    title: "Slots Disponibles",
+    title: "Estado Fijas",
+    value: `${stats.fixedReserved + stats.fixedConfirmed}/${stats.fixedTotal}`,
+    description: `Reservado: ${stats.fixedReserved} | Confirmado: ${stats.fixedConfirmed}`,
+    icon: BarChart3,
+    color: "text-status-reserved"
+  },
+  {
+    title: "Slots Digitales",
     value: `${stats.digitalAvailableSlots}`,
-    description: "Entre pantallas digitales",
+    description: "Disponibles para reservar",
     icon: Calendar,
     color: "text-status-available"
   },
   {
-    title: "Ingresos Mensuales",
-    value: `$${stats.totalIncome.toLocaleString()}`,
-    description: "Fijas + Digitales actuales",
+    title: "Ingresos Fijas",
+    value: `$${stats.fixedIncome.toLocaleString()}`,
+    description: "Contratos confirmados",
     icon: DollarSign,
     color: "text-primary"
+  },
+  {
+    title: "Ingresos Digitales",
+    value: `$${stats.digitalIncome.toLocaleString()}`,
+    description: "Clientes activos actuales", 
+    icon: TrendingUp,
+    color: "text-status-confirmed"
   }
 ]
 
 export function DashboardStats() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {statsConfig.map((stat) => (
         <Card key={stat.title} className="bg-gradient-card shadow-soft hover:shadow-medium transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
