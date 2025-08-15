@@ -1,74 +1,135 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/ui/status-badge"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, DollarSign, Calendar, Users } from "lucide-react"
-
-interface Billboard {
-  id: string
-  location: string
-  size: string
-  price: number
-  status: "available" | "reserved" | "confirmed" | "occupied"
-  client?: string
-  salesChannel?: "platform" | "direct"
-  reservedUntil?: string
-}
+import { FixedBillboardCard } from "./FixedBillboardCard"
+import { DigitalBillboardCard } from "./DigitalBillboardCard"
+import { Billboard, FixedBillboard, DigitalBillboard } from "@/types/billboard"
 
 const mockBillboards: Billboard[] = [
+  // Vallas Fijas
   {
-    id: "VL001",
+    id: "VF001",
+    type: "fixed",
     location: "Plaza Centro",
-    size: "48' x 14'",
-    price: 2500,
+    size: { width_meters: 14.6, height_meters: 4.3, width_pixels: 1920, height_pixels: 1080 },
+    monthlyPrice: 2500,
     status: "available"
-  },
+  } as FixedBillboard,
   {
-    id: "VL002", 
+    id: "VF002", 
+    type: "fixed",
     location: "Autopista 101 Norte",
-    size: "96' x 48'",
-    price: 4200,
-    status: "reserved",
-    client: "Campaña Nike",
-    salesChannel: "platform",
-    reservedUntil: "2024-08-20"
-  },
-  {
-    id: "VL003",
-    location: "Salida Aeropuerto",
-    size: "24' x 12'", 
-    price: 1800,
+    size: { width_meters: 29.3, height_meters: 14.6 },
+    monthlyPrice: 4200,
     status: "confirmed",
-    client: "Restaurante Local",
-    salesChannel: "direct"
-  },
+    client: {
+      name: "Campaña Nike",
+      salesChannel: "platform",
+      startDate: "2024-08-01",
+      endDate: "2024-11-01",
+      price: 4200
+    },
+    contractMonths: 3
+  } as FixedBillboard,
   {
-    id: "VL004",
-    location: "Centro Comercial",
-    size: "32' x 16'",
-    price: 3100,
+    id: "VF003",
+    type: "fixed",
+    location: "Salida Aeropuerto",
+    size: { width_meters: 7.3, height_meters: 3.7 }, 
+    monthlyPrice: 1800,
+    status: "confirmed",
+    client: {
+      name: "Restaurante Local",
+      salesChannel: "direct",
+      startDate: "2024-08-01",
+      endDate: "2024-09-01",
+      price: 1800
+    },
+    contractMonths: 1
+  } as FixedBillboard,
+  
+  // Vallas Digitales (DOOH)
+  {
+    id: "VD001",
+    type: "digital",
+    location: "Centro Comercial Principal",
+    size: { width_meters: 4.0, height_meters: 3.0, width_pixels: 1920, height_pixels: 1440 },
+    maxClients: 15,
+    currentClients: [
+      {
+        name: "Tech Startup",
+        salesChannel: "platform",
+        startDate: "2024-08-01",
+        endDate: "2024-08-31",
+        price: 120,
+        saleUnit: "day"
+      },
+      {
+        name: "Restaurante Gourmet",
+        salesChannel: "direct",
+        startDate: "2024-08-01",
+        endDate: "2024-08-31",
+        price: 15,
+        saleUnit: "hour",
+        hoursPerDay: 8
+      },
+      {
+        name: "Marca Deportiva",
+        salesChannel: "platform",
+        startDate: "2024-08-01",
+        endDate: "2024-08-31",
+        price: 25,
+        saleUnit: "spot",
+        spotsPerDay: 12
+      }
+    ],
+    pricePerSpot: 25,
+    pricePerHour: 15,
+    pricePerDay: 120,
+    pricePerWeek: 800,
+    pricePerMonth: 3200,
     status: "reserved",
-    client: "Startup Tecnológica",
-    salesChannel: "platform",
-    reservedUntil: "2024-08-18"
-  },
+    availableSlots: 12
+  } as DigitalBillboard,
   {
-    id: "VL005",
-    location: "Calle Principal",
-    size: "20' x 8'",
-    price: 1200,
-    status: "available"
-  },
+    id: "VD002",
+    type: "digital",
+    location: "Estación Metro Centro",
+    size: { width_meters: 2.0, height_meters: 1.5, width_pixels: 1080, height_pixels: 1920 },
+    maxClients: 10,
+    currentClients: [],
+    pricePerSpot: 18,
+    pricePerHour: 12,
+    pricePerDay: 95,
+    pricePerWeek: 650,
+    pricePerMonth: 2800,
+    status: "available",
+    availableSlots: 10
+  } as DigitalBillboard,
   {
-    id: "VL006",
+    id: "VD003",
+    type: "digital",
     location: "Complejo Deportivo",
-    size: "64' x 32'",
-    price: 5500,
+    size: { width_meters: 6.0, height_meters: 4.0, width_pixels: 1920, height_pixels: 1280 },
+    maxClients: 15,
+    currentClients: new Array(15).fill(null).map((_, i) => ({
+      name: `Cliente ${i + 1}`,
+      salesChannel: i % 2 === 0 ? "platform" : "direct",
+      startDate: "2024-08-01",
+      endDate: "2024-08-31",
+      price: 30,
+      saleUnit: "spot",
+      spotsPerDay: 8
+    })),
+    pricePerSpot: 30,
+    pricePerHour: 20,
+    pricePerDay: 150,
+    pricePerWeek: 1000,
+    pricePerMonth: 4200,
     status: "occupied",
-    client: "Marca Deportiva",
-    salesChannel: "direct"
-  }
+    availableSlots: 0
+  } as DigitalBillboard
 ]
+
 
 export function BillboardGrid() {
   return (
@@ -82,80 +143,11 @@ export function BillboardGrid() {
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {mockBillboards.map((billboard) => (
-          <Card key={billboard.id} className="bg-gradient-card shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{billboard.id}</CardTitle>
-                  <p className="text-sm text-muted-foreground flex items-center mt-1">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {billboard.location}
-                  </p>
-                </div>
-                <StatusBadge variant={billboard.status} className="capitalize">
-                  {billboard.status}
-                </StatusBadge>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Tamaño:</span>
-                <span className="font-medium">{billboard.size}</span>
-              </div>
-              
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground flex items-center">
-                  <DollarSign className="h-3 w-3 mr-1" />
-                  Precio/Mes:
-                </span>
-                <span className="font-bold text-primary">${billboard.price.toLocaleString()}</span>
-              </div>
-              
-              {billboard.client && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground flex items-center">
-                      <Users className="h-3 w-3 mr-1" />
-                      Cliente:
-                    </span>
-                    <span className="font-medium">{billboard.client}</span>
-                  </div>
-                  
-                  {billboard.salesChannel && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Canal de Venta:</span>
-                      <Badge variant={billboard.salesChannel === "direct" ? "default" : "secondary"}>
-                        {billboard.salesChannel === "direct" ? "Venta Directa" : "Plataforma"}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {billboard.reservedUntil && billboard.status === "reserved" && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        Reservada hasta:
-                      </span>
-                      <span className="text-status-reserved font-medium">{billboard.reservedUntil}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="flex gap-2 pt-2">
-                {billboard.status === "available" && (
-                  <Button size="sm" className="flex-1">Reservar</Button>
-                )}
-                {billboard.status === "reserved" && (
-                  <Button size="sm" className="flex-1">Confirmar</Button>
-                )}
-                <Button variant="outline" size="sm" className="flex-1">
-                  Detalles
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          billboard.type === "fixed" ? (
+            <FixedBillboardCard key={billboard.id} billboard={billboard as FixedBillboard} />
+          ) : (
+            <DigitalBillboardCard key={billboard.id} billboard={billboard as DigitalBillboard} />
+          )
         ))}
       </div>
     </div>

@@ -3,30 +3,30 @@ import { Building2, Calendar, DollarSign, Eye } from "lucide-react"
 
 const stats = [
   {
-    title: "Total Vallas",
-    value: "24",
-    description: "Espacios de inventario activos",
+    title: "Vallas Fijas",
+    value: "3",
+    description: "Tradicionales con lona",
     icon: Building2,
     color: "text-primary"
   },
   {
-    title: "Disponibles",
-    value: "8",
-    description: "Listas para reservar",
+    title: "Vallas Digitales",
+    value: "3",
+    description: "DOOH con múltiples clientes",
     icon: Eye,
+    color: "text-blue-600"
+  },
+  {
+    title: "Slots Disponibles",
+    value: "23",
+    description: "Entre todas las pantallas",
+    icon: Calendar,
     color: "text-status-available"
   },
   {
-    title: "Reservadas",
-    value: "12",
-    description: "Pendientes de confirmación",
-    icon: Calendar,
-    color: "text-status-reserved"
-  },
-  {
     title: "Ingresos Mensuales",
-    value: "$45,200",
-    description: "+12% vs mes anterior",
+    value: "$52,400",
+    description: "+18% vs mes anterior",
     icon: DollarSign,
     color: "text-primary"
   }
