@@ -3,30 +3,30 @@ import { Building2, Calendar, DollarSign, Eye } from "lucide-react"
 
 const stats = [
   {
-    title: "Total Billboards",
+    title: "Total Vallas",
     value: "24",
-    description: "Active inventory slots",
+    description: "Espacios de inventario activos",
     icon: Building2,
     color: "text-primary"
   },
   {
-    title: "Available",
+    title: "Disponibles",
     value: "8",
-    description: "Ready for booking",
+    description: "Listas para reservar",
     icon: Eye,
     color: "text-status-available"
   },
   {
-    title: "Reserved",
+    title: "Reservadas",
     value: "12",
-    description: "Pending confirmation",
+    description: "Pendientes de confirmación",
     icon: Calendar,
     color: "text-status-reserved"
   },
   {
-    title: "Monthly Revenue",
+    title: "Ingresos Mensuales",
     value: "$45,200",
-    description: "+12% from last month",
+    description: "+12% vs mes anterior",
     icon: DollarSign,
     color: "text-primary"
   }

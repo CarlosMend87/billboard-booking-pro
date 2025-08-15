@@ -17,55 +17,55 @@ interface Billboard {
 
 const mockBillboards: Billboard[] = [
   {
-    id: "BB001",
-    location: "Downtown Plaza",
+    id: "VL001",
+    location: "Plaza Centro",
     size: "48' x 14'",
     price: 2500,
     status: "available"
   },
   {
-    id: "BB002", 
-    location: "Highway 101 North",
+    id: "VL002", 
+    location: "Autopista 101 Norte",
     size: "96' x 48'",
     price: 4200,
     status: "reserved",
-    client: "Nike Campaign",
+    client: "Campaña Nike",
     salesChannel: "platform",
     reservedUntil: "2024-08-20"
   },
   {
-    id: "BB003",
-    location: "Airport Exit",
+    id: "VL003",
+    location: "Salida Aeropuerto",
     size: "24' x 12'", 
     price: 1800,
     status: "confirmed",
-    client: "Local Restaurant",
+    client: "Restaurante Local",
     salesChannel: "direct"
   },
   {
-    id: "BB004",
-    location: "Shopping Center",
+    id: "VL004",
+    location: "Centro Comercial",
     size: "32' x 16'",
     price: 3100,
     status: "reserved",
-    client: "Tech Startup",
+    client: "Startup Tecnológica",
     salesChannel: "platform",
     reservedUntil: "2024-08-18"
   },
   {
-    id: "BB005",
-    location: "Main Street",
+    id: "VL005",
+    location: "Calle Principal",
     size: "20' x 8'",
     price: 1200,
     status: "available"
   },
   {
-    id: "BB006",
-    location: "Sports Complex",
+    id: "VL006",
+    location: "Complejo Deportivo",
     size: "64' x 32'",
     price: 5500,
     status: "occupied",
-    client: "Sports Brand",
+    client: "Marca Deportiva",
     salesChannel: "direct"
   }
 ]
@@ -74,9 +74,9 @@ export function BillboardGrid() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Billboard Inventory</h2>
+        <h2 className="text-2xl font-bold">Inventario de Vallas</h2>
         <Button className="bg-gradient-primary text-white hover:opacity-90 transition-opacity">
-          Add New Billboard
+          Agregar Nueva Valla
         </Button>
       </div>
       
@@ -100,14 +100,14 @@ export function BillboardGrid() {
             
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Size:</span>
+                <span className="text-muted-foreground">Tamaño:</span>
                 <span className="font-medium">{billboard.size}</span>
               </div>
               
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center">
                   <DollarSign className="h-3 w-3 mr-1" />
-                  Price/Month:
+                  Precio/Mes:
                 </span>
                 <span className="font-bold text-primary">${billboard.price.toLocaleString()}</span>
               </div>
@@ -117,16 +117,16 @@ export function BillboardGrid() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground flex items-center">
                       <Users className="h-3 w-3 mr-1" />
-                      Client:
+                      Cliente:
                     </span>
                     <span className="font-medium">{billboard.client}</span>
                   </div>
                   
                   {billboard.salesChannel && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Sales Channel:</span>
+                      <span className="text-xs text-muted-foreground">Canal de Venta:</span>
                       <Badge variant={billboard.salesChannel === "direct" ? "default" : "secondary"}>
-                        {billboard.salesChannel === "direct" ? "Direct Sale" : "Platform"}
+                        {billboard.salesChannel === "direct" ? "Venta Directa" : "Plataforma"}
                       </Badge>
                     </div>
                   )}
@@ -135,7 +135,7 @@ export function BillboardGrid() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        Reserved until:
+                        Reservada hasta:
                       </span>
                       <span className="text-status-reserved font-medium">{billboard.reservedUntil}</span>
                     </div>
@@ -145,13 +145,13 @@ export function BillboardGrid() {
               
               <div className="flex gap-2 pt-2">
                 {billboard.status === "available" && (
-                  <Button size="sm" className="flex-1">Reserve</Button>
+                  <Button size="sm" className="flex-1">Reservar</Button>
                 )}
                 {billboard.status === "reserved" && (
-                  <Button size="sm" className="flex-1">Confirm</Button>
+                  <Button size="sm" className="flex-1">Confirmar</Button>
                 )}
                 <Button variant="outline" size="sm" className="flex-1">
-                  Details
+                  Detalles
                 </Button>
               </div>
             </CardContent>

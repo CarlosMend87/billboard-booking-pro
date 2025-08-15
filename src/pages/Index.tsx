@@ -8,9 +8,9 @@ const Index = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
           <p className="text-muted-foreground">
-            Manage your out-of-home billboard inventory and reservations
+            Gestiona tu inventario de vallas publicitarias y reservas
           </p>
         </div>
         
