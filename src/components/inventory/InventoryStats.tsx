@@ -20,6 +20,15 @@ interface InventoryStatsProps {
 }
 
 export function InventoryStats({ billboards }: InventoryStatsProps) {
+  // Helper function to format currency in MXN
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0
+    }).format(price)
+  }
+
   // Calculate comprehensive stats
   const fixedBillboards = billboards.filter(b => b.type === 'fixed') as FixedBillboard[]
   const digitalBillboards = billboards.filter(b => b.type === 'digital') as DigitalBillboard[]
@@ -94,7 +103,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
     },
     {
       title: "Ingresos Mensuales",
-      value: `€${totalRevenue.toLocaleString()}`,
+      value: formatPrice(totalRevenue),
       icon: DollarSign,
       color: "text-success",
       description: `${Math.round(revenueEfficiency)}% del potencial máximo`,
@@ -105,7 +114,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
       value: `${Math.round(revenueEfficiency)}%`,
       icon: TrendingUp,
       color: revenueEfficiency > 70 ? "text-success" : revenueEfficiency > 50 ? "text-warning" : "text-destructive",
-      description: `€${(totalPotentialRevenue - totalRevenue).toLocaleString()} potencial perdido`,
+      description: `${formatPrice(totalPotentialRevenue - totalRevenue)} potencial perdido`,
       change: revenueEfficiency > 70 ? "+8% vs mes anterior" : "-3% vs mes anterior"
     }
   ]
@@ -185,7 +194,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium">Vallas Fijas</span>
-                  <span className="text-sm font-bold">€{fixedRevenue.toLocaleString()}</span>
+                  <span className="text-sm font-bold">{formatPrice(fixedRevenue)}</span>
                 </div>
                 <Progress 
                   value={totalRevenue > 0 ? (fixedRevenue / totalRevenue) * 100 : 0} 
@@ -196,7 +205,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium">Pantallas Digitales</span>
-                  <span className="text-sm font-bold">€{digitalRevenue.toLocaleString()}</span>
+                  <span className="text-sm font-bold">{formatPrice(digitalRevenue)}</span>
                 </div>
                 <Progress 
                   value={totalRevenue > 0 ? (digitalRevenue / totalRevenue) * 100 : 0} 
@@ -207,7 +216,7 @@ export function InventoryStats({ billboards }: InventoryStatsProps) {
               <div className="pt-2 border-t">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Ingresos Totales</span>
-                  <span className="text-lg font-bold">€{totalRevenue.toLocaleString()}</span>
+                  <span className="text-lg font-bold">{formatPrice(totalRevenue)}</span>
                 </div>
               </div>
             </div>
