@@ -10,54 +10,54 @@ export function Logo({ className = "", size = 32 }: LogoProps) {
     <svg 
       width={size} 
       height={size} 
-      viewBox="0 0 100 100" 
+      viewBox="0 0 120 120" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Main triangle/A shape */}
+      {/* Main A/triangle shape - more compact */}
       <path 
-        d="M20 80 L50 20 L80 80 L70 80 L60 60 L40 60 L30 80 Z" 
+        d="M25 100 L60 30 L95 100 L82 100 L72 75 L48 75 L38 100 Z" 
         fill="#000000"
       />
       
-      {/* Purple bar - top */}
+      {/* Purple bar - top, more compact */}
       <rect 
-        x="55" 
-        y="25" 
-        width="35" 
-        height="8" 
-        rx="4" 
-        fill="#9333EA"
+        x="62" 
+        y="35" 
+        width="48" 
+        height="6" 
+        rx="3" 
+        fill="#8B5CF6"
       />
       
       {/* Yellow bar - second */}
       <rect 
-        x="60" 
-        y="38" 
-        width="30" 
-        height="8" 
-        rx="4" 
-        fill="#EAB308"
+        x="68" 
+        y="48" 
+        width="42" 
+        height="6" 
+        rx="3" 
+        fill="#F59E0B"
       />
       
       {/* Orange bar - third */}
       <rect 
-        x="65" 
-        y="51" 
-        width="25" 
-        height="8" 
-        rx="4" 
+        x="74" 
+        y="61" 
+        width="36" 
+        height="6" 
+        rx="3" 
         fill="#F97316"
       />
       
       {/* Purple bar - bottom */}
       <rect 
-        x="70" 
-        y="64" 
-        width="20" 
-        height="8" 
-        rx="4" 
+        x="80" 
+        y="74" 
+        width="30" 
+        height="6" 
+        rx="3" 
         fill="#A855F7"
       />
     </svg>

@@ -11,7 +11,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <Logo size={32} className="transition-transform hover:scale-105" />
+              <Logo size={28} className="transition-transform hover:scale-105" />
               <h1 className="text-xl font-bold">Detalle Marketplace</h1>
             </Link>
             <Badge variant="secondary" className="hidden sm:inline-flex">
