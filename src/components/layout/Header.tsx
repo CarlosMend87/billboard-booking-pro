@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Logo } from "@/components/ui/logo"
 import { Bell, Settings, User, Plus } from "lucide-react"
 import { Link } from "react-router-dom"
 
@@ -10,9 +11,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">OOH</span>
-              </div>
+              <Logo size={32} className="transition-transform hover:scale-105" />
               <h1 className="text-xl font-bold">Detalle Marketplace</h1>
             </Link>
             <Badge variant="secondary" className="hidden sm:inline-flex">
