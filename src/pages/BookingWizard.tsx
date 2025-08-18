@@ -4,16 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { ArrowLeft, ArrowRight, CheckCircle, ShoppingCart } from "lucide-react";
+import { useCartContext } from "@/context/CartContext";
+import { ModalidadConfig } from "@/components/booking/ModalidadConfig";
+import { ProgramacionStep } from "@/components/booking/ProgramacionStep";
 import { formatPrice } from "@/lib/pricing";
 import { Link } from "react-router-dom";
+import { CartItemConfig } from "@/types/cart";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-  const { cart, updateQuantity, removeItem } = useCart();
+  const { cart, updateQuantity, removeItem } = useCartContext();
+  
+  const [itemConfigs, setItemConfigs] = useState<{[key: string]: CartItemConfig}>({});
+  
+  const handleConfigUpdate = (itemId: string, config: CartItemConfig) => {
+    setItemConfigs(prev => ({ ...prev, [itemId]: config }));
+  };
   
   const steps = [
     { number: 1, title: "Inventario Seleccionado", description: "Revisa y edita tu selección" },
@@ -80,37 +89,11 @@ export default function BookingWizard() {
       
       <div className="space-y-4">
         {cart.items.map((item) => (
-          <Card key={item.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">{item.asset.nombre}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Modalidad</label>
-                  <Badge variant="secondary" className="mt-1">{item.modalidad}</Badge>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Precio</label>
-                  <p className="font-semibold">{formatPrice(item.precioUnitario)}</p>
-                </div>
-              </div>
-              
-              {item.modalidad === 'spot' && (
-                <div>
-                  <label className="text-sm font-medium">Spots por día</label>
-                  <p>{item.config.spotsDia || 1}</p>
-                </div>
-              )}
-              
-              {item.modalidad === 'hora' && (
-                <div>
-                  <label className="text-sm font-medium">Horas por día</label>
-                  <p>{item.config.horas || 1}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ModalidadConfig 
+            key={item.id} 
+            item={item} 
+            onUpdate={handleConfigUpdate}
+          />
         ))}
       </div>
     </div>
@@ -121,21 +104,10 @@ export default function BookingWizard() {
       <h2 className="text-xl font-semibold">Programación</h2>
       <p className="text-muted-foreground">Selecciona las fechas y horarios para tu campaña</p>
       
-      <Card>
-        <CardContent className="p-6 text-center">
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">
-              Funcionalidad de programación en desarrollo
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Por ahora puedes continuar al resumen
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <ProgramacionStep 
+        items={cart.items} 
+        onUpdate={(itemId, fechas) => handleConfigUpdate(itemId, { ...itemConfigs[itemId], ...fechas })}
+      />
     </div>
   );
 
@@ -180,7 +152,8 @@ export default function BookingWizard() {
                 </p>
               </div>
               <Button size="lg" className="w-full">
-                Confirmar Reserva
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Confirmar Reserva - HOLD 48h
               </Button>
             </div>
           </CardContent>

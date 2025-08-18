@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, List, Search, Filter } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { useCartContext } from "@/context/CartContext";
 
 export interface InventoryFilters {
   owners: string[];
@@ -33,7 +33,7 @@ export default function DisponibilidadAnuncios() {
     }
   });
   
-  const { cart, addItem, removeItem, updateQuantity, clearCart } = useCart();
+  const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
 
   const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
