@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom'
 
 interface FilterState {
   search: string
-  status: 'disponible' | 'reservado' | 'ocupado' | 'all'
+  status: 'disponible' | 'reservado' | 'ocupado' | 'en_revision' | 'aceptado' | 'all'
   type: 'espectacular' | 'muro' | 'valla' | 'parabus' | 'digital' | 'all'
   location: string
   priceRange: [number, number]
@@ -72,7 +72,9 @@ export function EnhancedInventoryManager() {
     total: allAssets.length,
     available: allAssets.filter(a => a.estado === 'disponible').length,
     occupied: allAssets.filter(a => a.estado === 'ocupado').length,
-    reserved: allAssets.filter(a => a.estado === 'reservado').length
+    reserved: allAssets.filter(a => a.estado === 'reservado').length,
+    enRevision: allAssets.filter(a => a.estado === 'en_revision').length,
+    aceptados: allAssets.filter(a => a.estado === 'aceptado').length
   }
 
   return (
@@ -160,6 +162,8 @@ export function EnhancedInventoryManager() {
                 <SelectItem value="disponible">Disponibles</SelectItem>
                 <SelectItem value="reservado">Reservados</SelectItem>
                 <SelectItem value="ocupado">Ocupados</SelectItem>
+                <SelectItem value="en_revision">En Revisión</SelectItem>
+                <SelectItem value="aceptado">Aceptados</SelectItem>
               </SelectContent>
             </Select>
             
@@ -222,10 +226,14 @@ export function EnhancedInventoryManager() {
                           variant={
                             asset.estado === 'disponible' ? 'default' : 
                             asset.estado === 'reservado' ? 'secondary' : 
-                            'destructive'
+                            asset.estado === 'ocupado' ? 'destructive' :
+                            asset.estado === 'en_revision' ? 'outline' :
+                            'default'
                           }
                         >
-                          {asset.estado}
+                          {asset.estado === 'en_revision' ? 'En Revisión' : 
+                           asset.estado === 'aceptado' ? 'Aceptado' : 
+                           asset.estado}
                         </Badge>
                       </div>
                     </CardHeader>

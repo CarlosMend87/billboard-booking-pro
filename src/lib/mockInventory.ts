@@ -31,10 +31,18 @@ export interface InventoryAsset {
     hora?: number;
     dia?: number;
     cpm?: number;
+    descuento_volumen?: number;
+    precio_original?: number;
   };
-  estado: "disponible" | "reservado" | "ocupado";
+  estado: "disponible" | "reservado" | "ocupado" | "en_revision" | "aceptado";
   propietario?: string;
   foto: string;
+  metricas?: {
+    ingresos_mensuales?: number;
+    descuento_aplicado?: number;
+    fecha_ultima_reserva?: string;
+    cliente_actual?: string;
+  };
 }
 
 export const mockInventoryAssets: InventoryAsset[] = [
@@ -46,8 +54,8 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "lng": -99.085,
     "medidas": {"ancho_m": 12.9, "alto_m": 7.2, "caras": 2},
     "contratacion": {"mensual": true, "rotativo": true},
-    "precio": {"mensual": 25000},
-    "estado": "disponible",
+    "precio": {"mensual": 25000, "descuento_volumen": 8, "precio_original": 27000},
+    "estado": "en_revision",
     "propietario": "JCDecaux",
     "foto": "https://picsum.photos/seed/vf0001/800/450"
   },
@@ -59,8 +67,8 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "lng": -99.133,
     "medidas": {"base_m": 12, "alto_m": 30, "caras": 1},
     "contratacion": {"mensual": true},
-    "precio": {"mensual": 32000},
-    "estado": "reservado",
+    "precio": {"mensual": 32000, "descuento_volumen": 5, "precio_original": 33600},
+    "estado": "aceptado",
     "propietario": "Rentable",
     "foto": "https://picsum.photos/seed/mu0010/800/450"
   },
@@ -99,8 +107,8 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "medidas": {"ancho_m": 8, "alto_m": 4, "caras": 1},
     "digital": {"loop_seg": 60, "slot_seg": 10},
     "contratacion": {"spot": true, "hora": true, "dia": true, "cpm": true},
-    "precio": {"spot": 15, "hora": 600, "dia": 4000, "cpm": 80},
-    "estado": "disponible",
+    "precio": {"spot": 15, "hora": 600, "dia": 4000, "cpm": 80, "descuento_volumen": 12, "precio_original": 4500},
+    "estado": "en_revision",
     "propietario": "IMU",
     "foto": "https://picsum.photos/seed/dg002/800/450"
   },

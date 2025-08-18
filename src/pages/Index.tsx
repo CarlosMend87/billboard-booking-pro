@@ -1,8 +1,10 @@
 import { Header } from "@/components/layout/Header"
+import { BusinessIntelligence } from "@/components/dashboard/BusinessIntelligence"
 import { EnhancedInventoryManager } from "@/components/inventory/EnhancedInventoryManager"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Building, Search, Plus, MapPin } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Building, Search, Plus, MapPin, BarChart3, Grid3X3 } from "lucide-react"
 import { Link } from "react-router-dom"
 
 const Index = () => {
@@ -59,7 +61,26 @@ const Index = () => {
           </Card>
         </div>
         
-        <EnhancedInventoryManager />
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Inteligencia de Negocio
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <Grid3X3 className="h-4 w-4" />
+              Gestión de Inventario
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="mt-6">
+            <BusinessIntelligence />
+          </TabsContent>
+          
+          <TabsContent value="inventory" className="mt-6">
+            <EnhancedInventoryManager />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
