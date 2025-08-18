@@ -14,7 +14,220 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      campañas: {
+        Row: {
+          advertiser_id: string
+          created_at: string
+          dias_totales: number
+          dias_transcurridos: number | null
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          nombre: string
+          presupuesto_total: number
+          presupuesto_usado: number | null
+          reserva_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          advertiser_id: string
+          created_at?: string
+          dias_totales: number
+          dias_transcurridos?: number | null
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          nombre: string
+          presupuesto_total: number
+          presupuesto_usado?: number | null
+          reserva_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advertiser_id?: string
+          created_at?: string
+          dias_totales?: number
+          dias_transcurridos?: number | null
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          nombre?: string
+          presupuesto_total?: number
+          presupuesto_usado?: number | null
+          reserva_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campañas_advertiser_id_fkey"
+            columns: ["advertiser_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "campañas_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones: {
+        Row: {
+          campaña_id: string | null
+          created_at: string
+          id: string
+          leida: boolean | null
+          mensaje: string
+          reserva_id: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          campaña_id?: string | null
+          created_at?: string
+          id?: string
+          leida?: boolean | null
+          mensaje: string
+          reserva_id?: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          campaña_id?: string | null
+          created_at?: string
+          id?: string
+          leida?: boolean | null
+          mensaje?: string
+          reserva_id?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_campaña_id_fkey"
+            columns: ["campaña_id"]
+            isOneToOne: false
+            referencedRelation: "campañas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificaciones_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reservas: {
+        Row: {
+          advertiser_id: string
+          asset_name: string
+          asset_type: string
+          config: Json
+          created_at: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          modalidad: string
+          owner_id: string
+          precio_total: number
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          advertiser_id: string
+          asset_name: string
+          asset_type: string
+          config?: Json
+          created_at?: string
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          modalidad: string
+          owner_id: string
+          precio_total: number
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advertiser_id?: string
+          asset_name?: string
+          asset_type?: string
+          config?: Json
+          created_at?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          modalidad?: string
+          owner_id?: string
+          precio_total?: number
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_advertiser_id_fkey"
+            columns: ["advertiser_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "reservas_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
