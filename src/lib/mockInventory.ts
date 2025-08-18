@@ -210,13 +210,32 @@ export const categoriasPOI = [
   "Universities", "Airports", "Metro Stations", "Bus Terminals", "Hotels"
 ];
 
-// Catorcenas del año (mock simplificado)
+// Catorcenas del año (completo)
 export const catorcenas2024 = [
-  { numero: 1, inicio: "2024-01-01", fin: "2024-01-14", periodo: "C01-2024" },
-  { numero: 2, inicio: "2024-01-15", fin: "2024-01-28", periodo: "C02-2024" },
-  { numero: 3, inicio: "2024-01-29", fin: "2024-02-11", periodo: "C03-2024" },
-  { numero: 4, inicio: "2024-02-12", fin: "2024-02-25", periodo: "C04-2024" },
-  { numero: 5, inicio: "2024-02-26", fin: "2024-03-10", periodo: "C05-2024" },
-  { numero: 6, inicio: "2024-03-11", fin: "2024-03-24", periodo: "C06-2024" },
-  // Add more catorcenas as needed...
+  { numero: 1, inicio: "2024-12-24", fin: "2025-01-06", periodo: "C01-2025" },
+  { numero: 2, inicio: "2025-01-07", fin: "2025-01-20", periodo: "C02-2025" },
+  { numero: 3, inicio: "2025-01-21", fin: "2025-02-03", periodo: "C03-2025" },
+  { numero: 4, inicio: "2025-02-04", fin: "2025-02-17", periodo: "C04-2025" },
+  { numero: 5, inicio: "2025-02-18", fin: "2025-03-03", periodo: "C05-2025" },
+  { numero: 6, inicio: "2025-03-04", fin: "2025-03-17", periodo: "C06-2025" },
+  { numero: 7, inicio: "2025-03-18", fin: "2025-03-31", periodo: "C07-2025" },
+  { numero: 8, inicio: "2025-04-01", fin: "2025-04-14", periodo: "C08-2025" },
+  { numero: 9, inicio: "2025-04-15", fin: "2025-04-28", periodo: "C09-2025" },
+  { numero: 10, inicio: "2025-04-29", fin: "2025-05-12", periodo: "C10-2025" },
+  { numero: 11, inicio: "2025-05-13", fin: "2025-05-26", periodo: "C11-2025" },
+  { numero: 12, inicio: "2025-05-27", fin: "2025-06-09", periodo: "C12-2025" },
+  { numero: 13, inicio: "2025-06-10", fin: "2025-06-23", periodo: "C13-2025" },
+  { numero: 14, inicio: "2025-06-24", fin: "2025-07-07", periodo: "C14-2025" },
+  { numero: 15, inicio: "2025-07-08", fin: "2025-07-21", periodo: "C15-2025" },
+  { numero: 16, inicio: "2025-07-22", fin: "2025-08-04", periodo: "C16-2025" },
+  { numero: 17, inicio: "2025-08-05", fin: "2025-08-18", periodo: "C17-2025" },
+  { numero: 18, inicio: "2025-08-19", fin: "2025-09-01", periodo: "C18-2025" },
+  { numero: 19, inicio: "2025-09-02", fin: "2025-09-15", periodo: "C19-2025" },
+  { numero: 20, inicio: "2025-09-16", fin: "2025-09-29", periodo: "C20-2025" },
+  { numero: 21, inicio: "2025-09-30", fin: "2025-10-13", periodo: "C21-2025" },
+  { numero: 22, inicio: "2025-10-14", fin: "2025-10-27", periodo: "C22-2025" },
+  { numero: 23, inicio: "2025-10-28", fin: "2025-11-10", periodo: "C23-2025" },
+  { numero: 24, inicio: "2025-11-11", fin: "2025-11-24", periodo: "C24-2025" },
+  { numero: 25, inicio: "2025-11-25", fin: "2025-12-08", periodo: "C25-2025" },
+  { numero: 26, inicio: "2025-12-09", fin: "2025-12-22", periodo: "C26-2025" }
 ];

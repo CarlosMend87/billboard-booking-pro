@@ -62,25 +62,74 @@ export function ProgramacionStep({ items, onUpdate }: ProgramacionStepProps) {
     <div className="space-y-4">
       {item.modalidad === 'catorcenal' ? (
         <div>
-          <Label>Selecciona catorcenas</Label>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {catorcenas2024.slice(0, 6).map((catorcena) => (
-              <Button
-                key={catorcena.periodo}
-                variant={selectedDates[item.id]?.periodo === catorcena.periodo ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleCatorcenaChange(item.id, catorcena.periodo)}
-                className="justify-start"
-              >
-                <Badge variant="secondary" className="mr-2 text-xs">
-                  C{catorcena.numero.toString().padStart(2, '0')}
-                </Badge>
-                <span className="text-xs">
-                  {catorcena.inicio} al {catorcena.fin}
-                </span>
-              </Button>
-            ))}
+          <Label>Selecciona catorcenas disponibles</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 max-h-96 overflow-y-auto">
+            {catorcenas2024.map((catorcena) => {
+              const isSelected = selectedDates[item.id]?.periodo === catorcena.periodo;
+              const fechaInicio = new Date(catorcena.inicio);
+              const fechaFin = new Date(catorcena.fin);
+              const formatDate = (date: Date) => date.toLocaleDateString('es-MX', { 
+                day: 'numeric', 
+                month: 'short' 
+              });
+              
+              return (
+                <Button
+                  key={catorcena.periodo}
+                  variant={isSelected ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleCatorcenaChange(item.id, catorcena.periodo)}
+                  className="justify-start p-3 h-auto"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <Badge 
+                      variant={isSelected ? 'secondary' : 'outline'} 
+                      className="text-xs font-mono"
+                    >
+                      C{catorcena.numero.toString().padStart(2, '0')}
+                    </Badge>
+                    <div className="text-left flex-1">
+                      <div className="text-xs font-medium">
+                        {formatDate(fechaInicio)} - {formatDate(fechaFin)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {catorcena.periodo}
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              );
+            })}
           </div>
+          
+          {selectedDates[item.id]?.periodo && (
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-primary" />
+                <span className="font-medium">Catorcena seleccionada:</span>
+              </div>
+              <div className="mt-1 text-sm">
+                {(() => {
+                  const selected = catorcenas2024.find(c => c.periodo === selectedDates[item.id]?.periodo);
+                  if (!selected) return null;
+                  return (
+                    <span>
+                      <strong>C{selected.numero.toString().padStart(2, '0')}</strong> - 
+                      Del {new Date(selected.inicio).toLocaleDateString('es-MX', { 
+                        day: 'numeric', 
+                        month: 'long',
+                        year: 'numeric' 
+                      })} al {new Date(selected.fin).toLocaleDateString('es-MX', { 
+                        day: 'numeric', 
+                        month: 'long',
+                        year: 'numeric' 
+                      })}
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
