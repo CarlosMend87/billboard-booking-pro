@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Monitor, Building, Loader2 } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
+import { InventoryAsset } from "@/lib/mockInventory";
+import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { Loader } from "@googlemaps/js-api-loader";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
+  onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
 }
 
 // Mock billboard data with coordinates for Mexico City
@@ -58,7 +61,7 @@ const mockMapBillboards = [
   }
 ];
 
-export function AvailableInventoryMap({ filters }: AvailableInventoryMapProps) {
+export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInventoryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBillboard, setSelectedBillboard] = useState<typeof mockMapBillboards[0] | null>(null);

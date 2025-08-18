@@ -5,10 +5,12 @@ import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFi
 import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
 import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
+import { CartSidebar } from "@/components/cart/CartSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, List, Search, Filter } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 
 export interface InventoryFilters {
   owners: string[];
@@ -30,6 +32,8 @@ export default function DisponibilidadAnuncios() {
       endDate: null
     }
   });
+  
+  const { cart, addItem, removeItem, updateQuantity, clearCart } = useCart();
 
   const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -84,7 +88,7 @@ export default function DisponibilidadAnuncios() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
@@ -116,10 +120,20 @@ export default function DisponibilidadAnuncios() {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {viewMode === 'map' ? (
-              <AvailableInventoryMap filters={filters} />
+              <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
             ) : (
-              <AvailableInventoryList filters={filters} />
+              <AvailableInventoryList filters={filters} onAddToCart={addItem} />
             )}
+          </div>
+          
+          {/* Cart Sidebar */}
+          <div className="lg:col-span-1">
+            <CartSidebar 
+              cart={cart}
+              onRemoveItem={removeItem}
+              onUpdateQuantity={updateQuantity}
+              onClearCart={clearCart}
+            />
           </div>
         </div>
       </main>
