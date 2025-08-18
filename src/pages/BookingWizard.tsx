@@ -9,19 +9,39 @@ import { useCartContext } from "@/context/CartContext";
 import { ModalidadConfig } from "@/components/booking/ModalidadConfig";
 import { ProgramacionStep } from "@/components/booking/ProgramacionStep";
 import { formatPrice } from "@/lib/pricing";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CartItemConfig } from "@/types/cart";
+import { useReservations } from "@/hooks/useReservations";
+import { useToast } from "@/hooks/use-toast";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-  const { cart, updateQuantity, removeItem } = useCartContext();
+  const { cart, updateQuantity, removeItem, clearCart } = useCartContext();
+  const { createReservationsFromCart, loading } = useReservations();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [itemConfigs, setItemConfigs] = useState<{[key: string]: CartItemConfig}>({});
   
   const handleConfigUpdate = (itemId: string, config: CartItemConfig) => {
     setItemConfigs(prev => ({ ...prev, [itemId]: config }));
+  };
+
+  const handleConfirmReservation = async () => {
+    try {
+      await createReservationsFromCart(cart.items);
+      clearCart();
+      toast({
+        title: "Reservas Creadas",
+        description: "Tus reservas han sido enviadas a los propietarios. Recibirás notificaciones sobre su estado.",
+      });
+      navigate('/progreso-campaña');
+    } catch (error) {
+      // Error is already handled by useReservations hook
+      console.error('Error creating reservations:', error);
+    }
   };
   
   const steps = [
@@ -151,9 +171,9 @@ export default function BookingWizard() {
                   Al confirmar, tu reserva quedará en estado HOLD por 48 horas
                 </p>
               </div>
-              <Button size="lg" className="w-full">
+              <Button size="lg" className="w-full" onClick={handleConfirmReservation} disabled={loading}>
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                Confirmar Reserva - HOLD 48h
+                {loading ? "Procesando..." : "Confirmar Reserva - HOLD 48h"}
               </Button>
             </div>
           </CardContent>

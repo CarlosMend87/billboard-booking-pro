@@ -4,7 +4,7 @@ import { EnhancedInventoryManager } from "@/components/inventory/EnhancedInvento
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building, Search, Plus, MapPin, BarChart3, Grid3X3 } from "lucide-react"
+import { Building, Search, Plus, MapPin, BarChart3, Grid3X3, TrendingUp } from "lucide-react"
 import { Link } from "react-router-dom"
 
 const Index = () => {
@@ -19,7 +19,7 @@ const Index = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -55,6 +55,26 @@ const Index = () => {
                 <Link to="/disponibilidad-anuncios">
                   <MapPin className="h-4 w-4 mr-2" />
                   Ver Disponibilidad
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Progreso de Campañas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Monitorea tus campañas publicitarias activas y su progreso
+              </p>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/progreso-campaña">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Ver Campañas
                 </Link>
               </Button>
             </CardContent>
