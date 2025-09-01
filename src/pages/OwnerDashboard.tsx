@@ -9,11 +9,10 @@ import { BillboardForm } from "@/components/owner/BillboardForm";
 import { BusinessIntelligence } from "@/components/dashboard/BusinessIntelligence";
 import { QuickActions } from "@/components/owner/QuickActions";
 import { BillboardMap } from "@/components/owner/BillboardMap";
-import { BillboardSummary } from "@/components/owner/BillboardSummary";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function OwnerDashboard() {
-  const { billboards, loading, updateBillboard, deleteBillboard } = useBillboards();
+  const { billboards, loading, updateBillboard } = useBillboards();
   const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMapBillboard, setSelectedMapBillboard] = useState<Billboard | null>(null);
@@ -39,10 +38,10 @@ export default function OwnerDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Panel de Control
+              Dashboard Propietario
             </h1>
             <p className="text-muted-foreground mt-2">
-              Detalle Marketplace - Gestiona tu inventario de anuncios publicitarios
+              Gestión completa de pantallas publicitarias y análisis de rendimiento
             </p>
           </div>
           
@@ -96,13 +95,7 @@ export default function OwnerDashboard() {
             </TabsList>
 
             <TabsContent value="overview">
-              <BillboardSummary
-                billboards={billboards}
-                onEditBillboard={handleEdit}
-                onDeleteBillboard={deleteBillboard}
-                onUpdateStatus={handleUpdateStatus}
-                loading={loading}
-              />
+              <BusinessIntelligence billboards={billboards} />
             </TabsContent>
 
             <TabsContent value="management">
