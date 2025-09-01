@@ -38,60 +38,74 @@ export function BillboardMap({ billboards }: BillboardMapProps) {
 
       try {
         const loader = new Loader({
-          apiKey: "AIzaSyB_example_key", // Se reemplazará con el secret de Supabase
+          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
           version: "weekly",
+          libraries: ["places", "geometry"]
         });
 
-        await loader.load();
+        const { Map } = await loader.importLibrary("maps");
+        const { AdvancedMarkerElement } = await loader.importLibrary("marker");
         
-        const map = new google.maps.Map(mapRef.current, {
+        const map = new Map(mapRef.current, {
           center: { lat: 19.432608, lng: -99.133209 }, // Ciudad de México
           zoom: 11,
-          styles: [
-            {
-              featureType: "all",
-              elementType: "geometry.fill",
-              stylers: [{ color: "#f5f5f5" }]
-            },
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#e9e9e9" }]
-            }
-          ]
+          mapId: "billboard-owner-map",
+          streetViewControl: false,
+          mapTypeControl: false,
         });
 
         mapInstanceRef.current = map;
 
         // Agregar marcadores para cada billboard
         billboardsWithCoords.forEach((billboard) => {
-          const marker = new google.maps.Marker({
+          const markerElement = document.createElement('div');
+          markerElement.style.cursor = 'pointer';
+          markerElement.style.transition = 'transform 0.2s';
+          
+          const markerContent = document.createElement('div');
+          markerContent.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 4px 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid ${getStatusColor(billboard.status)};
+            min-width: 60px;
+            text-align: center;
+          `;
+          
+          const markerIcon = document.createElement('div');
+          markerIcon.style.fontSize = '16px';
+          markerIcon.style.lineHeight = '1';
+          markerIcon.textContent = '📺';
+          
+          const markerStatus = document.createElement('div');
+          markerStatus.style.fontSize = '9px';
+          markerStatus.style.fontWeight = 'bold';
+          markerStatus.style.color = getStatusColor(billboard.status);
+          markerStatus.textContent = billboard.status.toUpperCase();
+          
+          markerContent.appendChild(markerIcon);
+          markerContent.appendChild(markerStatus);
+          markerElement.appendChild(markerContent);
+
+          const marker = new AdvancedMarkerElement({
+            map,
             position: { lat: billboard.lat, lng: billboard.lng },
-            map: map,
-            title: billboard.nombre,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: getStatusColor(billboard.status),
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
-              scale: 8
-            }
+            content: markerElement,
+            title: billboard.nombre
           });
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div class="p-2">
-                <h3 class="font-semibold text-sm">${billboard.nombre}</h3>
-                <p class="text-xs text-gray-600">${billboard.direccion}</p>
-                <p class="text-xs">Estado: <span style="color: ${getStatusColor(billboard.status)}">${billboard.status}</span></p>
-              </div>
-            `
-          });
-
-          marker.addListener('click', () => {
+          markerElement.addEventListener('click', () => {
             setSelectedBillboard(billboard);
-            infoWindow.open(map, marker);
+            map.panTo({ lat: billboard.lat, lng: billboard.lng });
+          });
+
+          markerElement.addEventListener('mouseenter', () => {
+            markerElement.style.transform = 'scale(1.1)';
+          });
+
+          markerElement.addEventListener('mouseleave', () => {
+            markerElement.style.transform = 'scale(1)';
           });
         });
 
@@ -195,58 +209,76 @@ function MapFullView({ billboards }: { billboards: any[] }) {
 
       try {
         const loader = new Loader({
-          apiKey: "AIzaSyB_example_key", // Se reemplazará con el secret de Supabase
+          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
           version: "weekly",
+          libraries: ["places", "geometry"]
         });
 
-        await loader.load();
+        const { Map } = await loader.importLibrary("maps");
+        const { AdvancedMarkerElement } = await loader.importLibrary("marker");
         
-        const map = new google.maps.Map(mapRef.current, {
+        const map = new Map(mapRef.current, {
           center: { lat: 19.432608, lng: -99.133209 },
           zoom: 11,
-          styles: [
-            {
-              featureType: "all",
-              elementType: "geometry.fill",
-              stylers: [{ color: "#f5f5f5" }]
-            },
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#e9e9e9" }]
-            }
-          ]
+          mapId: "billboard-owner-fullview-map",
+          streetViewControl: false,
+          mapTypeControl: false,
         });
 
         // Agregar marcadores
         billboards.forEach((billboard) => {
-          const marker = new google.maps.Marker({
+          const markerElement = document.createElement('div');
+          markerElement.style.cursor = 'pointer';
+          markerElement.style.transition = 'transform 0.2s';
+          
+          const markerContent = document.createElement('div');
+          markerContent.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 6px 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid ${billboard.status === 'disponible' ? '#10b981' :
+                              billboard.status === 'ocupada' ? '#ef4444' : '#f59e0b'};
+            min-width: 80px;
+            text-align: center;
+          `;
+          
+          const markerIcon = document.createElement('div');
+          markerIcon.style.fontSize = '20px';
+          markerIcon.style.lineHeight = '1';
+          markerIcon.textContent = '📺';
+          
+          const markerName = document.createElement('div');
+          markerName.style.fontSize = '10px';
+          markerName.style.fontWeight = 'bold';
+          markerName.style.marginTop = '2px';
+          markerName.textContent = billboard.nombre;
+          
+          const markerStatus = document.createElement('div');
+          markerStatus.style.fontSize = '8px';
+          markerStatus.style.textTransform = 'uppercase';
+          markerStatus.style.color = billboard.status === 'disponible' ? '#10b981' :
+                                   billboard.status === 'ocupada' ? '#ef4444' : '#f59e0b';
+          markerStatus.textContent = billboard.status;
+          
+          markerContent.appendChild(markerIcon);
+          markerContent.appendChild(markerName);
+          markerContent.appendChild(markerStatus);
+          markerElement.appendChild(markerContent);
+
+          const marker = new AdvancedMarkerElement({
+            map,
             position: { lat: billboard.lat, lng: billboard.lng },
-            map: map,
-            title: billboard.nombre,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: billboard.status === 'disponible' ? '#10b981' :
-                        billboard.status === 'ocupada' ? '#ef4444' : '#f59e0b',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
-              scale: 10
-            }
+            content: markerElement,
+            title: `${billboard.nombre} - ${billboard.direccion}`
           });
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div class="p-3">
-                <h3 class="font-semibold">${billboard.nombre}</h3>
-                <p class="text-sm text-gray-600">${billboard.direccion}</p>
-                <p class="text-sm capitalize">Estado: ${billboard.status}</p>
-              </div>
-            `
+          markerElement.addEventListener('mouseenter', () => {
+            markerElement.style.transform = 'scale(1.1)';
           });
 
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
+          markerElement.addEventListener('mouseleave', () => {
+            markerElement.style.transform = 'scale(1)';
           });
         });
 
