@@ -12,6 +12,7 @@ import BookingWizard from "./pages/BookingWizard";
 import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
 import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
+import OwnerDashboard from "./pages/OwnerDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,11 @@ const App = () => (
               <Route path="/progreso-campaña" element={
                 <ProtectedRoute>
                   <ProgresoCampaña />
+                </ProtectedRoute>
+              } />
+              <Route path="/owner-dashboard" element={
+                <ProtectedRoute>
+                  <OwnerDashboard />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

@@ -4,7 +4,7 @@ import { EnhancedInventoryManager } from "@/components/inventory/EnhancedInvento
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building, Search, Plus, MapPin, BarChart3, Grid3X3, TrendingUp } from "lucide-react"
+import { Building, Search, Plus, MapPin, BarChart3, Grid3X3, TrendingUp, Monitor } from "lucide-react"
 import { Link } from "react-router-dom"
 
 const Index = () => {
@@ -32,7 +32,7 @@ const Index = () => {
                 Gestiona tu inventario, precios y disponibilidad de espacios publicitarios
               </p>
               <Button asChild className="w-full">
-                <Link to="/add-billboard">
+                <Link to="/owner-dashboard">
                   <Plus className="h-4 w-4 mr-2" />
                   Administrar Inventario
                 </Link>

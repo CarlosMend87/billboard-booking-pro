@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      billboards: {
+        Row: {
+          contratacion: Json
+          created_at: string
+          digital: Json | null
+          direccion: string
+          fotos: string[] | null
+          id: string
+          lat: number
+          lng: number
+          medidas: Json
+          nombre: string
+          owner_id: string
+          precio: Json
+          status: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          contratacion?: Json
+          created_at?: string
+          digital?: Json | null
+          direccion: string
+          fotos?: string[] | null
+          id?: string
+          lat: number
+          lng: number
+          medidas?: Json
+          nombre: string
+          owner_id: string
+          precio?: Json
+          status?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          contratacion?: Json
+          created_at?: string
+          digital?: Json | null
+          direccion?: string
+          fotos?: string[] | null
+          id?: string
+          lat?: number
+          lng?: number
+          medidas?: Json
+          nombre?: string
+          owner_id?: string
+          precio?: Json
+          status?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campañas: {
         Row: {
           advertiser_id: string

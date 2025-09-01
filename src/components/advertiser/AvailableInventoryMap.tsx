@@ -72,7 +72,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
       try {
         const loader = new Loader({
-          apiKey: "YOUR_GOOGLE_MAPS_API_KEY", // You'll need to add this
+          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
           version: "weekly",
           libraries: ["places", "geometry"]
         });
