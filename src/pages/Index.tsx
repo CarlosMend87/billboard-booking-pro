@@ -32,7 +32,7 @@ const Index = () => {
                 Gestiona tu inventario, precios y disponibilidad de espacios publicitarios
               </p>
               <Button asChild className="w-full">
-                <Link to="/owner-dashboard">
+                <Link to="/add-billboard">
                   <Plus className="h-4 w-4 mr-2" />
                   Administrar Inventario
                 </Link>

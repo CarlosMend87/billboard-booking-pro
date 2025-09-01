@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import Index from "./pages/Index";
 import AddBillboard from "./pages/AddBillboard";
 import BookingWizard from "./pages/BookingWizard";
@@ -18,14 +19,54 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
   
-  if (loading) {
+  if (authLoading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
   }
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function OwnerOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
+  
+  if (authLoading || roleLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  if (role !== 'owner') {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function RoleBasedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
+  
+  if (authLoading || roleLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  // Redirect owners directly to their dashboard
+  if (role === 'owner') {
+    return <Navigate to="/owner-dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -42,9 +83,9 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={
-                <ProtectedRoute>
+                <RoleBasedRoute>
                   <Index />
-                </ProtectedRoute>
+                </RoleBasedRoute>
               } />
               <Route path="/add-billboard" element={
                 <ProtectedRoute>
@@ -67,9 +108,9 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/owner-dashboard" element={
-                <ProtectedRoute>
+                <OwnerOnlyRoute>
                   <OwnerDashboard />
-                </ProtectedRoute>
+                </OwnerOnlyRoute>
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
