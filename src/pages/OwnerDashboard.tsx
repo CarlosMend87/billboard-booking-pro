@@ -9,10 +9,11 @@ import { BillboardForm } from "@/components/owner/BillboardForm";
 import { BusinessIntelligence } from "@/components/dashboard/BusinessIntelligence";
 import { QuickActions } from "@/components/owner/QuickActions";
 import { BillboardMap } from "@/components/owner/BillboardMap";
+import { BillboardSummary } from "@/components/owner/BillboardSummary";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function OwnerDashboard() {
-  const { billboards, loading, updateBillboard } = useBillboards();
+  const { billboards, loading, updateBillboard, deleteBillboard } = useBillboards();
   const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMapBillboard, setSelectedMapBillboard] = useState<Billboard | null>(null);
@@ -95,7 +96,13 @@ export default function OwnerDashboard() {
             </TabsList>
 
             <TabsContent value="overview">
-              <BusinessIntelligence billboards={billboards} />
+              <BillboardSummary
+                billboards={billboards}
+                onEditBillboard={handleEdit}
+                onDeleteBillboard={deleteBillboard}
+                onUpdateStatus={handleUpdateStatus}
+                loading={loading}
+              />
             </TabsContent>
 
             <TabsContent value="management">
