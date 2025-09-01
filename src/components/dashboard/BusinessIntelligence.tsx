@@ -1,291 +1,330 @@
-import { useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Billboard } from "@/hooks/useBillboards";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
 import { 
   TrendingUp, 
   TrendingDown, 
-  Eye, 
-  CheckCircle, 
-  Percent, 
-  DollarSign,
-  Monitor,
-  ShoppingCart,
-  BarChart3,
-  Users
-} from 'lucide-react'
-import { mockInventoryAssets, InventoryAsset } from '@/lib/mockInventory'
+  DollarSign, 
+  AlertTriangle,
+  Calendar,
+  MapPin,
+  Eye,
+  Target
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export function BusinessIntelligence() {
-  const analytics = useMemo(() => {
-    const assets = mockInventoryAssets
-    const total = assets.length
-    
-    // Basic counts
-    const disponibles = assets.filter(a => a.estado === 'disponible').length
-    const reservados = assets.filter(a => a.estado === 'reservado').length
-    const ocupados = assets.filter(a => a.estado === 'ocupado').length
-    const enRevision = assets.filter(a => a.estado === 'en_revision').length
-    const aceptados = assets.filter(a => a.estado === 'aceptado').length
-    
-    // Digital specific metrics
-    const digitales = assets.filter(a => a.tipo === 'digital')
-    const digitalesReservados = digitales.filter(a => a.estado === 'reservado' || a.estado === 'ocupado').length
-    const digitalesComprados = digitales.filter(a => a.estado === 'ocupado').length
-    
-    // Occupancy percentage
-    const ocupados_y_reservados = ocupados + reservados
-    const ocupancyRate = total > 0 ? ((ocupados_y_reservados / total) * 100) : 0
-    
-    // Revenue calculations
-    const ingresosMensuales = assets
-      .filter(a => a.estado === 'ocupado' || a.estado === 'reservado')
-      .reduce((sum, asset) => sum + (asset.precio.mensual || 0), 0)
-    
-    const ingresosPotenciales = assets
-      .reduce((sum, asset) => sum + (asset.precio.mensual || 0), 0)
-    
-    const rentabilidad = ingresosPotenciales > 0 ? 
-      ((ingresosMensuales / ingresosPotenciales) * 100) : 0
-    
-    // Discount calculations
-    const assetsWithDiscount = assets.filter(a => a.precio.descuento_volumen && a.precio.descuento_volumen > 0)
-    const promedioDescuento = assetsWithDiscount.length > 0 ?
-      assetsWithDiscount.reduce((sum, a) => sum + (a.precio.descuento_volumen || 0), 0) / assetsWithDiscount.length : 0
-    
-    return {
-      total,
-      disponibles,
-      reservados,
-      ocupados,
-      enRevision,
-      aceptados,
-      digitalesReservados,
-      digitalesComprados,
-      digitalesTotal: digitales.length,
-      ocupancyRate,
-      ingresosMensuales,
-      ingresosPotenciales,
-      rentabilidad,
-      promedioDescuento,
-      conversionRate: enRevision > 0 ? ((aceptados / (enRevision + aceptados)) * 100) : 0
-    }
-  }, [])
+interface BusinessIntelligenceProps {
+  billboards: Billboard[];
+}
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
+export function BusinessIntelligence({ billboards }: BusinessIntelligenceProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState("monthly");
+
+  // Cálculos de métricas
+  const totalScreens = billboards.length;
+  const activeScreens = billboards.filter(b => b.status === 'ocupada').length;
+  const availableScreens = billboards.filter(b => b.status === 'disponible').length;
+  const maintenanceScreens = billboards.filter(b => b.status === 'mantenimiento').length;
+
+  // Simulación de datos financieros (en producción vendrían de reservas/contratos)
+  const monthlyRevenue = 125000;
+  const estimatedLosses = availableScreens * 2500; // Promedio mensual por pantalla
+  const occupancyRate = totalScreens > 0 ? (activeScreens / totalScreens) * 100 : 0;
+  
+  // Pantallas de alta demanda (simulado - >80% ocupación)
+  const highDemandScreens = billboards.filter(() => Math.random() > 0.7).length;
+
+  // Datos para gráficas
+  const monthlyData = [
+    { month: 'Ene', revenue: 95000, screens: 85 },
+    { month: 'Feb', revenue: 105000, screens: 90 },
+    { month: 'Mar', revenue: 115000, screens: 95 },
+    { month: 'Abr', revenue: 120000, screens: 98 },
+    { month: 'May', revenue: 125000, screens: totalScreens },
+  ];
+
+  const screenTypeData = [
+    { name: 'Digital', value: billboards.filter(b => b.tipo === 'digital').length, color: '#8B5CF6' },
+    { name: 'Espectacular', value: billboards.filter(b => b.tipo === 'espectacular').length, color: '#06B6D4' },
+    { name: 'Muro', value: billboards.filter(b => b.tipo === 'muro').length, color: '#10B981' },
+    { name: 'Valla', value: billboards.filter(b => b.tipo === 'valla').length, color: '#F59E0B' },
+    { name: 'Parabús', value: billboards.filter(b => b.tipo === 'parabus').length, color: '#EF4444' },
+  ].filter(item => item.value > 0);
+
+  // Top 5 pantallas más rentables (simulado)
+  const topPerformingScreens = billboards
+    .slice(0, 5)
+    .map(screen => ({
+      ...screen,
+      revenue: Math.floor(Math.random() * 5000) + 2000,
+      occupancy: Math.floor(Math.random() * 30) + 70
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
+  // Pantallas con bajo rendimiento
+  const lowPerformingScreens = billboards
+    .filter(() => Math.random() > 0.8)
+    .slice(0, 3);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <BarChart3 className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Inteligencia de Negocio</h2>
-      </div>
-
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Métricas Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Eye className="h-4 w-4 text-blue-500" />
-              En Revisión
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{analytics.enRevision}</div>
-            <p className="text-xs text-muted-foreground">Espacios siendo evaluados</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              Aceptados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{analytics.aceptados}</div>
-            <p className="text-xs text-muted-foreground">Espacios aprobados</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-500" />
-              Tasa Conversión
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {analytics.conversionRate.toFixed(1)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Revisión → Aceptación</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Percent className="h-4 w-4 text-orange-500" />
-              Ocupación
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {analytics.ocupancyRate.toFixed(1)}%
-            </div>
-            <Progress value={analytics.ocupancyRate} className="mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Revenue Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-500" />
-              Ingresos Actuales
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(analytics.ingresosMensuales)}
-            </div>
-            <p className="text-xs text-muted-foreground">Por mes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-              Potencial Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatCurrency(analytics.ingresosPotenciales)}
-            </div>
-            <p className="text-xs text-muted-foreground">Si ocupación fuera 100%</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-purple-500" />
-              Rentabilidad
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {analytics.rentabilidad.toFixed(1)}%
-            </div>
-            <Progress value={analytics.rentabilidad} className="mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Digital & Discounts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Monitor className="h-5 w-5 text-cyan-500" />
-              Espacios Digitales
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total digitales:</span>
-              <Badge variant="outline">{analytics.digitalesTotal}</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Reservados:</span>
-              <Badge variant="secondary">{analytics.digitalesReservados}</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Comprados:</span>
-              <Badge variant="default">{analytics.digitalesComprados}</Badge>
-            </div>
-            <div className="pt-2 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Tasa ocupación digital:</span>
-                <span className="font-bold text-cyan-600">
-                  {analytics.digitalesTotal > 0 ? 
-                    ((analytics.digitalesReservados / analytics.digitalesTotal) * 100).toFixed(1) : 0}%
-                </span>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Ingresos del Mes</p>
+                <p className="text-2xl font-bold">${monthlyRevenue.toLocaleString()}</p>
+                <div className="flex items-center mt-1">
+                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-500">+12.5%</span>
+                </div>
               </div>
+              <DollarSign className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-red-500" />
-              Análisis de Descuentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Descuento promedio:</span>
-              <Badge variant="destructive">{analytics.promedioDescuento.toFixed(1)}%</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Espacios con descuento:</span>
-              <Badge variant="outline">
-                {mockInventoryAssets.filter(a => a.precio.descuento_volumen && a.precio.descuento_volumen > 0).length}
-              </Badge>
-            </div>
-            <div className="pt-2 border-t">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Impacto en ingresos: </span>
-                <span className="font-medium text-red-600">
-                  -{formatCurrency(analytics.ingresosPotenciales * (analytics.promedioDescuento / 100))}
-                </span>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Tasa de Ocupación</p>
+                <p className="text-2xl font-bold">{occupancyRate.toFixed(1)}%</p>
+                <div className="flex items-center mt-1">
+                  <Target className="h-4 w-4 text-blue-500 mr-1" />
+                  <span className="text-sm text-muted-foreground">{activeScreens}/{totalScreens} activas</span>
+                </div>
               </div>
+              <Eye className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pérdidas Estimadas</p>
+                <p className="text-2xl font-bold">${estimatedLosses.toLocaleString()}</p>
+                <div className="flex items-center mt-1">
+                  <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                  <span className="text-sm text-red-500">{availableScreens} sin rentar</span>
+                </div>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Alta Demanda</p>
+                <p className="text-2xl font-bold">{highDemandScreens}</p>
+                <div className="flex items-center mt-1">
+                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-500">+80% ocupación</span>
+                </div>
+              </div>
+              <MapPin className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Summary Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Insights Clave</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-semibold text-sm">📈 Oportunidades</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• {analytics.disponibles} espacios disponibles para comercializar</li>
-                <li>• Potencial de {formatCurrency(analytics.ingresosPotenciales - analytics.ingresosMensuales)} adicionales</li>
-                <li>• {analytics.enRevision} clientes en proceso de decisión</li>
-              </ul>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold text-sm">⚠️ Áreas de Atención</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Ocupación actual: {analytics.ocupancyRate.toFixed(1)}% del total</li>
-                <li>• Descuentos promedio reducen ingresos {analytics.promedioDescuento.toFixed(1)}%</li>
-                <li>• {analytics.digitalesTotal - analytics.digitalesReservados} espacios digitales sin usar</li>
-              </ul>
-            </div>
+      <Tabs defaultValue="financial" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="financial">Finanzas</TabsTrigger>
+          <TabsTrigger value="performance">Rendimiento</TabsTrigger>
+          <TabsTrigger value="contracts">Contratos</TabsTrigger>
+          <TabsTrigger value="analytics">Análisis</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="financial" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ingresos Mensuales</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Ingresos']} />
+                    <Bar dataKey="revenue" fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribución por Tipo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={screenTypeData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {screenTypeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 5 Pantallas Más Rentables</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {topPerformingScreens.map((screen, index) => (
+                    <div key={screen.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline">#{index + 1}</Badge>
+                        <div>
+                          <p className="font-medium">{screen.nombre}</p>
+                          <p className="text-sm text-muted-foreground">{screen.direccion}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">${screen.revenue.toLocaleString()}</p>
+                        <p className="text-sm text-green-500">{screen.occupancy}% ocupación</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  Bajo Rendimiento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {lowPerformingScreens.length > 0 ? (
+                    lowPerformingScreens.map((screen) => (
+                      <div key={screen.id} className="p-3 border border-red-200 rounded-lg bg-red-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{screen.nombre}</p>
+                            <p className="text-sm text-muted-foreground">{screen.direccion}</p>
+                          </div>
+                          <Badge variant="destructive">Sin actividad</Badge>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">¡Excelente! Todas las pantallas tienen buen rendimiento.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="contracts" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Próximos Vencimientos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Pantalla Centro Comercial</p>
+                      <p className="text-sm text-muted-foreground">Vence: 15 de Junio, 2024</p>
+                    </div>
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                      7 días restantes
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="p-4 border border-orange-200 rounded-lg bg-orange-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Espectacular Av. Principal</p>
+                      <p className="text-sm text-muted-foreground">Vence: 20 de Junio, 2024</p>
+                    </div>
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">
+                      12 días restantes
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencia de Ocupación</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line 
+                    type="monotone" 
+                    dataKey="screens" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--primary))" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
-  )
+  );
 }

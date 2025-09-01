@@ -94,7 +94,7 @@ const Index = () => {
           </TabsList>
           
           <TabsContent value="dashboard" className="mt-6">
-            <BusinessIntelligence />
+            <BusinessIntelligence billboards={[]} />
           </TabsContent>
           
           <TabsContent value="inventory" className="mt-6">
