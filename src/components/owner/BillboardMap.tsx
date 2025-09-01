@@ -25,12 +25,16 @@ export function BillboardMap({ billboards }: BillboardMapProps) {
     }
   };
 
-  // Simulamos coordenadas para los billboards (en producción vendrían de la BD)
-  const billboardsWithCoords = billboards.map((billboard, index) => ({
-    ...billboard,
-    lat: 19.432608 + (Math.random() - 0.5) * 0.1, // Centro de CDMX
-    lng: -99.133209 + (Math.random() - 0.5) * 0.1
-  }));
+  // Usar las coordenadas reales de la base de datos
+  console.log('Billboards recibidos:', billboards);
+  const billboardsWithCoords = billboards.map((billboard) => {
+    console.log(`Billboard ${billboard.nombre}: lat=${billboard.lat}, lng=${billboard.lng}`);
+    return {
+      ...billboard,
+      lat: Number(billboard.lat) || 19.432608,
+      lng: Number(billboard.lng) || -99.133209
+    };
+  });
 
   useEffect(() => {
     const initializeMap = async () => {
@@ -266,9 +270,10 @@ function MapFullView({ billboards }: { billboards: any[] }) {
           markerContent.appendChild(markerStatus);
           markerElement.appendChild(markerContent);
 
+          console.log(`MapFullView - Billboard ${billboard.nombre}: lat=${billboard.lat}, lng=${billboard.lng}`);
           const marker = new AdvancedMarkerElement({
             map,
-            position: { lat: billboard.lat, lng: billboard.lng },
+            position: { lat: Number(billboard.lat), lng: Number(billboard.lng) },
             content: markerElement,
             title: `${billboard.nombre} - ${billboard.direccion}`
           });

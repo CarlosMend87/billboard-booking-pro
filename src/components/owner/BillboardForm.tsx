@@ -65,8 +65,8 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
     defaultValues: {
       nombre: billboard?.nombre || "",
       direccion: billboard?.direccion || "",
-      lat: billboard?.lat || 19.4326,
-      lng: billboard?.lng || -99.1332,
+      lat: Number(billboard?.lat) || 19.4326,
+      lng: Number(billboard?.lng) || -99.1332,
       tipo: (billboard?.tipo as any) || 'espectacular',
       status: (billboard?.status as any) || 'disponible',
       caras: (billboard?.medidas as any)?.caras || 1,
@@ -123,6 +123,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
 
   const onSubmit = async (data: BillboardFormData) => {
     setIsSubmitting(true);
+    
+    console.log('Datos del formulario:', data);
+    console.log('Coordenadas a guardar:', { lat: data.lat, lng: data.lng });
     
     try {
       const billboardData = {
