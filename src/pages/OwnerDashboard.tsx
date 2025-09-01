@@ -39,10 +39,10 @@ export default function OwnerDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Dashboard Propietario
+              Panel de Control
             </h1>
             <p className="text-muted-foreground mt-2">
-              Gestión completa de pantallas publicitarias y análisis de rendimiento
+              Detalle Marketplace - Gestiona tu inventario de anuncios publicitarios
             </p>
           </div>
           
