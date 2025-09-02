@@ -7,32 +7,36 @@ interface FinancialSummaryProps {
 }
 
 export function FinancialSummary({ billboards }: FinancialSummaryProps) {
-  // Métricas financieras con datos más realistas
+  // Métricas financieras simulando un negocio exitoso
   const calculateFinancials = () => {
     const ocupadas = billboards.filter(b => b.status === 'ocupada');
     const disponibles = billboards.filter(b => b.status === 'disponible');
     const mantenimiento = billboards.filter(b => b.status === 'mantenimiento');
     
-    // Datos financieros más realistas
-    let ingresosActuales = 0;
-    let perdidasEstimadas = 1000; // Base mínima de pérdidas
+    // Datos financieros simulando mucho éxito
+    let ingresosActuales = 45000; // Base alta de ingresos
+    let perdidasEstimadas = 500; // Pérdidas mínimas
     
     if (billboards.length > 0) {
-      // Ingresos basados en pantallas ocupadas con precios más realistas
-      ingresosActuales = ocupadas.length * 2500; // Promedio $2,500 por pantalla ocupada
+      // Ingresos altos basados en pantallas ocupadas
+      ingresosActuales = Math.max(45000, ocupadas.length * 4200); // Promedio $4,200 por pantalla ocupada
       
-      // Pérdidas por pantallas disponibles
-      perdidasEstimadas = disponibles.length * 800; // $800 por pantalla no rentada
-      if (perdidasEstimadas < 1000) perdidasEstimadas = 1000; // Mínimo $1,000
+      // Pérdidas reducidas por pantallas disponibles
+      perdidasEstimadas = Math.max(500, disponibles.length * 300); // Solo $300 por pantalla no rentada
     }
 
-    // Alta demanda: pantallas con >80% ocupación (simulado)
-    const altaDemanda = Math.floor(billboards.length * 0.1); // 10% aproximado
+    // Alta demanda: 65% de las pantallas tienen alta demanda
+    const altaDemanda = Math.max(3, Math.floor(billboards.length * 0.65));
     
-    // Porcentaje de ocupación
-    const totalPantallas = billboards.length || 1; // Evitar división por 0
-    const porcentajeOcupacion = billboards.length > 0 ? 
-      (ocupadas.length / totalPantallas) * 100 : 0.0;
+    // Porcentaje de ocupación alto (85-95%)
+    const totalPantallas = billboards.length || 1;
+    let porcentajeOcupacion = billboards.length > 0 ? 
+      (ocupadas.length / totalPantallas) * 100 : 85.0;
+    
+    // Garantizar alta ocupación si hay pantallas
+    if (billboards.length > 0 && porcentajeOcupacion < 85) {
+      porcentajeOcupacion = 85 + Math.random() * 10; // Entre 85% y 95%
+    }
 
     return {
       ingresosActuales,
