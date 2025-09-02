@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AvailableInventoryListProps {
   filters: InventoryFilters;
@@ -36,13 +37,77 @@ const getRandomAvailableDates = () => {
   return dates;
 };
 
+// Convert Supabase billboard to InventoryAsset format
+const convertBillboardToAsset = (billboard: any): InventoryAsset => {
+  return {
+    id: billboard.id,
+    nombre: billboard.nombre,
+    tipo: billboard.tipo,
+    lat: parseFloat(billboard.lat) || 0,
+    lng: parseFloat(billboard.lng) || 0,
+    medidas: {
+      ancho_m: billboard.medidas?.ancho_m || 0,
+      alto_m: billboard.medidas?.alto_m || 0,
+      base_m: billboard.medidas?.base_m || 0,
+      caras: billboard.medidas?.caras || 1
+    },
+    precio: {
+      mensual: billboard.precio?.mensual || 0,
+      dia: billboard.precio?.dia || 0,
+      hora: billboard.precio?.hora || 0,
+      spot: billboard.precio?.spot || 0,
+      cpm: billboard.precio?.cpm || 0
+    },
+    contratacion: {
+      mensual: billboard.contratacion?.mensual || false,
+      catorcenal: billboard.contratacion?.catorcenal || false,
+      rotativo: billboard.contratacion?.rotativo || false,
+      spot: billboard.contratacion?.spot || false,
+      hora: billboard.contratacion?.hora || false,
+      dia: billboard.contratacion?.dia || false,
+      cpm: billboard.contratacion?.cpm || false
+    },
+    estado: billboard.status === 'disponible' ? 'disponible' : 'ocupado',
+    propietario: `Propietario ${billboard.owner_id.slice(0, 8)}`, // Simplified owner display
+    foto: billboard.fotos?.[0] || `https://picsum.photos/seed/${billboard.id}/800/450`
+  };
+};
+
 export function AvailableInventoryList({ filters, onAddToCart }: AvailableInventoryListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedModalidad, setSelectedModalidad] = useState<{[key: string]: CartItemModalidad}>({});
+  const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
+
+  // Fetch available billboards from owners
+  useEffect(() => {
+    const fetchOwnerBillboards = async () => {
+      try {
+        const { data: billboards, error } = await supabase
+          .from('billboards')
+          .select('*')
+          .eq('status', 'disponible'); // Only available billboards
+
+        if (error) {
+          console.error('Error fetching billboards:', error);
+          return;
+        }
+
+        const convertedBillboards = billboards?.map(convertBillboardToAsset) || [];
+        setOwnerBillboards(convertedBillboards);
+      } catch (error) {
+        console.error('Error fetching owner billboards:', error);
+      }
+    };
+
+    fetchOwnerBillboards();
+  }, []);
 
   // Filter available assets based on filters
   const availableAssets = useMemo(() => {
-    return mockInventoryAssets.filter(asset => {
+    // Combine mock inventory with owner billboards
+    const allAssets = [...mockInventoryAssets, ...ownerBillboards];
+    
+    return allAssets.filter(asset => {
       // Only show available assets
       if (asset.estado !== "disponible") return false;
 
@@ -58,7 +123,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
 
       return true;
     });
-  }, [searchTerm, filters]);
+  }, [searchTerm, filters, ownerBillboards]);
 
   const getTipoLabel = (tipo: string) => {
     const labels = {
