@@ -247,7 +247,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                         {typeLabel}
                       </Badge>
                       <Badge variant="secondary" className="text-xs">
-                        ID: {asset.id}
+                        ID: {asset.id.slice(-6)}
                       </Badge>
                     </div>
                     <h3 className="font-semibold text-lg">{asset.nombre}</h3>
@@ -344,7 +344,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                   </Button>
                   <Button size="sm" className="flex-1" onClick={() => handleAddToCart(asset)}>
                     <ShoppingCart className="h-4 w-4 mr-1" />
-                    Agregar
+                    Continuar Reserva
                   </Button>
                 </div>
               </CardContent>
