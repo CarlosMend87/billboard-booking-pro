@@ -7,68 +7,56 @@ import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { Loader } from "@googlemaps/js-api-loader";
+import { supabase } from "@/integrations/supabase/client";
+import { formatTruncatedId } from "@/lib/utils";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
 }
 
-// Mock billboard data with coordinates for Mexico City
-const mockMapBillboards = [
-  {
-    id: "ANU-001",
-    type: "fixed" as const,
-    location: "Av. Insurgentes Sur 123",
-    lat: 19.3640,
-    lng: -99.1678,
-    owner: "JCDecaux",
-    price: 25000,
-    size: "6m × 3m",
-    availableDates: [12, 13, 14, 15, 16, 20, 21, 22]
-  },
-  {
-    id: "DIG-002", 
-    type: "digital" as const,
-    location: "Av. Reforma 456",
-    lat: 19.4260,
-    lng: -99.1679,
-    owner: "Rentable",
-    price: 45000,
-    size: "8m × 4m",
-    availableDates: [10, 11, 12, 18, 19, 25, 26, 27]
-  },
-  {
-    id: "ANU-003",
-    type: "fixed" as const,
-    location: "Eje Central 789",
-    lat: 19.4000,
-    lng: -99.1500,
-    owner: "Grupo Vallas",
-    price: 18000,
-    size: "4m × 2m", 
-    availableDates: [5, 6, 7, 8, 15, 16, 17, 28]
-  },
-  {
-    id: "DIG-004",
-    type: "digital" as const,
-    location: "Periférico Sur 321",
-    lat: 19.3200,
-    lng: -99.1800,
-    owner: "Visual Shot",
-    price: 35000,
-    size: "10m × 5m",
-    availableDates: [14, 15, 16, 17, 18, 24, 25, 26]
-  }
-];
+interface Billboard {
+  id: string;
+  nombre: string;
+  direccion: string;
+  lat: number;
+  lng: number;
+  tipo: string;
+  medidas: any;
+  precio: any;
+  digital: any;
+  fotos: string[];
+  owner_id: string;
+}
 
 export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInventoryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedBillboard, setSelectedBillboard] = useState<typeof mockMapBillboards[0] | null>(null);
+  const [billboards, setBillboards] = useState<Billboard[]>([]);
+  const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(null);
+
+  // Fetch billboards from database
+  useEffect(() => {
+    const fetchBillboards = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('billboards')
+          .select('*')
+          .eq('status', 'disponible');
+
+        if (error) throw error;
+        setBillboards((data as Billboard[]) || []);
+      } catch (error) {
+        console.error("Error fetching billboards:", error);
+      }
+    };
+
+    fetchBillboards();
+  }, []);
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current || billboards.length === 0) return;
 
       try {
         const loader = new Loader({
@@ -80,28 +68,32 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-        // Initialize map centered on Mexico City
+        // Center map on first billboard or default location
+        const centerLat = billboards.length > 0 ? billboards[0].lat : 21.0285;
+        const centerLng = billboards.length > 0 ? billboards[0].lng : -89.6064;
+
         const map = new Map(mapRef.current, {
-          center: { lat: 19.4326, lng: -99.1332 },
-          zoom: 11,
+          center: { lat: centerLat, lng: centerLng },
+          zoom: 12,
           mapId: "available-inventory-map",
           streetViewControl: false,
           mapTypeControl: false,
         });
 
         // Add markers for each billboard
-        mockMapBillboards.forEach((billboard) => {
+        billboards.forEach((billboard) => {
           const markerElement = document.createElement('div');
           markerElement.style.cursor = 'pointer';
           markerElement.style.transition = 'transform 0.2s';
           
           const markerContent = document.createElement('div');
+          const isDigital = billboard.digital || billboard.tipo === 'digital';
           markerContent.style.cssText = `
             background: white;
             border-radius: 8px;
             padding: 4px 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            border: 2px solid ${billboard.type === 'digital' ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'};
+            border: 2px solid ${isDigital ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'};
             min-width: 60px;
             text-align: center;
           `;
@@ -109,13 +101,14 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           const markerIcon = document.createElement('div');
           markerIcon.style.fontSize = '16px';
           markerIcon.style.lineHeight = '1';
-          markerIcon.textContent = billboard.type === 'digital' ? '📺' : '📋';
+          markerIcon.textContent = isDigital ? '📺' : '📋';
           
           const markerPrice = document.createElement('div');
           markerPrice.style.fontSize = '10px';
           markerPrice.style.fontWeight = 'bold';
           markerPrice.style.color = 'hsl(var(--primary))';
-          markerPrice.textContent = `$${(billboard.price / 1000).toFixed(0)}K`;
+          const price = billboard.precio?.mensual || 0;
+          markerPrice.textContent = `$${(price / 1000).toFixed(0)}K`;
           
           markerContent.appendChild(markerIcon);
           markerContent.appendChild(markerPrice);
@@ -125,7 +118,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             map,
             position: { lat: billboard.lat, lng: billboard.lng },
             content: markerElement,
-            title: billboard.location
+            title: billboard.nombre
           });
 
           markerElement.addEventListener('click', () => {
@@ -142,7 +135,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     };
 
     initMap();
-  }, []);
+  }, [billboards]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -200,45 +193,44 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                {selectedBillboard.type === 'digital' ? (
+                {selectedBillboard.digital || selectedBillboard.tipo === 'digital' ? (
                   <Monitor className="h-5 w-5" />
                 ) : (
                   <Building className="h-5 w-5" />
                 )}
-                {selectedBillboard.location}
+                {selectedBillboard.nombre}
               </CardTitle>
               <Badge variant="outline">
-                ID: {selectedBillboard.id}
+                ID: {formatTruncatedId(selectedBillboard.id)}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm font-medium">Propietario</p>
-                <p className="text-muted-foreground">{selectedBillboard.owner}</p>
+                <p className="text-sm font-medium">Ubicación</p>
+                <p className="text-muted-foreground">{selectedBillboard.direccion}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Dimensiones</p>
-                <p className="text-muted-foreground">{selectedBillboard.size}</p>
+                <p className="text-muted-foreground">
+                  {selectedBillboard.medidas?.ancho_m || 0}m × {selectedBillboard.medidas?.alto_m || 0}m
+                  {selectedBillboard.medidas?.caras > 1 && ` (${selectedBillboard.medidas.caras} caras)`}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Precio Mensual</p>
                 <p className="text-lg font-semibold text-primary">
-                  {formatPrice(selectedBillboard.price)}
+                  {formatPrice(selectedBillboard.precio?.mensual || 0)}
                 </p>
               </div>
             </div>
 
             <div>
-              <p className="text-sm font-medium mb-2">Días disponibles este mes:</p>
-              <div className="flex flex-wrap gap-1">
-                {selectedBillboard.availableDates.map(date => (
-                  <Badge key={date} variant="outline" className="text-xs">
-                    {date}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-sm font-medium mb-2">Tipo de espectacular:</p>
+              <Badge variant={selectedBillboard.digital || selectedBillboard.tipo === 'digital' ? 'default' : 'secondary'}>
+                {selectedBillboard.digital || selectedBillboard.tipo === 'digital' ? 'Digital' : 'Fijo'}
+              </Badge>
             </div>
 
             <div className="flex gap-2">
@@ -256,42 +248,54 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
       {/* Available Billboards List */}
       <Card>
         <CardHeader>
-          <CardTitle>Anuncios en el Mapa</CardTitle>
+          <CardTitle>Anuncios en el Mapa ({billboards.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {mockMapBillboards.map((billboard) => (
-              <div
-                key={billboard.id}
-                className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
-                  selectedBillboard?.id === billboard.id ? 'border-primary bg-accent' : ''
-                }`}
-                onClick={() => setSelectedBillboard(billboard)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant={billboard.type === 'digital' ? 'default' : 'secondary'} className="text-xs">
-                    {billboard.type === 'digital' ? (
-                      <>
-                        <Monitor className="h-3 w-3 mr-1" />
-                        Digital
-                      </>
-                    ) : (
-                      <>
-                        <Building className="h-3 w-3 mr-1" />
-                        Fijo
-                      </>
-                    )}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{billboard.id}</span>
-                </div>
-                <h4 className="font-medium text-sm">{billboard.location}</h4>
-                <p className="text-xs text-muted-foreground mb-1">{billboard.owner}</p>
-                <p className="text-sm font-semibold text-primary">
-                  {formatPrice(billboard.price)}/mes
-                </p>
-              </div>
-            ))}
-          </div>
+          {billboards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {billboards.map((billboard) => {
+                const isDigital = billboard.digital || billboard.tipo === 'digital';
+                return (
+                  <div
+                    key={billboard.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
+                      selectedBillboard?.id === billboard.id ? 'border-primary bg-accent' : ''
+                    }`}
+                    onClick={() => setSelectedBillboard(billboard)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant={isDigital ? 'default' : 'secondary'} className="text-xs">
+                        {isDigital ? (
+                          <>
+                            <Monitor className="h-3 w-3 mr-1" />
+                            Digital
+                          </>
+                        ) : (
+                          <>
+                            <Building className="h-3 w-3 mr-1" />
+                            Fijo
+                          </>
+                        )}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ID: {formatTruncatedId(billboard.id)}
+                      </span>
+                    </div>
+                    <h4 className="font-medium text-sm">{billboard.nombre}</h4>
+                    <p className="text-xs text-muted-foreground mb-1">{billboard.direccion}</p>
+                    <p className="text-sm font-semibold text-primary">
+                      {formatPrice(billboard.precio?.mensual || 0)}/mes
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No hay anuncios disponibles en este momento</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
