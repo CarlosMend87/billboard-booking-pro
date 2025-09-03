@@ -17,6 +17,7 @@ import {
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
+import { formatShortId } from "@/lib/utils";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -247,7 +248,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                         {typeLabel}
                       </Badge>
                       <Badge variant="secondary" className="text-xs">
-                        ID: {asset.id}
+                        ID: {formatShortId(asset.id)}
                       </Badge>
                     </div>
                     <h3 className="font-semibold text-lg">{asset.nombre}</h3>

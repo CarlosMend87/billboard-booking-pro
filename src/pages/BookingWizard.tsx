@@ -6,15 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle, ShoppingCart } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
-import { ModalidadConfig } from "@/components/booking/ModalidadConfig";
-import { ProgramacionStep } from "@/components/booking/ProgramacionStep";
+import { UnifiedBookingConfig } from "@/components/booking/UnifiedBookingConfig";
 import { formatPrice } from "@/lib/pricing";
+import { formatShortId } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { CartItemConfig } from "@/types/cart";
 import { useReservations } from "@/hooks/useReservations";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-type WizardStep = 1 | 2 | 3 | 4;
+type WizardStep = 1 | 2 | 3;
 
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
@@ -22,6 +24,7 @@ export default function BookingWizard() {
   const { createReservationsFromCart, loading } = useReservations();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [itemConfigs, setItemConfigs] = useState<{[key: string]: CartItemConfig}>({});
   
@@ -31,11 +34,28 @@ export default function BookingWizard() {
 
   const handleConfirmReservation = async () => {
     try {
-      await createReservationsFromCart(cart.items);
+      const reservations = await createReservationsFromCart(cart.items);
+      
+      // Send confirmation email
+      if (user?.email && reservations.length > 0) {
+        try {
+          await supabase.functions.invoke('send-confirmation', {
+            body: {
+              email: user.email,
+              reservations: reservations,
+              total: cart.total
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't block the process if email fails
+        }
+      }
+      
       clearCart();
       toast({
         title: "Reservas Creadas",
-        description: "Tus reservas han sido enviadas a los propietarios. Recibirás notificaciones sobre su estado.",
+        description: "Tus reservas han sido enviadas a los propietarios. Recibirás un correo de confirmación con el resumen.",
       });
       navigate('/progreso-campaña');
     } catch (error) {
@@ -46,12 +66,11 @@ export default function BookingWizard() {
   
   const steps = [
     { number: 1, title: "Inventario Seleccionado", description: "Revisa y edita tu selección" },
-    { number: 2, title: "Modalidad por Ítem", description: "Configura cada anuncio" },
-    { number: 3, title: "Programación", description: "Selecciona fechas y horarios" },
-    { number: 4, title: "Resumen", description: "Confirma tu reserva" }
+    { number: 2, title: "Configuración Completa", description: "Modalidad, fechas y horarios" },
+    { number: 3, title: "Resumen", description: "Confirma tu reserva" }
   ];
 
-  const progress = (currentStep / 4) * 100;
+  const progress = (currentStep / 3) * 100;
 
   const renderStep1 = () => (
     <div className="space-y-4">
@@ -78,6 +97,9 @@ export default function BookingWizard() {
                     <div className="flex gap-2 mt-1">
                       <Badge variant="outline">{item.asset.tipo}</Badge>
                       <Badge variant="secondary">{item.modalidad}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        ID: {formatShortId(item.asset.id)}
+                      </Badge>
                     </div>
                   </div>
                   <div className="text-right">
@@ -104,12 +126,12 @@ export default function BookingWizard() {
 
   const renderStep2 = () => (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Modalidad por Ítem</h2>
-      <p className="text-muted-foreground">Configura los detalles de cada anuncio seleccionado</p>
+      <h2 className="text-xl font-semibold">Configuración Completa</h2>
+      <p className="text-muted-foreground">Configura modalidad, fechas y horarios para cada anuncio</p>
       
       <div className="space-y-4">
         {cart.items.map((item) => (
-          <ModalidadConfig 
+          <UnifiedBookingConfig 
             key={item.id} 
             item={item} 
             onUpdate={handleConfigUpdate}
@@ -120,18 +142,6 @@ export default function BookingWizard() {
   );
 
   const renderStep3 = () => (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Programación</h2>
-      <p className="text-muted-foreground">Selecciona las fechas y horarios para tu campaña</p>
-      
-      <ProgramacionStep 
-        items={cart.items} 
-        onUpdate={(itemId, fechas) => handleConfigUpdate(itemId, { ...itemConfigs[itemId], ...fechas })}
-      />
-    </div>
-  );
-
-  const renderStep4 = () => (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Resumen Final</h2>
       <p className="text-muted-foreground">Revisa todos los detalles antes de confirmar</p>
@@ -147,7 +157,7 @@ export default function BookingWizard() {
                 <div>
                   <p className="font-medium">{item.asset.nombre}</p>
                   <p className="text-sm text-muted-foreground">
-                    {item.modalidad} • Cantidad: {item.quantity}
+                    ID: {formatShortId(item.asset.id)} • {item.modalidad} • Cantidad: {item.quantity}
                   </p>
                 </div>
                 <p className="font-semibold">{formatPrice(item.subtotal)}</p>
@@ -182,12 +192,12 @@ export default function BookingWizard() {
     </div>
   );
 
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1: return renderStep1();
       case 2: return renderStep2();
       case 3: return renderStep3();
-      case 4: return renderStep4();
       default: return renderStep1();
     }
   };
@@ -231,8 +241,8 @@ export default function BookingWizard() {
             </Button>
             
             <Button
-              onClick={() => setCurrentStep(Math.min(4, currentStep + 1) as WizardStep)}
-              disabled={currentStep === 4 || cart.items.length === 0}
+              onClick={() => setCurrentStep(Math.min(3, currentStep + 1) as WizardStep)}
+              disabled={currentStep === 3 || cart.items.length === 0}
             >
               Siguiente
               <ArrowRight className="h-4 w-4 ml-2" />

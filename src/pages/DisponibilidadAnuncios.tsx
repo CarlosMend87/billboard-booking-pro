@@ -9,8 +9,9 @@ import { CartSidebar } from "@/components/cart/CartSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, List, Search, Filter } from "lucide-react";
+import { MapPin, List, Search, Filter, ShoppingCart } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
+import { Link } from "react-router-dom";
 
 export interface InventoryFilters {
   owners: string[];
@@ -63,6 +64,15 @@ export default function DisponibilidadAnuncios() {
                 <Filter className="h-3 w-3" />
                 {activeFiltersCount} filtros activos
               </Badge>
+              
+              {cart.itemCount > 0 && (
+                <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+                  <Link to="/booking-wizard">
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    Continuar Reserva ({cart.itemCount})
+                  </Link>
+                </Button>
+              )}
               
               <div className="flex bg-muted rounded-lg p-1">
                 <Button

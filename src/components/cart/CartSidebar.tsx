@@ -75,6 +75,9 @@ export function CartSidebar({ cart, onRemoveItem, onUpdateQuantity, onClearCart 
                         <Badge variant="secondary" className="text-xs">
                           {getModalidadLabel(item.modalidad)}
                         </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          ID: {item.asset.id.slice(-6)}
+                        </Badge>
                       </div>
                     </div>
                     <Button
