@@ -12,6 +12,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { CartItemConfig } from "@/types/cart";
 import { useReservations } from "@/hooks/useReservations";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type WizardStep = 1 | 2 | 3;
 
@@ -19,6 +21,7 @@ export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const { cart, updateQuantity, removeItem, clearCart } = useCartContext();
   const { createReservationsFromCart, loading } = useReservations();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -31,10 +34,30 @@ export default function BookingWizard() {
   const handleConfirmReservation = async () => {
     try {
       await createReservationsFromCart(cart.items);
+      
+      // Send confirmation email with PDF
+      if (user?.email) {
+        try {
+          await supabase.functions.invoke('send-confirmation', {
+            body: {
+              reservationDetails: {
+                items: cart.items,
+                total: formatPrice(cart.total)
+              },
+              userEmail: user.email,
+              userName: user.user_metadata?.name || user.email
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't fail the whole process if email fails
+        }
+      }
+      
       clearCart();
       toast({
         title: "Reservas Creadas",
-        description: "Tus reservas han sido enviadas a los propietarios. Recibirás notificaciones sobre su estado.",
+        description: "Tus reservas han sido enviadas. Recibirás un correo de confirmación con los detalles.",
       });
       navigate('/progreso-campaña');
     } catch (error) {
