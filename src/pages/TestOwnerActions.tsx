@@ -66,12 +66,28 @@ export default function TestOwnerActions() {
 
       console.log('Reserva updated successfully');
 
+      // If accepted, create campaign manually using our function
+      if (status === 'accepted') {
+        try {
+          const { data: campaignId, error: campaignError } = await supabase
+            .rpc('create_campaign_from_reserva', { reserva_id: reservaId });
+
+          if (campaignError) {
+            console.error('Error creating campaign:', campaignError);
+          } else {
+            console.log('Campaign created with ID:', campaignId);
+          }
+        } catch (err) {
+          console.error('Error calling campaign function:', err);
+        }
+      }
+
       toast({
         title: status === 'accepted' ? "Reserva Aceptada" : "Reserva Rechazada",
-        description: `La reserva ha sido ${status === 'accepted' ? 'aceptada' : 'rechazada'} exitosamente`,
+        description: `La reserva ha sido ${status === 'accepted' ? 'aceptada y la campaña creada' : 'rechazada'} exitosamente`,
       });
 
-      // Wait a bit for triggers to process, then fetch updated data
+      // Wait a bit for all processes to complete, then fetch updated data
       setTimeout(() => {
         fetchReservas();
       }, 1000);
