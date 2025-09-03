@@ -32,10 +32,10 @@ export default function TestOwnerActions() {
     if (!user) return;
 
     try {
+      // Get all reservas for testing - we'll simulate being the owner
       const { data, error } = await supabase
         .from('reservas')
         .select('*')
-        .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -49,20 +49,35 @@ export default function TestOwnerActions() {
 
   const updateReservaStatus = async (reservaId: string, status: 'accepted' | 'rejected') => {
     try {
+      console.log(`Updating reserva ${reservaId} to status: ${status}`);
+      
       const { error } = await supabase
         .from('reservas')
-        .update({ status })
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', reservaId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Reserva updated successfully');
 
       toast({
         title: status === 'accepted' ? "Reserva Aceptada" : "Reserva Rechazada",
         description: `La reserva ha sido ${status === 'accepted' ? 'aceptada' : 'rechazada'} exitosamente`,
       });
 
-      fetchReservas();
+      // Wait a bit for triggers to process, then fetch updated data
+      setTimeout(() => {
+        fetchReservas();
+      }, 1000);
+      
     } catch (error: any) {
+      console.error('Error updating reserva:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -100,9 +115,9 @@ export default function TestOwnerActions() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Panel de Propietario - Gestión de Reservas</h1>
+          <h1 className="text-3xl font-bold mb-2">Panel de Prueba - Gestión de Reservas</h1>
           <p className="text-muted-foreground">
-            Administra las solicitudes de reserva para tus anuncios
+            Simula acciones del propietario para crear campañas (ve a /test-owner)
           </p>
         </div>
 
