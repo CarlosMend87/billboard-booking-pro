@@ -152,14 +152,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-        // Center map on first billboard or default to Mérida
-        const center = billboards.length > 0 
-          ? { lat: billboards[0].lat, lng: billboards[0].lng }
-          : { lat: 20.9674, lng: -89.5926 };
+        // Center map on Mexico to show the entire country
+        const center = { lat: 23.6345, lng: -102.5528 }; // Geographic center of Mexico
 
         const map = new Map(mapRef.current, {
           center,
-          zoom: 11,
+          zoom: 5, // Zoom level to show all of Mexico
           mapId: "available-inventory-map",
           streetViewControl: false,
           mapTypeControl: false,
