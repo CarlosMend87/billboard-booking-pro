@@ -5,6 +5,7 @@ export interface InventoryAsset {
   nombre: string;
   lat: number;
   lng: number;
+  owner_id?: string;
   medidas: {
     ancho_m?: number;
     alto_m?: number;

@@ -7,6 +7,8 @@ import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { Loader } from "@googlemaps/js-api-loader";
+import { supabase } from "@/integrations/supabase/client";
+import { formatTruncatedId } from "@/lib/utils";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
@@ -61,14 +63,84 @@ const mockMapBillboards = [
   }
 ];
 
+interface MapBillboard {
+  id: string;
+  nombre: string;
+  direccion: string;
+  lat: number;
+  lng: number;
+  tipo: string;
+  owner_id: string;
+  precio: any;
+  medidas: any;
+}
+
 export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInventoryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedBillboard, setSelectedBillboard] = useState<typeof mockMapBillboards[0] | null>(null);
+  const [billboards, setBillboards] = useState<MapBillboard[]>([]);
+  const [selectedBillboard, setSelectedBillboard] = useState<MapBillboard | null>(null);
+
+  useEffect(() => {
+    const fetchBillboards = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('billboards')
+          .select('*')
+          .eq('status', 'disponible');
+
+        if (error) throw error;
+
+        // Combine real billboards with mock data to maintain functionality
+        const realBillboards = data?.map(billboard => ({
+          id: billboard.id,
+          nombre: billboard.nombre,
+          direccion: billboard.direccion,
+          lat: billboard.lat,
+          lng: billboard.lng,
+          tipo: billboard.tipo,
+          owner_id: billboard.owner_id,
+          precio: billboard.precio,
+          medidas: billboard.medidas,
+        })) || [];
+
+        // Combine with mock data to ensure map functionality
+        const combinedBillboards = [...realBillboards, ...mockMapBillboards.map(mock => ({
+          id: mock.id,
+          nombre: mock.location,
+          direccion: mock.location,
+          lat: mock.lat,
+          lng: mock.lng,
+          tipo: mock.type === 'digital' ? 'digital' : 'espectacular',
+          owner_id: 'ef57691e-4946-43c4-ba5c-b904e93a27cf',
+          precio: { mensual: mock.price },
+          medidas: { ancho_m: parseInt(mock.size.split('×')[0]), alto_m: parseInt(mock.size.split('×')[1]) }
+        }))];
+
+        setBillboards(combinedBillboards);
+      } catch (error) {
+        console.error('Error fetching billboards:', error);
+        // Fallback to mock data
+        setBillboards(mockMapBillboards.map(mock => ({
+          id: mock.id,
+          nombre: mock.location,
+          direccion: mock.location,
+          lat: mock.lat,
+          lng: mock.lng,
+          tipo: mock.type === 'digital' ? 'digital' : 'espectacular',
+          owner_id: 'ef57691e-4946-43c4-ba5c-b904e93a27cf',
+          precio: { mensual: mock.price },
+          medidas: { ancho_m: parseInt(mock.size.split('×')[0]), alto_m: parseInt(mock.size.split('×')[1]) }
+        })));
+      }
+    };
+
+    fetchBillboards();
+  }, []);
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current || billboards.length === 0) return;
 
       try {
         const loader = new Loader({
@@ -80,9 +152,13 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-        // Initialize map centered on Mexico City
+        // Center map on first billboard or default to Mérida
+        const center = billboards.length > 0 
+          ? { lat: billboards[0].lat, lng: billboards[0].lng }
+          : { lat: 20.9674, lng: -89.5926 };
+
         const map = new Map(mapRef.current, {
-          center: { lat: 19.4326, lng: -99.1332 },
+          center,
           zoom: 11,
           mapId: "available-inventory-map",
           streetViewControl: false,
@@ -90,7 +166,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         });
 
         // Add markers for each billboard
-        mockMapBillboards.forEach((billboard) => {
+        billboards.forEach((billboard) => {
           const markerElement = document.createElement('div');
           markerElement.style.cursor = 'pointer';
           markerElement.style.transition = 'transform 0.2s';
@@ -101,7 +177,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             border-radius: 8px;
             padding: 4px 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            border: 2px solid ${billboard.type === 'digital' ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'};
+            border: 2px solid ${billboard.tipo === 'digital' ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'};
             min-width: 60px;
             text-align: center;
           `;
@@ -109,13 +185,14 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           const markerIcon = document.createElement('div');
           markerIcon.style.fontSize = '16px';
           markerIcon.style.lineHeight = '1';
-          markerIcon.textContent = billboard.type === 'digital' ? '📺' : '📋';
+          markerIcon.textContent = billboard.tipo === 'digital' ? '📺' : '📋';
           
           const markerPrice = document.createElement('div');
           markerPrice.style.fontSize = '10px';
           markerPrice.style.fontWeight = 'bold';
           markerPrice.style.color = 'hsl(var(--primary))';
-          markerPrice.textContent = `$${(billboard.price / 1000).toFixed(0)}K`;
+          const price = billboard.precio?.mensual || 0;
+          markerPrice.textContent = `$${(price / 1000).toFixed(0)}K`;
           
           markerContent.appendChild(markerIcon);
           markerContent.appendChild(markerPrice);
@@ -125,7 +202,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             map,
             position: { lat: billboard.lat, lng: billboard.lng },
             content: markerElement,
-            title: billboard.location
+            title: billboard.direccion
           });
 
           markerElement.addEventListener('click', () => {
@@ -142,7 +219,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     };
 
     initMap();
-  }, []);
+  }, [billboards]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -200,45 +277,41 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                {selectedBillboard.type === 'digital' ? (
+                {selectedBillboard.tipo === 'digital' ? (
                   <Monitor className="h-5 w-5" />
                 ) : (
                   <Building className="h-5 w-5" />
                 )}
-                {selectedBillboard.location}
+                {selectedBillboard.nombre}
               </CardTitle>
               <Badge variant="outline">
-                ID: {selectedBillboard.id}
+                ID: {formatTruncatedId(selectedBillboard.id)}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm font-medium">Propietario</p>
-                <p className="text-muted-foreground">{selectedBillboard.owner}</p>
+                <p className="text-sm font-medium">Ubicación</p>
+                <p className="text-muted-foreground">{selectedBillboard.direccion}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Dimensiones</p>
-                <p className="text-muted-foreground">{selectedBillboard.size}</p>
+                <p className="text-muted-foreground">
+                  {selectedBillboard.medidas?.ancho_m || 6}m × {selectedBillboard.medidas?.alto_m || 3}m
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Precio Mensual</p>
                 <p className="text-lg font-semibold text-primary">
-                  {formatPrice(selectedBillboard.price)}
+                  {formatPrice(selectedBillboard.precio?.mensual || 0)}
                 </p>
               </div>
             </div>
 
             <div>
-              <p className="text-sm font-medium mb-2">Días disponibles este mes:</p>
-              <div className="flex flex-wrap gap-1">
-                {selectedBillboard.availableDates.map(date => (
-                  <Badge key={date} variant="outline" className="text-xs">
-                    {date}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-sm font-medium mb-2">Estado:</p>
+              <Badge variant="secondary">Disponible</Badge>
             </div>
 
             <div className="flex gap-2">
@@ -260,7 +333,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {mockMapBillboards.map((billboard) => (
+            {billboards.map((billboard) => (
               <div
                 key={billboard.id}
                 className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
@@ -269,8 +342,8 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                 onClick={() => setSelectedBillboard(billboard)}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant={billboard.type === 'digital' ? 'default' : 'secondary'} className="text-xs">
-                    {billboard.type === 'digital' ? (
+                  <Badge variant={billboard.tipo === 'digital' ? 'default' : 'secondary'} className="text-xs">
+                    {billboard.tipo === 'digital' ? (
                       <>
                         <Monitor className="h-3 w-3 mr-1" />
                         Digital
@@ -278,16 +351,16 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     ) : (
                       <>
                         <Building className="h-3 w-3 mr-1" />
-                        Fijo
+                        Espectacular
                       </>
                     )}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">{billboard.id}</span>
+                  <span className="text-xs text-muted-foreground">{formatTruncatedId(billboard.id)}</span>
                 </div>
-                <h4 className="font-medium text-sm">{billboard.location}</h4>
-                <p className="text-xs text-muted-foreground mb-1">{billboard.owner}</p>
+                <h4 className="font-medium text-sm">{billboard.nombre}</h4>
+                <p className="text-xs text-muted-foreground mb-1">{billboard.direccion}</p>
                 <p className="text-sm font-semibold text-primary">
-                  {formatPrice(billboard.price)}/mes
+                  {formatPrice(billboard.precio?.mensual || 0)}/mes
                 </p>
               </div>
             ))}

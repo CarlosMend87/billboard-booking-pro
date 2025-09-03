@@ -59,11 +59,10 @@ export function useReservations() {
       const reservations = [];
       
       for (const item of cartItems) {
-        // For now, we'll use a mock owner ID. 
-        // In a real app, this would come from the asset data
-        const mockOwnerId = "550e8400-e29b-41d4-a716-446655440000"; // This should be replaced with actual owner IDs from your asset data
+        // Use the owner_id from the asset data
+        const ownerId = item.asset.owner_id || "ef57691e-4946-43c4-ba5c-b904e93a27cf"; // Fallback to existing owner
         
-        const reservation = await createReservation(item, mockOwnerId);
+        const reservation = await createReservation(item, ownerId);
         reservations.push(reservation);
       }
 
