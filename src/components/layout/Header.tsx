@@ -32,13 +32,6 @@ export function Header() {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Link to="/add-billboard">
-              <Button className="bg-gradient-primary hover:bg-primary-hover">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Anuncio
-              </Button>
-            </Link>
-            
             <NotificationsDropdown />
             
             <Button variant="ghost" size="sm">
