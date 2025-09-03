@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { CartItem, Cart, CartItemModalidad, CartItemConfig } from '@/types/cart';
 import { InventoryAsset } from '@/lib/mockInventory';
+import { CartItem, CartItemModalidad, CartItemConfig, Cart } from '@/types/cart';
 import { 
   totalTradicional, 
   totalDigitalSpot, 
@@ -14,20 +14,25 @@ interface CartState {
 }
 
 type CartAction = 
-  | { type: 'ADD_ITEM'; payload: { asset: InventoryAsset; modalidad: CartItemModalidad; config: CartItemConfig; quantity: number } }
+  | { type: 'ADD_ITEM'; payload: CartItem }
   | { type: 'REMOVE_ITEM'; payload: string }
+  | { type: 'UPDATE_ITEM'; payload: CartItem }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
-  | { type: 'LOAD_CART'; payload: CartItem[] };
+  | { type: 'LOAD_CART'; payload: Cart };
 
-const CartContext = createContext<{
+interface CartContextType {
   cart: Cart;
-  addItem: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
+  addItem: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig) => void;
   removeItem: (itemId: string) => void;
+  updateItem: (itemId: string, config: CartItemConfig) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
-} | null>(null);
+}
 
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+// Helper function to calculate price based on asset, modality and config
 function calculatePrice(asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig): number {
   switch (modalidad) {
     case 'mensual':
@@ -90,48 +95,46 @@ function calculatePrice(asset: InventoryAsset, modalidad: CartItemModalidad, con
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { asset, modalidad, config, quantity } = action.payload;
-      const precioUnitario = calculatePrice(asset, modalidad, config);
-      const subtotal = precioUnitario * quantity;
+      const existingItemIndex = state.items.findIndex(item => item.id === action.payload.id);
       
-      const newItem: CartItem = {
-        id: `${asset.id}-${modalidad}-${Date.now()}`,
-        asset,
-        modalidad,
-        config,
-        precioUnitario,
-        subtotal,
-        quantity
-      };
-
+      if (existingItemIndex > -1) {
+        // Replace existing item with new configuration
+        const updatedItems = [...state.items];
+        updatedItems[existingItemIndex] = action.payload;
+        return { items: updatedItems };
+      } else {
+        // Add new item
+        return { items: [...state.items, action.payload] };
+      }
+    }
+    
+    case 'REMOVE_ITEM': {
       return {
-        ...state,
-        items: [...state.items, newItem]
+        items: state.items.filter(item => item.id !== action.payload)
       };
     }
     
-    case 'REMOVE_ITEM':
+    case 'UPDATE_ITEM': {
       return {
-        ...state,
-        items: state.items.filter(item => item.id !== action.payload)
+        items: state.items.map(item => 
+          item.id === action.payload.id ? action.payload : item
+        )
       };
+    }
     
     case 'UPDATE_QUANTITY': {
-      const { id, quantity } = action.payload;
-      if (quantity <= 0) {
-        return {
-          ...state,
-          items: state.items.filter(item => item.id !== id)
-        };
-      }
-      
       return {
-        ...state,
-        items: state.items.map(item => 
-          item.id === id 
-            ? { ...item, quantity, subtotal: item.precioUnitario * quantity }
-            : item
-        )
+        items: state.items.map(item => {
+          if (item.id === action.payload.id) {
+            const newQuantity = action.payload.quantity;
+            return {
+              ...item,
+              quantity: newQuantity,
+              subtotal: item.precioUnitario * newQuantity
+            };
+          }
+          return item;
+        })
       };
     }
     
@@ -139,7 +142,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return { items: [] };
     
     case 'LOAD_CART':
-      return { items: action.payload };
+      return { items: action.payload.items };
     
     default:
       return state;
@@ -148,6 +151,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
+
+  // Calculate cart totals
+  const cart: Cart = {
+    items: state.items,
+    total: state.items.reduce((sum, item) => sum + item.subtotal, 0),
+    itemCount: state.items.reduce((sum, item) => sum + item.quantity, 0)
+  };
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -164,21 +174,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state.items));
-  }, [state.items]);
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
-  const cart: Cart = {
-    items: state.items,
-    total: state.items.reduce((sum, item) => sum + item.subtotal, 0),
-    itemCount: state.items.reduce((sum, item) => sum + item.quantity, 0)
-  };
+  const addItem = (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig) => {
+    const itemId = `${asset.id}-${modalidad}-${JSON.stringify(config)}`;
+    const precioUnitario = calculatePrice(asset, modalidad, config);
+    const subtotal = precioUnitario; // For quantity 1
+    
+    const cartItem: CartItem = {
+      id: itemId,
+      asset,
+      modalidad,
+      config,
+      precioUnitario,
+      subtotal,
+      quantity: 1
+    };
 
-  const addItem = (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity: number = 1) => {
-    dispatch({ type: 'ADD_ITEM', payload: { asset, modalidad, config, quantity } });
+    dispatch({ type: 'ADD_ITEM', payload: cartItem });
   };
 
   const removeItem = (itemId: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: itemId });
+  };
+
+  const updateItem = (itemId: string, config: CartItemConfig) => {
+    const existingItem = state.items.find(item => item.id === itemId);
+    if (!existingItem) return;
+
+    const precioUnitario = calculatePrice(existingItem.asset, existingItem.modalidad, config);
+    const updatedItem: CartItem = {
+      ...existingItem,
+      config,
+      precioUnitario,
+      subtotal: precioUnitario * existingItem.quantity
+    };
+
+    dispatch({ type: 'UPDATE_ITEM', payload: updatedItem });
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -194,6 +227,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       cart,
       addItem,
       removeItem,
+      updateItem,
       updateQuantity,
       clearCart
     }}>
@@ -204,7 +238,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCartContext() {
   const context = useContext(CartContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useCartContext must be used within a CartProvider');
   }
   return context;

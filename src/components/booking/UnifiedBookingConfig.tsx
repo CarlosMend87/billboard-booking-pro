@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { useCartContext } from "@/context/CartContext";
 import { CartItem, CartItemConfig } from "@/types/cart";
 import { catorcenas2024 } from "@/lib/mockInventory";
 import { formatPrice } from "@/lib/pricing";
@@ -24,6 +25,8 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     periodo?: string;
     catorcenasSeleccionadas?: string[];
   }>({});
+  
+  const { updateItem } = useCartContext();
 
   // Auto-update end dates when config changes
   useEffect(() => {
@@ -41,6 +44,7 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
   const handleConfigChange = (newConfig: Partial<CartItemConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     setConfig(updatedConfig);
+    updateItem(item.id, updatedConfig);
     onUpdate(item.id, updatedConfig);
   };
 

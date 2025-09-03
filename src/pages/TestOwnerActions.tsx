@@ -47,6 +47,30 @@ export default function TestOwnerActions() {
     }
   };
 
+  const clearAllReservas = async () => {
+    try {
+      const { error } = await supabase
+        .from('reservas')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) throw error;
+
+      toast({
+        title: "Reservas Eliminadas",
+        description: "Todas las reservas han sido eliminadas para empezar de cero",
+      });
+
+      fetchReservas();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateReservaStatus = async (reservaId: string, status: 'accepted' | 'rejected') => {
     try {
       console.log(`Updating reserva ${reservaId} to status: ${status}`);
@@ -131,10 +155,21 @@ export default function TestOwnerActions() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Panel de Prueba - Gestión de Reservas</h1>
-          <p className="text-muted-foreground">
-            Simula acciones del propietario para crear campañas (ve a /test-owner)
-          </p>
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Panel de Prueba - Gestión de Reservas</h1>
+              <p className="text-muted-foreground">
+                Simula acciones del propietario para crear campañas (ve a /test-owner)
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={clearAllReservas}
+              className="flex items-center gap-2"
+            >
+              Limpiar Todas las Reservas
+            </Button>
+          </div>
         </div>
 
         {reservas.length === 0 ? (
