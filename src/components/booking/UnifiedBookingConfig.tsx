@@ -68,10 +68,10 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     
     switch (item.modalidad) {
       case 'mensual':
-        // Block entire months based on config.meses
+        // Block 30 days starting from selected date
         const monthsToAdd = config.meses || 1;
-        endDate.setMonth(startDate.getMonth() + monthsToAdd);
-        endDate.setDate(0); // Last day of previous month (which is last day of target month)
+        const daysToAdd = monthsToAdd * 30; // 30 days per month
+        endDate.setDate(startDate.getDate() + daysToAdd - 1); // -1 because we include the start date
         break;
       case 'spot':
       case 'dia':
