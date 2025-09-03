@@ -49,7 +49,7 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     
     const newDates = { ...selectedDates, [type]: date };
     
-    // Auto-calculate end date based on modality
+    // Auto-calculate end date based on modality when start date is selected
     if (type === 'inicio') {
       const endDate = calculateEndDate(date);
       newDates.fin = endDate;
@@ -68,9 +68,10 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     
     switch (item.modalidad) {
       case 'mensual':
-        // Block entire month
-        const nextMonth = new Date(startDate.getFullYear(), startDate.getMonth() + (config.meses || 1), 0);
-        endDate.setTime(nextMonth.getTime());
+        // Block entire months based on config.meses
+        const monthsToAdd = config.meses || 1;
+        endDate.setMonth(startDate.getMonth() + monthsToAdd);
+        endDate.setDate(0); // Last day of previous month (which is last day of target month)
         break;
       case 'spot':
       case 'dia':
@@ -79,6 +80,9 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         const days = config.dias || 1;
         endDate.setDate(startDate.getDate() + days - 1);
         break;
+      case 'catorcenal':
+        // Will be handled separately in catorcena selection
+        return startDate;
       default:
         endDate.setDate(startDate.getDate());
         break;
@@ -366,22 +370,28 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
               mode="single"
               selected={selectedDates.inicio}
               onSelect={(date) => handleDateChange('inicio', date)}
-              className="rounded-md border mt-2"
+              className="rounded-md border mt-2 pointer-events-auto"
               disabled={(date) => date < new Date()}
             />
           </div>
           <div>
-            <Label>Fecha de fin</Label>
-            <Calendar
-              mode="single"  
-              selected={selectedDates.fin}
-              onSelect={(date) => handleDateChange('fin', date)}
-              className="rounded-md border mt-2"
-              disabled={(date) => {
-                const inicio = selectedDates.inicio;
-                return date < new Date() || (inicio && date <= inicio);
-              }}
-            />
+            <Label>Fecha de fin (calculada automáticamente)</Label>
+            <div className="mt-2 p-3 border rounded-md bg-muted">
+              {selectedDates.fin ? (
+                <p className="text-sm">
+                  {selectedDates.fin.toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Selecciona fecha de inicio
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

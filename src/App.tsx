@@ -14,6 +14,7 @@ import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
 import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import TestOwnerActions from "./pages/TestOwnerActions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -111,6 +112,11 @@ const App = () => (
                 <OwnerOnlyRoute>
                   <OwnerDashboard />
                 </OwnerOnlyRoute>
+              } />
+              <Route path="/test-owner" element={
+                <ProtectedRoute>
+                  <TestOwnerActions />
+                </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
