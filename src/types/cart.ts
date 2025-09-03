@@ -23,7 +23,7 @@ export interface CartItemConfig {
   // Common
   fechaInicio?: string;
   fechaFin?: string;
-  periodo?: string; // For catorcenas like "C01-2024"
+  periodo?: string; // For catorcenas like "C01-2024,C02-2024"
 }
 
 export interface CartItem {

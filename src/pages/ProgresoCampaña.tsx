@@ -127,6 +127,11 @@ export default function ProgresoCampaña() {
 
   useEffect(() => {
     fetchCampaigns();
+    
+    // Poll for new campaigns every 5 seconds
+    const interval = setInterval(fetchCampaigns, 5000);
+    
+    return () => clearInterval(interval);
   }, [user]);
 
   const getStatusColor = (status: string) => {

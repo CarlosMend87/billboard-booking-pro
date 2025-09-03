@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,25 @@ interface UnifiedBookingConfigProps {
 
 export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigProps) {
   const [config, setConfig] = useState<CartItemConfig>(item.config);
-  const [selectedDates, setSelectedDates] = useState<{ inicio?: Date; fin?: Date; periodo?: string }>({});
+  const [selectedDates, setSelectedDates] = useState<{ 
+    inicio?: Date; 
+    fin?: Date; 
+    periodo?: string;
+    catorcenasSeleccionadas?: string[];
+  }>({});
+
+  // Auto-update end dates when config changes
+  useEffect(() => {
+    if (selectedDates.inicio && item.modalidad !== 'catorcenal') {
+      const endDate = calculateEndDate(selectedDates.inicio);
+      if (!selectedDates.fin || selectedDates.fin.getTime() !== endDate.getTime()) {
+        setSelectedDates(prev => ({ ...prev, fin: endDate }));
+        handleConfigChange({
+          fechaFin: endDate.toISOString().split('T')[0]
+        });
+      }
+    }
+  }, [config.meses, config.dias, config.catorcenas]);
 
   const handleConfigChange = (newConfig: Partial<CartItemConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
@@ -30,6 +48,13 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     if (!date) return;
     
     const newDates = { ...selectedDates, [type]: date };
+    
+    // Auto-calculate end date based on modality
+    if (type === 'inicio') {
+      const endDate = calculateEndDate(date);
+      newDates.fin = endDate;
+    }
+    
     setSelectedDates(newDates);
     
     handleConfigChange({
@@ -38,16 +63,66 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     });
   };
 
+  const calculateEndDate = (startDate: Date): Date => {
+    const endDate = new Date(startDate);
+    
+    switch (item.modalidad) {
+      case 'mensual':
+        // Block entire month
+        const nextMonth = new Date(startDate.getFullYear(), startDate.getMonth() + (config.meses || 1), 0);
+        endDate.setTime(nextMonth.getTime());
+        break;
+      case 'spot':
+      case 'dia':
+      case 'hora':
+        // Block consecutive days
+        const days = config.dias || 1;
+        endDate.setDate(startDate.getDate() + days - 1);
+        break;
+      default:
+        endDate.setDate(startDate.getDate());
+        break;
+    }
+    
+    return endDate;
+  };
+
   const handleCatorcenaChange = (periodo: string) => {
     const catorcena = catorcenas2024.find(c => c.periodo === periodo);
     if (!catorcena) return;
     
-    setSelectedDates({ periodo });
+    const currentSelection = selectedDates.catorcenasSeleccionadas || [];
+    const isSelected = currentSelection.includes(periodo);
+    const numCatorcenas = config.catorcenas || 1;
+    
+    let newSelection: string[];
+    if (isSelected) {
+      // Remove if already selected
+      newSelection = currentSelection.filter(p => p !== periodo);
+    } else {
+      // Add if not selected and we haven't reached the limit
+      if (currentSelection.length < numCatorcenas) {
+        newSelection = [...currentSelection, periodo].sort();
+      } else {
+        return; // Don't allow more selections than configured
+      }
+    }
+    
+    // Calculate date range from selected catorcenas
+    const selectedCatorcenas = catorcenas2024.filter(c => newSelection.includes(c.periodo));
+    const fechaInicio = selectedCatorcenas.length > 0 ? selectedCatorcenas[0].inicio : undefined;
+    const fechaFin = selectedCatorcenas.length > 0 ? selectedCatorcenas[selectedCatorcenas.length - 1].fin : undefined;
+    
+    setSelectedDates({ 
+      catorcenasSeleccionadas: newSelection,
+      inicio: fechaInicio ? new Date(fechaInicio) : undefined,
+      fin: fechaFin ? new Date(fechaFin) : undefined
+    });
     
     handleConfigChange({
-      fechaInicio: catorcena.inicio,
-      fechaFin: catorcena.fin,
-      periodo
+      fechaInicio,
+      fechaFin,
+      periodo: newSelection.join(',')
     });
   };
 
@@ -214,10 +289,10 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
       
       {item.modalidad === 'catorcenal' ? (
         <div>
-          <Label>Selecciona catorcenas disponibles</Label>
+          <Label>Selecciona catorcenas disponibles (máximo {config.catorcenas || 1})</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 max-h-64 overflow-y-auto">
             {catorcenas2024.map((catorcena) => {
-              const isSelected = selectedDates.periodo === catorcena.periodo;
+              const isSelected = selectedDates.catorcenasSeleccionadas?.includes(catorcena.periodo) || false;
               const fechaInicio = new Date(catorcena.inicio);
               const fechaFin = new Date(catorcena.fin);
               const formatDate = (date: Date) => date.toLocaleDateString('es-MX', { 
@@ -254,31 +329,31 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
             })}
           </div>
           
-          {selectedDates.periodo && (
+          {selectedDates.catorcenasSeleccionadas && selectedDates.catorcenasSeleccionadas.length > 0 && (
             <div className="mt-4 p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-2">
                 <CalendarIcon className="h-4 w-4 text-primary" />
-                <span className="font-medium">Catorcena seleccionada:</span>
+                <span className="font-medium">Catorcenas seleccionadas ({selectedDates.catorcenasSeleccionadas.length}):</span>
               </div>
-              <div className="mt-1 text-sm">
-                {(() => {
-                  const selected = catorcenas2024.find(c => c.periodo === selectedDates.periodo);
-                  if (!selected) return null;
+              <div className="space-y-1 text-sm">
+                {selectedDates.catorcenasSeleccionadas.map(periodo => {
+                  const catorcena = catorcenas2024.find(c => c.periodo === periodo);
+                  if (!catorcena) return null;
                   return (
-                    <span>
-                      <strong>C{selected.numero.toString().padStart(2, '0')}</strong> - 
-                      Del {new Date(selected.inicio).toLocaleDateString('es-MX', { 
+                    <div key={periodo}>
+                      <strong>C{catorcena.numero.toString().padStart(2, '0')}</strong> - 
+                      Del {new Date(catorcena.inicio).toLocaleDateString('es-MX', { 
                         day: 'numeric', 
                         month: 'long',
                         year: 'numeric' 
-                      })} al {new Date(selected.fin).toLocaleDateString('es-MX', { 
+                      })} al {new Date(catorcena.fin).toLocaleDateString('es-MX', { 
                         day: 'numeric', 
                         month: 'long',
                         year: 'numeric' 
                       })}
-                    </span>
+                    </div>
                   );
-                })()}
+                })}
               </div>
             </div>
           )}
