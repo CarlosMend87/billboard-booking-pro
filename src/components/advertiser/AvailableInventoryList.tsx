@@ -117,10 +117,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
         return false;
       }
 
-      // Filter by owners
-      if (filters.owners.length > 0 && asset.propietario && !filters.owners.includes(asset.propietario)) {
-        return false;
-      }
+      // Owner filter removed - now shows all inventory from all owners
 
       return true;
     });
