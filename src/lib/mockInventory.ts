@@ -111,7 +111,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"spot": 15, "hora": 600, "dia": 4000, "cpm": 80, "descuento_volumen": 12, "precio_original": 4500},
     "estado": "en_revision",
     "propietario": "IMU",
-    "foto": "https://picsum.photos/seed/dg002/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "VF0002",
@@ -124,7 +124,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 28000},
     "estado": "disponible",
     "propietario": "Global",
-    "foto": "https://picsum.photos/seed/vf0002/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "MU0011",
@@ -137,7 +137,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 45000},
     "estado": "ocupado",
     "propietario": "G8",
-    "foto": "https://picsum.photos/seed/mu0011/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "VA0124",
@@ -150,7 +150,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 12000},
     "estado": "disponible",
     "propietario": "Grupo Pol",
-    "foto": "https://picsum.photos/seed/va0124/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "PB091",
@@ -163,7 +163,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 9500},
     "estado": "disponible",
     "propietario": "ATM",
-    "foto": "https://picsum.photos/seed/pb091/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "DG003",
@@ -177,7 +177,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"spot": 12, "hora": 450, "dia": 3200, "cpm": 65},
     "estado": "disponible",
     "propietario": "Memije",
-    "foto": "https://picsum.photos/seed/dg003/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "VA0125",
@@ -190,7 +190,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 35000},
     "estado": "disponible",
     "propietario": "Mepexa",
-    "foto": "https://picsum.photos/seed/va0125/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "DG004",
@@ -204,7 +204,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"spot": 25, "hora": 850, "dia": 6500, "cpm": 120},
     "estado": "disponible",
     "propietario": "JCDecaux",
-    "foto": "https://picsum.photos/seed/dg004/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   }
 ];
 
