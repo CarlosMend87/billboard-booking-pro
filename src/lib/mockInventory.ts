@@ -58,7 +58,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 25000, "descuento_volumen": 8, "precio_original": 27000},
     "estado": "en_revision",
     "propietario": "JCDecaux",
-    "foto": "https://picsum.photos/seed/vf0001/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "MU0010",
@@ -71,7 +71,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 32000, "descuento_volumen": 5, "precio_original": 33600},
     "estado": "aceptado",
     "propietario": "Rentable",
-    "foto": "https://picsum.photos/seed/mu0010/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "VA0123",
@@ -84,7 +84,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 14000},
     "estado": "disponible",
     "propietario": "Grupo Vallas",
-    "foto": "https://picsum.photos/seed/va0123/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "PB090",
@@ -97,7 +97,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 8000},
     "estado": "disponible",
     "propietario": "Visual Shot",
-    "foto": "https://picsum.photos/seed/pb090/800/450"
+    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
     "id": "DG002",

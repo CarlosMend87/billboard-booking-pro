@@ -5,12 +5,10 @@ import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailability
 import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
 import { CartSidebar } from "@/components/cart/CartSidebar";
-import { InventoryDashboard } from "@/components/dashboard/InventoryDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, List, Search, Filter, ShoppingCart, BarChart3 } from "lucide-react";
+import { MapPin, List, Search, Filter, ShoppingCart } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
 import { Link } from "react-router-dom";
 
@@ -71,23 +69,7 @@ export default function DisponibilidadAnuncios() {
           </div>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="inventario" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Buscar Inventario
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="space-y-6">
-            <InventoryDashboard />
-          </TabsContent>
-
-          <TabsContent value="inventario" className="space-y-6">
+        <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Filters Sidebar */}
               <div className="lg:col-span-1 space-y-6">
@@ -172,8 +154,7 @@ export default function DisponibilidadAnuncios() {
                 />
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+        </div>
       </main>
     </div>
   );

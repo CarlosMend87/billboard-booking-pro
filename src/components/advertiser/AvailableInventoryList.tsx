@@ -260,40 +260,51 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
               </CardHeader>
               
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">Dimensiones:</span>
-                    </div>
-                    <p className="text-muted-foreground ml-4">
-                      {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
-                      {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
-                    </p>
+                <div className="flex gap-4 mb-4">
+                  <div className="w-24 h-16 rounded-lg overflow-hidden bg-muted">
+                    <img 
+                      src={asset.foto} 
+                      alt={asset.nombre}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">Modalidad:</span>
+                  <div className="flex-1">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">Dimensiones:</span>
+                        </div>
+                        <p className="text-muted-foreground ml-4">
+                          {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
+                          {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">Modalidad:</span>
+                        </div>
+                        <Select
+                          value={currentModalidad}
+                          onValueChange={(value: CartItemModalidad) => 
+                            setSelectedModalidad(prev => ({ ...prev, [asset.id]: value }))
+                          }
+                        >
+                          <SelectTrigger className="text-xs h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modalidadOptions.map(modalidad => (
+                              <SelectItem key={modalidad} value={modalidad}>
+                                {getModalidadLabel(modalidad)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <Select
-                      value={currentModalidad}
-                      onValueChange={(value: CartItemModalidad) => 
-                        setSelectedModalidad(prev => ({ ...prev, [asset.id]: value }))
-                      }
-                    >
-                      <SelectTrigger className="text-xs h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {modalidadOptions.map(modalidad => (
-                          <SelectItem key={modalidad} value={modalidad}>
-                            {getModalidadLabel(modalidad)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 
