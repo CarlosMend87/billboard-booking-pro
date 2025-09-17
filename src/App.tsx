@@ -15,8 +15,6 @@ import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import TestOwnerActions from "./pages/TestOwnerActions";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import SetupSuperAdmin from "./pages/SetupSuperAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,32 +65,9 @@ function RoleBasedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
   
-  // Redirect based on role
-  if (role === 'superadmin') {
-    return <Navigate to="/superadmin" replace />;
-  }
-  
+  // Redirect owners directly to their dashboard
   if (role === 'owner') {
     return <Navigate to="/owner-dashboard" replace />;
-  }
-  
-  return <>{children}</>;
-}
-
-function SuperAdminOnlyRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
-  const { role, loading: roleLoading } = useUserRole();
-  
-  if (authLoading || roleLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
-  }
-  
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  if (role !== 'superadmin') {
-    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
@@ -143,12 +118,6 @@ const App = () => (
                   <TestOwnerActions />
                 </ProtectedRoute>
               } />
-              <Route path="/superadmin" element={
-                <SuperAdminOnlyRoute>
-                  <SuperAdminDashboard />
-                </SuperAdminOnlyRoute>
-              } />
-              <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

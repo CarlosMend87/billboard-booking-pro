@@ -14,50 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_logs: {
-        Row: {
-          action: string
-          created_at: string | null
-          details: Json | null
-          id: string
-          ip_address: unknown | null
-          resource_id: string | null
-          resource_type: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          resource_id?: string | null
-          resource_type?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          resource_id?: string | null
-          resource_type?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       billboards: {
         Row: {
           contratacion: Json
@@ -233,97 +189,31 @@ export type Database = {
           },
         ]
       }
-      password_reset_requests: {
-        Row: {
-          created_at: string | null
-          expires_at: string
-          id: string
-          requested_by: string | null
-          token: string
-          used_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          requested_by?: string | null
-          token: string
-          used_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          requested_by?: string | null
-          token?: string
-          used_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "password_reset_requests_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "password_reset_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
-          avatar_url: string | null
           created_at: string
-          created_by: string | null
           email: string | null
           id: string
-          last_login_at: string | null
           name: string | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          status: Database["public"]["Enums"]["user_status"] | null
-          suspended_reason: string | null
-          suspended_until: string | null
+          role: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          avatar_url?: string | null
           created_at?: string
-          created_by?: string | null
           email?: string | null
           id?: string
-          last_login_at?: string | null
           name?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          status?: Database["public"]["Enums"]["user_status"] | null
-          suspended_reason?: string | null
-          suspended_until?: string | null
+          role?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          avatar_url?: string | null
           created_at?: string
-          created_by?: string | null
           email?: string | null
           id?: string
-          last_login_at?: string | null
           name?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          status?: Database["public"]["Enums"]["user_status"] | null
-          suspended_reason?: string | null
-          suspended_until?: string | null
+          role?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -392,93 +282,6 @@ export type Database = {
           },
         ]
       }
-      role_permissions: {
-        Row: {
-          id: string
-          permission: Database["public"]["Enums"]["permission"]
-          role: Database["public"]["Enums"]["user_role"]
-        }
-        Insert: {
-          id?: string
-          permission: Database["public"]["Enums"]["permission"]
-          role: Database["public"]["Enums"]["user_role"]
-        }
-        Update: {
-          id?: string
-          permission?: Database["public"]["Enums"]["permission"]
-          role?: Database["public"]["Enums"]["user_role"]
-        }
-        Relationships: []
-      }
-      superadmins: {
-        Row: {
-          created_at: string | null
-          email: string
-          id: string
-          last_login_at: string | null
-          name: string | null
-          status: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          id?: string
-          last_login_at?: string | null
-          name?: string | null
-          status?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          id?: string
-          last_login_at?: string | null
-          name?: string | null
-          status?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_permissions: {
-        Row: {
-          granted_at: string | null
-          granted_by: string | null
-          id: string
-          permission: Database["public"]["Enums"]["permission"]
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission: Database["public"]["Enums"]["permission"]
-          user_id: string
-        }
-        Update: {
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission?: Database["public"]["Enums"]["permission"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -487,27 +290,6 @@ export type Database = {
       create_campaign_from_reserva: {
         Args: { reserva_id: string }
         Returns: string
-      }
-      get_all_users: {
-        Args: {
-          limit_count?: number
-          offset_count?: number
-          role_filter?: Database["public"]["Enums"]["user_role"]
-          search_term?: string
-          status_filter?: Database["public"]["Enums"]["user_status"]
-        }
-        Returns: {
-          avatar_url: string
-          created_at: string
-          email: string
-          id: string
-          last_login_at: string
-          name: string
-          phone: string
-          role: Database["public"]["Enums"]["user_role"]
-          status: Database["public"]["Enums"]["user_status"]
-          user_id: string
-        }[]
       }
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
@@ -520,43 +302,9 @@ export type Database = {
           user_id: string
         }[]
       }
-      log_user_action: {
-        Args: {
-          action_type: string
-          details?: Json
-          resource_id?: string
-          resource_type?: string
-        }
-        Returns: undefined
-      }
-      setup_superadmin: {
-        Args: { admin_email: string; admin_password?: string }
-        Returns: string
-      }
-      update_last_login: {
-        Args: { user_uuid: string }
-        Returns: undefined
-      }
-      user_has_permission: {
-        Args: {
-          perm: Database["public"]["Enums"]["permission"]
-          user_uuid: string
-        }
-        Returns: boolean
-      }
     }
     Enums: {
-      permission:
-        | "manage_users"
-        | "manage_roles"
-        | "manage_billboards"
-        | "manage_campaigns"
-        | "view_analytics"
-        | "manage_system"
-        | "export_data"
-        | "manage_finances"
-      user_role: "superadmin" | "admin" | "owner" | "advertiser"
-      user_status: "active" | "suspended" | "inactive"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -683,19 +431,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      permission: [
-        "manage_users",
-        "manage_roles",
-        "manage_billboards",
-        "manage_campaigns",
-        "view_analytics",
-        "manage_system",
-        "export_data",
-        "manage_finances",
-      ],
-      user_role: ["superadmin", "admin", "owner", "advertiser"],
-      user_status: ["active", "suspended", "inactive"],
-    },
+    Enums: {},
   },
 } as const
