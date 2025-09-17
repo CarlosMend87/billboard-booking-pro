@@ -499,6 +499,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_last_login: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
       user_has_permission: {
         Args: {
           perm: Database["public"]["Enums"]["permission"]

@@ -27,10 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Update last login when user signs in
         if (event === 'SIGNED_IN' && session?.user) {
           try {
-            await supabase
-              .from('profiles')
-              .update({ last_login_at: new Date().toISOString() })
-              .eq('user_id', session.user.id);
+            // Call the database function to update last login
+            await supabase.rpc('update_last_login', {
+              user_uuid: session.user.id
+            });
           } catch (error) {
             console.error('Error updating last login:', error);
           }
