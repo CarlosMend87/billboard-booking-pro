@@ -85,7 +85,7 @@ function RoleBasedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
   
-  // Redirect based on role
+  // Redirect based on role - only redirect owners and superadmins
   if (role === 'owner') {
     return <Navigate to="/owner-dashboard" replace />;
   }
@@ -94,6 +94,7 @@ function RoleBasedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/superadmin" replace />;
   }
   
+  // For advertisers and admins, show the regular Index page
   return <>{children}</>;
 }
 
