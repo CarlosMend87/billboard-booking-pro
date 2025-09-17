@@ -2,9 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Logo } from "@/components/ui/logo"
 import { Settings, User, Plus, LogOut } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
-import { useUserRole } from "@/hooks/useUserRole"
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown"
 import {
   DropdownMenu,
@@ -17,8 +16,6 @@ import {
 
 export function Header() {
   const { user, signOut } = useAuth();
-  const { role } = useUserRole();
-  const navigate = useNavigate();
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-border sticky top-0 z-50">
@@ -30,24 +27,12 @@ export function Header() {
               <h1 className="text-xl font-bold">Detalle Marketplace</h1>
             </Link>
             <Badge variant="secondary" className="hidden sm:inline-flex">
-              {role === 'superadmin' ? 'Superadmin' : role === 'owner' ? 'Panel Propietario' : 'Anunciante'}
+              Panel Propietario
             </Badge>
           </div>
           
           <div className="flex items-center space-x-2">
             <NotificationsDropdown />
-            
-            {role === 'owner' && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/owner-dashboard">Panel</Link>
-              </Button>
-            )}
-            
-            {role === 'superadmin' && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/superadmin">Superadmin</Link>
-              </Button>
-            )}
             
             <Button variant="ghost" size="sm">
               <Settings className="h-4 w-4" />
