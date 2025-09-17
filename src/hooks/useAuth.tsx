@@ -19,10 +19,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Update last login when user signs in
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ last_login_at: new Date().toISOString() })
+              .eq('user_id', session.user.id);
+          } catch (error) {
+            console.error('Error updating last login:', error);
+          }
+        }
       }
     );
 

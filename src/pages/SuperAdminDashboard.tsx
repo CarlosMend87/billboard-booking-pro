@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { UserManagementPanel } from '@/components/superadmin/UserManagementPanel';
 import { AuditLogsPanel } from '@/components/superadmin/AuditLogsPanel';
 import { useUserManagement } from '@/hooks/useUserManagement';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Users, 
   Shield, 
@@ -14,11 +16,13 @@ import {
   ShieldAlert,
   UserCheck,
   UserX,
-  TrendingUp
+  TrendingUp,
+  LogOut
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
   const { users, auditLogs, hasPermission } = useUserManagement();
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   if (!hasPermission) {
@@ -57,16 +61,23 @@ export default function SuperAdminDashboard() {
     <div className="min-h-screen bg-background">
       <div className="border-b">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Shield className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Panel de Superadministrador</h1>
+                <p className="text-muted-foreground">
+                  Control total del sistema y gestión de usuarios
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Panel de Superadministrador</h1>
-              <p className="text-muted-foreground">
-                Control total del sistema y gestión de usuarios
-              </p>
-            </div>
+            
+            <Button variant="outline" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Cerrar Sesión
+            </Button>
           </div>
         </div>
       </div>
