@@ -20,8 +20,8 @@ export default function SuperAdminAuth() {
   // Redirect if already authenticated as superadmin
   if (checkingAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-primary flex items-center justify-center">
-        <div className="text-white text-xl">Verificando credenciales...</div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-foreground text-xl">Verificando credenciales...</div>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function SuperAdminAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
