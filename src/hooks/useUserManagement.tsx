@@ -51,7 +51,11 @@ export function useUserManagement() {
     }
   };
 
-  const fetchUsers = async (searchTerm?: string, roleFilter?: string, statusFilter?: string) => {
+  const fetchUsers = async (
+    searchTerm?: string, 
+    roleFilter?: 'superadmin' | 'admin' | 'owner' | 'advertiser', 
+    statusFilter?: 'active' | 'suspended' | 'inactive'
+  ) => {
     if (!hasPermission) return;
     
     setLoading(true);
@@ -66,11 +70,26 @@ export function useUserManagement() {
 
       if (error) throw error;
       
-      const typedUsers: User[] = (data || []).map((user: any) => ({
-        ...user,
-        role: user.role as 'superadmin' | 'admin' | 'owner' | 'advertiser',
-        status: user.status as 'active' | 'suspended' | 'inactive'
-      }));
+      const typedUsers: User[] = (data || []).map((user: any) => {
+        // Type guard functions for proper type narrowing
+        const isValidRole = (role: string): role is 'superadmin' | 'admin' | 'owner' | 'advertiser' => {
+          return ['superadmin', 'admin', 'owner', 'advertiser'].includes(role);
+        };
+        
+        const isValidStatus = (status: string): status is 'active' | 'suspended' | 'inactive' => {
+          return ['active', 'suspended', 'inactive'].includes(status);
+        };
+        
+        // Use type guards with fallback values
+        const role = isValidRole(user.role) ? user.role : 'advertiser';
+        const status = isValidStatus(user.status) ? user.status : 'active';
+        
+        return {
+          ...user,
+          role,
+          status
+        };
+      });
       
       setUsers(typedUsers);
     } catch (error) {

@@ -73,7 +73,18 @@ export function UserManagementPanel() {
   });
 
   const handleSearch = () => {
-    fetchUsers(searchTerm, roleFilter, statusFilter);
+    // Type cast the filter values when they're not empty
+    const typedRoleFilter = roleFilter && 
+      ['superadmin', 'admin', 'owner', 'advertiser'].includes(roleFilter) 
+        ? roleFilter as 'superadmin' | 'admin' | 'owner' | 'advertiser' 
+        : undefined;
+        
+    const typedStatusFilter = statusFilter && 
+      ['active', 'suspended', 'inactive'].includes(statusFilter)
+        ? statusFilter as 'active' | 'suspended' | 'inactive'
+        : undefined;
+    
+    fetchUsers(searchTerm, typedRoleFilter, typedStatusFilter);
   };
 
   const handleCreateUser = async (data: z.infer<typeof createUserSchema>) => {
