@@ -47,14 +47,19 @@ export default function SuperAdminAuth() {
       }
 
       // Then check if user is superadmin
+      console.log('Checking superadmin access for user:', authData.user.id);
+      
       const { data: superAdminData, error: superAdminError } = await supabase
         .from('superadmins')
         .select('status')
         .eq('user_id', authData.user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle(); // Changed from .single() to .maybeSingle()
+
+      console.log('Superadmin check result:', { superAdminData, superAdminError });
 
       if (superAdminError || !superAdminData) {
+        console.log('Access denied - not superadmin');
         // Sign out if not superadmin
         await supabase.auth.signOut();
         throw new Error('Acceso denegado. No tienes permisos de superadministrador.');

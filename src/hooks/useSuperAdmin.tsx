@@ -18,14 +18,18 @@ export function useSuperAdmin() {
 
     const checkSuperAdmin = async () => {
       try {
+        console.log('Checking superadmin for user:', user.id);
+        
         const { data, error } = await supabase
           .from('superadmins')
           .select('status')
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .single();
+          .maybeSingle(); // Changed from .single() to .maybeSingle()
 
-        if (error && error.code !== 'PGRST116') {
+        console.log('Superadmin query result:', { data, error });
+
+        if (error) {
           console.error('Error checking superadmin status:', error);
           setIsSuperAdmin(false);
         } else {
