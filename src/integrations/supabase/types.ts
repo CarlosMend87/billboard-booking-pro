@@ -605,6 +605,10 @@ export type Database = {
         Args: { perm: string; user_uuid: string }
         Returns: boolean
       }
+      is_active_superadmin: {
+        Args: { _user: string }
+        Returns: boolean
+      }
       is_superadmin: {
         Args: { user_uuid: string }
         Returns: boolean
