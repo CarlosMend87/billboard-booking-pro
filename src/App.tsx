@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import TestOwnerActions from "./pages/TestOwnerActions";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SetupSuperAdmin from "./pages/SetupSuperAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -147,6 +148,7 @@ const App = () => (
                   <SuperAdminDashboard />
                 </SuperAdminOnlyRoute>
               } />
+              <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

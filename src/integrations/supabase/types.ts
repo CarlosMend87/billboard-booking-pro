@@ -529,6 +529,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      setup_superadmin: {
+        Args: { admin_email: string; admin_password?: string }
+        Returns: string
+      }
       update_last_login: {
         Args: { user_uuid: string }
         Returns: undefined
