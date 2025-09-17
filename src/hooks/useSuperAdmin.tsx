@@ -18,16 +18,12 @@ export function useSuperAdmin() {
 
     const checkSuperAdmin = async () => {
       try {
-        console.log('Checking superadmin for user:', user.id);
-        
         const { data, error } = await supabase
           .from('superadmins')
           .select('status')
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .maybeSingle(); // Changed from .single() to .maybeSingle()
-
-        console.log('Superadmin query result:', { data, error });
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking superadmin status:', error);
