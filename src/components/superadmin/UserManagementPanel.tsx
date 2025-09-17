@@ -73,13 +73,13 @@ export function UserManagementPanel() {
   });
 
   const handleSearch = () => {
-    // Type cast the filter values when they're not empty
-    const typedRoleFilter = roleFilter && 
+    // Type cast the filter values when they're not empty and not "all"
+    const typedRoleFilter = roleFilter && roleFilter !== "all" && 
       ['superadmin', 'admin', 'owner', 'advertiser'].includes(roleFilter) 
         ? roleFilter as 'superadmin' | 'admin' | 'owner' | 'advertiser' 
         : undefined;
         
-    const typedStatusFilter = statusFilter && 
+    const typedStatusFilter = statusFilter && statusFilter !== "all" && 
       ['active', 'suspended', 'inactive'].includes(statusFilter)
         ? statusFilter as 'active' | 'suspended' | 'inactive'
         : undefined;
@@ -286,7 +286,7 @@ export function UserManagementPanel() {
                   <SelectValue placeholder="Todos los roles" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="advertiser">Anunciante</SelectItem>
                   <SelectItem value="owner">Propietario</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
@@ -301,7 +301,7 @@ export function UserManagementPanel() {
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="suspended">Suspendido</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
