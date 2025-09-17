@@ -24,7 +24,7 @@ export function AuditLogsPanel() {
   const { auditLogs, fetchAuditLogs, hasPermission } = useUserManagement();
   const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [actionFilter, setActionFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
 
   const getActionIcon = (action: string) => {
@@ -126,7 +126,7 @@ export function AuditLogsPanel() {
     }
 
     // Filter by action
-    if (actionFilter) {
+    if (actionFilter && actionFilter !== 'all') {
       filtered = filtered.filter(log => log.action === actionFilter);
     }
 
@@ -200,7 +200,7 @@ export function AuditLogsPanel() {
                   <SelectValue placeholder="Todas las acciones" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="create_user">Usuario Creado</SelectItem>
                   <SelectItem value="update_user">Usuario Actualizado</SelectItem>
                   <SelectItem value="delete_user">Usuario Eliminado</SelectItem>
@@ -222,7 +222,7 @@ export function AuditLogsPanel() {
               variant="outline" 
               onClick={() => {
                 setSearchTerm('');
-                setActionFilter('');
+                setActionFilter('all');
                 setDateFilter('');
               }}
             >
