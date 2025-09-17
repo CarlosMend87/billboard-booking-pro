@@ -458,6 +458,27 @@ export type Database = {
         Args: { reserva_id: string }
         Returns: string
       }
+      get_all_users: {
+        Args: {
+          limit_count?: number
+          offset_count?: number
+          role_filter?: Database["public"]["Enums"]["user_role"]
+          search_term?: string
+          status_filter?: Database["public"]["Enums"]["user_status"]
+        }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          email: string
+          id: string
+          last_login_at: string
+          name: string
+          phone: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
+          user_id: string
+        }[]
+      }
       get_current_user_profile: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -468,6 +489,22 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+      }
+      log_user_action: {
+        Args: {
+          action_type: string
+          details?: Json
+          resource_id?: string
+          resource_type?: string
+        }
+        Returns: undefined
+      }
+      user_has_permission: {
+        Args: {
+          perm: Database["public"]["Enums"]["permission"]
+          user_uuid: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

@@ -14,6 +14,7 @@ import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
 import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import TestOwnerActions from "./pages/TestOwnerActions";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,25 @@ function OwnerOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function SuperAdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
+  
+  if (authLoading || roleLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  if (role !== 'superadmin') {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 function RoleBasedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading } = useUserRole();
@@ -65,9 +85,13 @@ function RoleBasedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
   
-  // Redirect owners directly to their dashboard
+  // Redirect based on role
   if (role === 'owner') {
     return <Navigate to="/owner-dashboard" replace />;
+  }
+  
+  if (role === 'superadmin') {
+    return <Navigate to="/superadmin" replace />;
   }
   
   return <>{children}</>;
@@ -112,6 +136,11 @@ const App = () => (
                 <OwnerOnlyRoute>
                   <OwnerDashboard />
                 </OwnerOnlyRoute>
+              } />
+              <Route path="/superadmin" element={
+                <SuperAdminOnlyRoute>
+                  <SuperAdminDashboard />
+                </SuperAdminOnlyRoute>
               } />
               <Route path="/test-owner" element={
                 <ProtectedRoute>
