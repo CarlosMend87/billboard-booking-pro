@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'owner' | 'advertiser' | null;
-
-// Temporary hardcoded owner emails until we have proper role management
-const OWNER_EMAILS = ['hm28443@gmail.com'];
+export type UserRole = 'superadmin' | 'admin' | 'owner' | 'advertiser' | null;
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -18,10 +16,30 @@ export function useUserRole() {
       return;
     }
 
-    // Check if user email is in the owner list
-    const userRole = OWNER_EMAILS.includes(user.email || '') ? 'owner' : 'advertiser';
-    setRole(userRole);
-    setLoading(false);
+    // Fetch user role from profiles table
+    const fetchUserRole = async () => {
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user role:', error);
+          setRole('advertiser'); // Default fallback
+        } else {
+          setRole(profile?.role || 'advertiser');
+        }
+      } catch (error) {
+        console.error('Error in fetchUserRole:', error);
+        setRole('advertiser'); // Default fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
   }, [user]);
 
   return { role, loading };
