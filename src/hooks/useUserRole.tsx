@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = 'superadmin' | 'admin' | 'owner' | 'advertiser' | null;
 
+// Hardcoded owner emails for backward compatibility
+const OWNER_EMAILS = ['hm28443@gmail.com'];
+
 export function useUserRole() {
   const { user } = useAuth();
   const [role, setRole] = useState<UserRole>(null);
@@ -16,24 +19,50 @@ export function useUserRole() {
       return;
     }
 
-    // Fetch user role from profiles table
     const fetchUserRole = async () => {
       try {
-        const { data: profile, error } = await supabase
+        // First check if user is superadmin
+        const { data: superadmin, error: superAdminError } = await supabase
+          .from('superadmins')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!superAdminError && superadmin) {
+          setRole('superadmin');
+          setLoading(false);
+          return;
+        }
+
+        // Then check profiles table
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (error) {
-          console.error('Error fetching user role:', error);
-          setRole('advertiser'); // Default fallback
+        if (!profileError && profile?.role) {
+          setRole(profile.role);
         } else {
-          setRole(profile?.role || 'advertiser');
+          // Fallback to email-based check for owners
+          const userRole = OWNER_EMAILS.includes(user.email || '') ? 'owner' : 'advertiser';
+          setRole(userRole);
+          
+          // Create profile if it doesn't exist
+          if (!profile) {
+            await supabase.from('profiles').insert({
+              user_id: user.id,
+              email: user.email,
+              role: userRole,
+              status: 'active'
+            });
+          }
         }
       } catch (error) {
-        console.error('Error in fetchUserRole:', error);
-        setRole('advertiser'); // Default fallback
+        console.error('Error fetching user role:', error);
+        // Fallback based on email
+        const fallbackRole = OWNER_EMAILS.includes(user.email || '') ? 'owner' : 'advertiser';
+        setRole(fallbackRole);
       } finally {
         setLoading(false);
       }

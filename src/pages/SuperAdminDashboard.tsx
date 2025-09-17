@@ -66,18 +66,27 @@ export default function SuperAdminDashboard() {
 
   const loadUsers = async () => {
     try {
+      // For superadmin, load all users from profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, user_id, name, email, role, status, created_at, last_login_at, phone')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (error) {
+        console.error('Load users error:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los usuarios. Verifica tu conexión.",
+          variant: "destructive",
+        });
+      } else {
+        setUsers(data || []);
+      }
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
         title: "Error",
-        description: "No se pudieron cargar los usuarios",
+        description: "No se pudieron cargar los usuarios. Verifica tu conexión.",
         variant: "destructive",
       });
     }
