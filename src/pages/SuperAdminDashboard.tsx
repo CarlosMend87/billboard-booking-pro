@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Users, UserPlus, Settings, Activity, LogOut, Search, Edit, Trash2, UserCheck, UserX, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -40,12 +41,14 @@ interface AuditLog {
 export default function SuperAdminDashboard() {
   const { signOut } = useAuth();
   const { toast } = useToast();
+  const { createUser, updateUserStatus, deleteUser } = useAdmin();
   const [users, setUsers] = useState<User[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // New user form state
   const [newUser, setNewUser] = useState({
@@ -97,7 +100,7 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const createUser = async () => {
+  const handleCreateUser = async () => {
     if (!newUser.email || !newUser.password) {
       toast({
         title: "Error",
@@ -107,116 +110,58 @@ export default function SuperAdminDashboard() {
       return;
     }
 
-    try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUser.email,
-        password: newUser.password,
-        email_confirm: true
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: authData.user.id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
-            phone: newUser.phone,
-            status: 'active'
-          });
-
-        if (profileError) throw profileError;
-
-        // Log the action
-        await supabase.rpc('log_user_action', {
-          action_type: 'create_user',
-          resource_type: 'user',
-          resource_id: authData.user.id,
-          details: { email: newUser.email, role: newUser.role }
-        });
-
-        toast({
-          title: "Usuario creado",
-          description: `Usuario ${newUser.email} creado exitosamente`,
-        });
-
-        setNewUser({ email: '', password: '', name: '', role: 'advertiser', phone: '' });
-        loadUsers();
-      }
-    } catch (error: any) {
-      console.error('Error creating user:', error);
+    const { error } = await createUser(newUser);
+    
+    if (error) {
       toast({
         title: "Error",
-        description: error.message || "Error al crear usuario",
+        description: error,
         variant: "destructive",
       });
+    } else {
+      toast({
+        title: "Usuario creado",
+        description: `Usuario ${newUser.email} creado exitosamente`,
+      });
+      setNewUser({ email: '', password: '', name: '', role: 'advertiser', phone: '' });
+      setIsCreateDialogOpen(false);
+      loadUsers();
     }
   };
 
-  const updateUserStatus = async (userId: string, newStatus: 'active' | 'suspended' | 'inactive') => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      // Log the action
-      await supabase.rpc('log_user_action', {
-        action_type: 'update_user_status',
-        resource_type: 'user',
-        resource_id: userId,
-        details: { status: newStatus }
+  const handleUpdateUserStatus = async (userId: string, newStatus: 'active' | 'suspended' | 'inactive') => {
+    const { error } = await updateUserStatus(userId, newStatus);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
       });
-
+    } else {
       toast({
         title: "Estado actualizado",
         description: `Estado del usuario actualizado a ${newStatus}`,
       });
-
       loadUsers();
-    } catch (error: any) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: "Error",
-        description: "Error al actualizar estado del usuario",
-        variant: "destructive",
-      });
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    try {
-      // Delete from auth
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
-
-      // Log the action
-      await supabase.rpc('log_user_action', {
-        action_type: 'delete_user',
-        resource_type: 'user',
-        resource_id: userId
+  const handleDeleteUser = async (userId: string) => {
+    const { error } = await deleteUser(userId);
+    
+    if (error) {
+      toast({
+        title: "Error", 
+        description: error,
+        variant: "destructive",
       });
-
+    } else {
       toast({
         title: "Usuario eliminado",
         description: "Usuario eliminado exitosamente",
       });
-
       loadUsers();
-    } catch (error: any) {
-      console.error('Error deleting user:', error);
-      toast({
-        title: "Error",
-        description: "Error al eliminar usuario",
-        variant: "destructive",
-      });
     }
   };
 
@@ -382,7 +327,7 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 {/* Create User Dialog */}
-                <Dialog>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <UserPlus className="h-4 w-4 mr-2" />
@@ -454,7 +399,7 @@ export default function SuperAdminDashboard() {
                         />
                       </div>
                       
-                      <Button onClick={createUser} className="w-full">
+                      <Button onClick={handleCreateUser} className="w-full">
                         Crear Usuario
                       </Button>
                     </div>
@@ -518,7 +463,7 @@ export default function SuperAdminDashboard() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => updateUserStatus(user.user_id, 'suspended')}
+                                  onClick={() => handleUpdateUserStatus(user.user_id, 'suspended')}
                                 >
                                   <UserX className="h-4 w-4" />
                                 </Button>
@@ -526,7 +471,7 @@ export default function SuperAdminDashboard() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => updateUserStatus(user.user_id, 'active')}
+                                  onClick={() => handleUpdateUserStatus(user.user_id, 'active')}
                                 >
                                   <UserCheck className="h-4 w-4" />
                                 </Button>
@@ -547,7 +492,7 @@ export default function SuperAdminDashboard() {
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteUser(user.user_id)}>
+                                    <AlertDialogAction onClick={() => handleDeleteUser(user.user_id)}>
                                       Eliminar
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
