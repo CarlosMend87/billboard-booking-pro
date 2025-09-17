@@ -15,6 +15,8 @@ import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import TestOwnerActions from "./pages/TestOwnerActions";
+import SuperAdminAuth from "./pages/SuperAdminAuth";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -118,6 +120,8 @@ const App = () => (
                   <TestOwnerActions />
                 </ProtectedRoute>
               } />
+              <Route path="/superadmin-auth" element={<SuperAdminAuth />} />
+              <Route path="/superadmin" element={<SuperAdminDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

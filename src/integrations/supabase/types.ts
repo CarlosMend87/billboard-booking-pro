@@ -410,32 +410,113 @@ export type Database = {
         }
         Relationships: []
       }
+      superadmin_password_resets: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          requested_by: string | null
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          requested_by?: string | null
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          requested_by?: string | null
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      superadmin_permissions: {
+        Row: {
+          id: string
+          permission: string
+          role: string
+        }
+        Insert: {
+          id?: string
+          permission: string
+          role: string
+        }
+        Update: {
+          id?: string
+          permission?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      superadmin_user_permissions: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       superadmins: {
         Row: {
           created_at: string | null
           email: string
           id: string
+          last_activity: string | null
           last_login_at: string | null
           name: string | null
+          permissions: Json | null
           status: string | null
+          two_factor_enabled: boolean | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           email: string
           id?: string
+          last_activity?: string | null
           last_login_at?: string | null
           name?: string | null
+          permissions?: Json | null
           status?: string | null
+          two_factor_enabled?: boolean | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           email?: string
           id?: string
+          last_activity?: string | null
           last_login_at?: string | null
           name?: string | null
+          permissions?: Json | null
           status?: string | null
+          two_factor_enabled?: boolean | null
           user_id?: string
         }
         Relationships: []
@@ -519,6 +600,14 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+      }
+      has_superadmin_permission: {
+        Args: { perm: string; user_uuid: string }
+        Returns: boolean
+      }
+      is_superadmin: {
+        Args: { user_uuid: string }
+        Returns: boolean
       }
       log_user_action: {
         Args: {
