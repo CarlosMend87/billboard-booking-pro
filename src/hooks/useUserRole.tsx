@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = 'owner' | 'advertiser' | null;
-
-// Temporary hardcoded owner emails until we have proper role management
-const OWNER_EMAILS = ['hm28443@gmail.com'];
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -12,16 +10,49 @@ export function useUserRole() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setRole(null);
-      setLoading(false);
-      return;
-    }
+    let isMounted = true;
 
-    // Check if user email is in the owner list
-    const userRole = OWNER_EMAILS.includes(user.email || '') ? 'owner' : 'advertiser';
-    setRole(userRole);
-    setLoading(false);
+    const loadRole = async () => {
+      if (!user) {
+        if (!isMounted) return;
+        setRole(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user role from profiles:', error);
+          if (!isMounted) return;
+          // Fallback to advertiser if there's any issue
+          setRole('advertiser');
+        } else {
+          const dbRole = (data?.role as string) || 'advertiser';
+          if (!isMounted) return;
+          setRole(dbRole === 'owner' ? 'owner' : 'advertiser');
+        }
+      } catch (e) {
+        console.error('Unexpected error loading user role:', e);
+        if (!isMounted) return;
+        setRole('advertiser');
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
+    loadRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   return { role, loading };
