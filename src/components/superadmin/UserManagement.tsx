@@ -107,7 +107,7 @@ export default function UserManagement() {
         throw new Error('No authenticated session');
       }
 
-      const response = await fetch('/functions/v1/admin-create-user', {
+      const response = await fetch('https://hkckgwptmycyebrcffxk.supabase.co/functions/v1/admin-create-user', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -193,7 +193,7 @@ export default function UserManagement() {
         throw new Error('No authenticated session');
       }
 
-      const response = await fetch('/functions/v1/admin-delete-user', {
+      const response = await fetch('https://hkckgwptmycyebrcffxk.supabase.co/functions/v1/admin-delete-user', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -238,6 +238,15 @@ export default function UserManagement() {
 
       if (error) {
         throw error;
+      }
+
+      // Update user metadata to reflect role change
+      const { error: metadataError } = await supabase.auth.admin.updateUserById(user.user_id, {
+        user_metadata: { role: newRole }
+      });
+
+      if (metadataError) {
+        console.error('Error updating user metadata:', metadataError);
       }
 
       // Log action
