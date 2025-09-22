@@ -45,6 +45,8 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -52,6 +54,7 @@ export default function UserManagement() {
     role: "advertiser",
     phone: ""
   });
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,47 +102,31 @@ export default function UserManagement() {
 
   const createUser = async () => {
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUser.email,
-        password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          name: newUser.name
-        }
-      });
-
-      if (authError) {
-        throw authError;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session');
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
+      const response = await fetch('/functions/v1/admin-create-user', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role as any,
-          phone: newUser.phone || null,
-          status: 'active' as any
-        });
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      // Log action
-      await supabase.rpc('log_user_action', {
-        action_type: 'user_created',
-        resource_type: 'user',
-        resource_id: authData.user.id,
-        details: { 
-          email: newUser.email, 
+          password: newUser.password,
           role: newUser.role,
-          name: newUser.name 
-        }
+          phone: newUser.phone
+        })
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error creating user');
+      }
 
       toast({
         title: "Usuario creado",
@@ -194,6 +181,91 @@ export default function UserManagement() {
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado del usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteUser = async (user: User) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No authenticated session');
+      }
+
+      const response = await fetch('/functions/v1/admin-delete-user', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.user_id
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error deleting user');
+      }
+
+      toast({
+        title: "Usuario eliminado",
+        description: `Usuario ${user.name} eliminado exitosamente`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+      loadUsers();
+
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserRole = async (user: User, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole as any })
+        .eq('user_id', user.user_id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Log action
+      await supabase.rpc('log_user_action', {
+        action_type: 'user_role_updated',
+        resource_type: 'user',
+        resource_id: user.user_id,
+        details: { 
+          email: user.email, 
+          old_role: user.role, 
+          new_role: newRole 
+        }
+      });
+
+      toast({
+        title: "Rol actualizado",
+        description: `Rol del usuario actualizado a ${newRole}`,
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      loadUsers();
+
+    } catch (error: any) {
+      console.error('Error updating user role:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el rol del usuario",
         variant: "destructive",
       });
     }
@@ -364,6 +436,74 @@ export default function UserManagement() {
         </CardHeader>
       </Card>
 
+      {/* Edit User Role Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Rol de Usuario</DialogTitle>
+            <DialogDescription>
+              Cambiar el rol de {editingUser?.name || editingUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-role">Nuevo rol</Label>
+              <Select 
+                value={editingUser?.role} 
+                onValueChange={(value) => setEditingUser(prev => prev ? {...prev, role: value} : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="advertiser">Anunciante</SelectItem>
+                  <SelectItem value="owner">Propietario</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="superadmin">Superadministrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => editingUser && updateUserRole(editingUser, editingUser.role)}>
+              Actualizar Rol
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar Usuario</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar al usuario {userToDelete?.name || userToDelete?.email}?
+              Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <Alert>
+            <AlertDescription>
+              Al eliminar este usuario se eliminará permanentemente su cuenta y todos los datos relacionados.
+            </AlertDescription>
+          </Alert>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => userToDelete && deleteUser(userToDelete)}
+            >
+              Eliminar Usuario
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
@@ -461,6 +601,17 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setEditingUser(user);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Editar
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => resetPassword(user)}>
                           <Key className="w-3 h-3 mr-1" />
                           Reset
@@ -485,6 +636,18 @@ export default function UserManagement() {
                             Activar
                           </Button>
                         )}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setUserToDelete(user);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Eliminar
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
