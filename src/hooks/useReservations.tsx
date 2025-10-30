@@ -63,7 +63,11 @@ export function useReservations() {
         const ownerId = item.asset.owner_id || "ef57691e-4946-43c4-ba5c-b904e93a27cf"; // Fallback to existing owner
         
         const reservation = await createReservation(item, ownerId);
-        reservations.push(reservation);
+        // Add owner_id to the reservation object for email sending
+        reservations.push({
+          ...reservation,
+          owner_id: ownerId
+        });
       }
 
       return reservations;
