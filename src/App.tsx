@@ -14,6 +14,7 @@ import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
 import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import OwnerReservations from "./pages/OwnerReservations";
 import TestOwnerActions from "./pages/TestOwnerActions";
 import SuperAdminAuth from "./pages/SuperAdminAuth";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -113,6 +114,11 @@ const App = () => (
               <Route path="/owner-dashboard" element={
                 <OwnerOnlyRoute>
                   <OwnerDashboard />
+                </OwnerOnlyRoute>
+              } />
+              <Route path="/owner-reservations" element={
+                <OwnerOnlyRoute>
+                  <OwnerReservations />
                 </OwnerOnlyRoute>
               } />
               <Route path="/test-owner" element={

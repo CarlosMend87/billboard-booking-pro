@@ -18,6 +18,8 @@ import { BillboardMap } from "@/components/owner/BillboardMap";
 import { ExportReports } from "@/components/owner/ExportReports";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Link } from "react-router-dom";
+import { Bell } from "lucide-react";
 
 export default function OwnerDashboard() {
   const { billboards, loading, deleteBillboard } = useBillboards();
@@ -76,7 +78,15 @@ export default function OwnerDashboard() {
               </p>
             </div>
             
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link to="/owner-reservations" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Ver Reservas
+                </Link>
+              </Button>
+              
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2" onClick={() => setSelectedBillboard(null)}>
                   <Plus className="h-4 w-4" />
@@ -98,6 +108,7 @@ export default function OwnerDashboard() {
                 />
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           {/* Resumen Financiero */}
