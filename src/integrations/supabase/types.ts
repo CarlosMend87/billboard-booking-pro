@@ -20,7 +20,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string | null
           user_agent: string | null
@@ -31,7 +31,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -42,7 +42,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           user_agent?: string | null
@@ -591,7 +591,7 @@ export type Database = {
         }[]
       }
       get_current_user_profile: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           id: string
@@ -605,14 +605,8 @@ export type Database = {
         Args: { perm: string; user_uuid: string }
         Returns: boolean
       }
-      is_active_superadmin: {
-        Args: { _user: string }
-        Returns: boolean
-      }
-      is_superadmin: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      is_active_superadmin: { Args: { _user: string }; Returns: boolean }
+      is_superadmin: { Args: { user_uuid: string }; Returns: boolean }
       log_user_action: {
         Args: {
           action_type: string
@@ -626,10 +620,7 @@ export type Database = {
         Args: { admin_email: string; admin_password?: string }
         Returns: string
       }
-      update_last_login: {
-        Args: { user_uuid: string }
-        Returns: undefined
-      }
+      update_last_login: { Args: { user_uuid: string }; Returns: undefined }
       user_has_permission: {
         Args: {
           perm: Database["public"]["Enums"]["permission"]
