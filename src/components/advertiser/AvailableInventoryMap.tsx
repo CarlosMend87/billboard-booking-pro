@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Monitor, Building, Loader2 } from "lucide-react";
+import { MapPin, Monitor, Building, Loader2, Camera, Users } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
@@ -73,6 +73,9 @@ interface MapBillboard {
   owner_id: string;
   precio: any;
   medidas: any;
+  has_computer_vision?: boolean;
+  last_detection_count?: number;
+  last_detection_date?: string;
 }
 
 export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInventoryMapProps) {
@@ -102,6 +105,9 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           owner_id: billboard.owner_id,
           precio: billboard.precio,
           medidas: billboard.medidas,
+          has_computer_vision: billboard.has_computer_vision || false,
+          last_detection_count: billboard.last_detection_count || 0,
+          last_detection_date: billboard.last_detection_date
         })) || [];
 
         // Combine with mock data to ensure map functionality
@@ -274,18 +280,33 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         <Card className="border-primary">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                {selectedBillboard.tipo === 'digital' ? (
-                  <Monitor className="h-5 w-5" />
-                ) : (
-                  <Building className="h-5 w-5" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="flex items-center gap-2">
+                  {selectedBillboard.tipo === 'digital' ? (
+                    <Monitor className="h-5 w-5" />
+                  ) : (
+                    <Building className="h-5 w-5" />
+                  )}
+                  {selectedBillboard.nombre}
+                </CardTitle>
+                {selectedBillboard.has_computer_vision && (
+                  <Badge variant="default" className="bg-blue-600">
+                    <Camera className="h-3 w-3 mr-1" />
+                    IA Activa
+                  </Badge>
                 )}
-                {selectedBillboard.nombre}
-              </CardTitle>
+              </div>
               <Badge variant="outline">
                 ID: {formatTruncatedId(selectedBillboard.id)}
               </Badge>
             </div>
+            {selectedBillboard.has_computer_vision && selectedBillboard.last_detection_count > 0 && (
+              <div className="flex items-center gap-2 mt-2 text-sm text-blue-600 dark:text-blue-400">
+                <Users className="h-4 w-4" />
+                <span className="font-medium">{selectedBillboard.last_detection_count.toLocaleString()}</span>
+                <span className="text-muted-foreground">personas detectadas ayer</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -340,26 +361,42 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                 onClick={() => setSelectedBillboard(billboard)}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant={billboard.tipo === 'digital' ? 'default' : 'secondary'} className="text-xs">
-                    {billboard.tipo === 'digital' ? (
-                      <>
-                        <Monitor className="h-3 w-3 mr-1" />
-                        Digital
-                      </>
-                    ) : (
-                      <>
-                        <Building className="h-3 w-3 mr-1" />
-                        Espectacular
-                      </>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={billboard.tipo === 'digital' ? 'default' : 'secondary'} className="text-xs">
+                      {billboard.tipo === 'digital' ? (
+                        <>
+                          <Monitor className="h-3 w-3 mr-1" />
+                          Digital
+                        </>
+                      ) : (
+                        <>
+                          <Building className="h-3 w-3 mr-1" />
+                          Espectacular
+                        </>
+                      )}
+                    </Badge>
+                    {billboard.has_computer_vision && (
+                      <Badge variant="default" className="text-xs bg-blue-600">
+                        <Camera className="h-3 w-3 mr-1" />
+                        IA
+                      </Badge>
                     )}
-                  </Badge>
+                  </div>
                   <span className="text-xs text-muted-foreground">{formatTruncatedId(billboard.id)}</span>
                 </div>
                 <h4 className="font-medium text-sm">{billboard.nombre}</h4>
                 <p className="text-xs text-muted-foreground mb-1">{billboard.direccion}</p>
-                <p className="text-sm font-semibold text-primary">
-                  {formatPrice(billboard.precio?.mensual || 0)}/mes
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-primary">
+                    {formatPrice(billboard.precio?.mensual || 0)}/mes
+                  </p>
+                  {billboard.has_computer_vision && billboard.last_detection_count > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                      <Users className="h-3 w-3" />
+                      <span className="font-medium">{billboard.last_detection_count.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

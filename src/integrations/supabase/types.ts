@@ -60,12 +60,16 @@ export type Database = {
       }
       billboards: {
         Row: {
+          admobilize_config: Json | null
           contratacion: Json
           created_at: string
           digital: Json | null
           direccion: string
           fotos: string[] | null
+          has_computer_vision: boolean | null
           id: string
+          last_detection_count: number | null
+          last_detection_date: string | null
           lat: number
           lng: number
           medidas: Json
@@ -77,12 +81,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admobilize_config?: Json | null
           contratacion?: Json
           created_at?: string
           digital?: Json | null
           direccion: string
           fotos?: string[] | null
+          has_computer_vision?: boolean | null
           id?: string
+          last_detection_count?: number | null
+          last_detection_date?: string | null
           lat: number
           lng: number
           medidas?: Json
@@ -94,12 +102,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admobilize_config?: Json | null
           contratacion?: Json
           created_at?: string
           digital?: Json | null
           direccion?: string
           fotos?: string[] | null
+          has_computer_vision?: boolean | null
           id?: string
+          last_detection_count?: number | null
+          last_detection_date?: string | null
           lat?: number
           lng?: number
           medidas?: Json

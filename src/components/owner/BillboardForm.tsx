@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, X, MapPin } from "lucide-react";
+import { Upload, X, MapPin, Camera } from "lucide-react";
 import { useBillboards, Billboard } from "@/hooks/useBillboards";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -30,6 +30,9 @@ const billboardSchema = z.object({
   // Digital
   loop_seg: z.number().optional(),
   slot_seg: z.number().optional(),
+  // Computer Vision / AdMobilize
+  has_computer_vision: z.boolean().optional(),
+  admobilize_device_id: z.string().optional(),
   // Contratación
   mensual: z.boolean().optional(),
   catorcenal: z.boolean().optional(),
@@ -76,6 +79,8 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       modulos: (billboard?.medidas as any)?.modulos,
       loop_seg: (billboard?.digital as any)?.loop_seg,
       slot_seg: (billboard?.digital as any)?.slot_seg,
+      has_computer_vision: (billboard as any)?.has_computer_vision || false,
+      admobilize_device_id: (billboard as any)?.admobilize_config?.device_id || "",
       mensual: (billboard?.contratacion as any)?.mensual || false,
       catorcenal: (billboard?.contratacion as any)?.catorcenal || false,
       rotativo: (billboard?.contratacion as any)?.rotativo || false,
@@ -146,6 +151,10 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           loop_seg: data.loop_seg,
           slot_seg: data.slot_seg,
         } : null,
+        has_computer_vision: data.has_computer_vision || false,
+        admobilize_config: data.has_computer_vision && data.admobilize_device_id ? {
+          device_id: data.admobilize_device_id
+        } : null,
         contratacion: {
           mensual: data.mensual,
           catorcenal: data.catorcenal,
@@ -184,9 +193,10 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Básico</TabsTrigger>
             <TabsTrigger value="specs">Especificaciones</TabsTrigger>
+            <TabsTrigger value="cv">IA/Vision</TabsTrigger>
             <TabsTrigger value="pricing">Precios</TabsTrigger>
             <TabsTrigger value="images">Imágenes</TabsTrigger>
           </TabsList>
@@ -530,6 +540,63 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cv" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Computer Vision / AdMobilize</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>AdMobilize</strong> permite detectar y contabilizar vehículos y personas que pasan frente a la pantalla utilizando tecnología de Computer Vision.
+                  </p>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="has_computer_vision"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Esta pantalla cuenta con tecnología de Computer Vision (IA)
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Activa esta opción si tu pantalla utiliza AdMobilize para el conteo de audiencia
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("has_computer_vision") && (
+                  <FormField
+                    control={form.control}
+                    name="admobilize_device_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ID del Dispositivo AdMobilize</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Ej: ADM-12345"
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Ingresa el identificador único del dispositivo AdMobilize instalado en esta pantalla
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

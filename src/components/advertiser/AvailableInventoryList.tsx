@@ -12,7 +12,9 @@ import {
   Building, 
   Search,
   Eye,
-  ShoppingCart
+  ShoppingCart,
+  Camera,
+  Users
 } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
@@ -39,7 +41,11 @@ const getRandomAvailableDates = () => {
 };
 
 // Convert Supabase billboard to InventoryAsset format
-const convertBillboardToAsset = (billboard: any): InventoryAsset => {
+const convertBillboardToAsset = (billboard: any): InventoryAsset & { 
+  has_computer_vision?: boolean; 
+  last_detection_count?: number;
+  last_detection_date?: string;
+} => {
   return {
     id: billboard.id,
     nombre: billboard.nombre,
@@ -70,7 +76,10 @@ const convertBillboardToAsset = (billboard: any): InventoryAsset => {
     },
     estado: billboard.status === 'disponible' ? 'disponible' : 'ocupado',
     propietario: `Propietario ${billboard.owner_id.slice(0, 8)}`, // Simplified owner display
-    foto: billboard.fotos?.[0] || `https://picsum.photos/seed/${billboard.id}/800/450`
+    foto: billboard.fotos?.[0] || `https://picsum.photos/seed/${billboard.id}/800/450`,
+    has_computer_vision: billboard.has_computer_vision || false,
+    last_detection_count: billboard.last_detection_count || 0,
+    last_detection_date: billboard.last_detection_date
   };
 };
 
@@ -238,8 +247,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
             <Card key={asset.id} className="hover:shadow-medium transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Badge variant="outline" className="text-xs">
                         {asset.tipo === 'digital' ? <Monitor className="h-3 w-3 mr-1" /> : <Building className="h-3 w-3 mr-1" />}
                         {typeLabel}
@@ -247,11 +256,26 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                       <Badge variant="secondary" className="text-xs">
                         ID: {formatShortId(asset.id)}
                       </Badge>
+                      {(asset as any).has_computer_vision && (
+                        <Badge variant="default" className="text-xs bg-blue-600">
+                          <Camera className="h-3 w-3 mr-1" />
+                          IA Activa
+                        </Badge>
+                      )}
                     </div>
                     <h3 className="font-semibold text-lg">{asset.nombre}</h3>
-                    {asset.propietario && (
-                      <p className="text-sm text-muted-foreground">{asset.propietario}</p>
-                    )}
+                    <div className="flex items-center gap-3 mt-1">
+                      {asset.propietario && (
+                        <p className="text-sm text-muted-foreground">{asset.propietario}</p>
+                      )}
+                      {(asset as any).has_computer_vision && (asset as any).last_detection_count > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                          <Users className="h-3 w-3" />
+                          <span className="font-medium">{(asset as any).last_detection_count.toLocaleString()}</span>
+                          <span className="text-muted-foreground">personas ayer</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <Badge className="bg-status-confirmed text-white">
                     Disponible
