@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   MapPin, 
   Calendar, 
@@ -22,6 +23,7 @@ import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
 import { formatShortId } from "@/lib/utils";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { supabase } from "@/integrations/supabase/client";
+import admobilizeImage from "@/assets/admobilize-detection.png";
 
 interface AvailableInventoryListProps {
   filters: InventoryFilters;
@@ -87,6 +89,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedModalidad, setSelectedModalidad] = useState<{[key: string]: CartItemModalidad}>({});
   const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
+  const [selectedAssetForDetails, setSelectedAssetForDetails] = useState<(InventoryAsset & { has_computer_vision?: boolean; last_detection_count?: number }) | null>(null);
 
   // Fetch available billboards from owners
   useEffect(() => {
@@ -256,26 +259,24 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                       <Badge variant="secondary" className="text-xs">
                         ID: {formatShortId(asset.id)}
                       </Badge>
-                      {(asset as any).has_computer_vision && (
-                        <Badge variant="default" className="text-xs bg-blue-600">
-                          <Camera className="h-3 w-3 mr-1" />
-                          IA Activa
-                        </Badge>
-                      )}
                     </div>
                     <h3 className="font-semibold text-lg">{asset.nombre}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      {asset.propietario && (
-                        <p className="text-sm text-muted-foreground">{asset.propietario}</p>
-                      )}
-                      {(asset as any).has_computer_vision && (asset as any).last_detection_count > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                          <Users className="h-3 w-3" />
-                          <span className="font-medium">{(asset as any).last_detection_count.toLocaleString()}</span>
-                          <span className="text-muted-foreground">personas ayer</span>
+                    <p className="text-sm text-muted-foreground">{asset.propietario}</p>
+                    
+                    {(asset as any).has_computer_vision && (asset as any).last_detection_count > 0 && (
+                      <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md">
+                        <Camera className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                            {(asset as any).last_detection_count.toLocaleString()}
+                          </span>
+                          <span className="text-sm text-blue-600 dark:text-blue-400">
+                            personas detectadas ayer
+                          </span>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                   <Badge className="bg-status-confirmed text-white">
                     Disponible
@@ -371,7 +372,12 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setSelectedAssetForDetails(asset as any)}
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     Ver Detalles
                   </Button>
@@ -397,6 +403,51 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!selectedAssetForDetails} onOpenChange={(open) => !open && setSelectedAssetForDetails(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-blue-600" />
+              Detección de Audiencia - {selectedAssetForDetails?.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedAssetForDetails?.has_computer_vision ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-semibold text-blue-600 dark:text-blue-400">
+                    {selectedAssetForDetails.last_detection_count?.toLocaleString()} personas detectadas ayer
+                  </h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Sistema de Computer Vision con tecnología AdMobilize
+                </p>
+              </div>
+              
+              <div className="rounded-lg overflow-hidden border">
+                <img 
+                  src={admobilizeImage} 
+                  alt="AdMobilize Detection"
+                  className="w-full h-auto"
+                />
+              </div>
+              
+              <p className="text-sm text-muted-foreground text-center">
+                Detección y conteo automático de personas en tiempo real
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                Esta pantalla no cuenta con tecnología de Computer Vision
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
