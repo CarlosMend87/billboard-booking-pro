@@ -15,7 +15,8 @@ import {
   Eye,
   ShoppingCart,
   Camera,
-  Users
+  Users,
+  Activity
 } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
@@ -372,15 +373,27 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => setSelectedAssetForDetails(asset as any)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Ver Detalles
-                  </Button>
+                  {(asset as any).has_computer_vision ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => setSelectedAssetForDetails(asset as any)}
+                    >
+                      <Activity className="h-4 w-4 mr-1" />
+                      Ver Impactos
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => setSelectedAssetForDetails(asset as any)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver Detalles
+                    </Button>
+                  )}
                   <Button size="sm" className="flex-1" onClick={() => handleAddToCart(asset)}>
                     <ShoppingCart className="h-4 w-4 mr-1" />
                     Agregar
