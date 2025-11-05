@@ -22,14 +22,15 @@ export function useUserRole() {
 
       setLoading(true);
       try {
+        // Query user_roles table instead of profiles
         const { data, error } = await supabase
-          .from('profiles')
+          .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching user role from profiles:', error);
+          console.error('Error fetching user role');
           if (!isMounted) return;
           // Fallback to advertiser if there's any issue
           setRole('advertiser');
@@ -39,7 +40,7 @@ export function useUserRole() {
           setRole(dbRole === 'owner' ? 'owner' : 'advertiser');
         }
       } catch (e) {
-        console.error('Unexpected error loading user role:', e);
+        console.error('Error loading user role');
         if (!isMounted) return;
         setRole('advertiser');
       } finally {

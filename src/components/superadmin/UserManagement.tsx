@@ -231,23 +231,39 @@ export default function UserManagement() {
 
   const updateUserRole = async (user: User, newRole: string) => {
     try {
-      const { error } = await supabase
+      // Get current roles
+      const { data: currentRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.user_id);
+
+      // Delete old role
+      if (currentRoles && currentRoles.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', user.user_id);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Insert new role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert([{
+          user_id: user.user_id,
+          role: newRole as any
+        }]);
+
+      if (insertError) throw insertError;
+
+      // Update profile table for backward compatibility
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ role: newRole as any })
         .eq('user_id', user.user_id);
 
-      if (error) {
-        throw error;
-      }
-
-      // Update user metadata to reflect role change
-      const { error: metadataError } = await supabase.auth.admin.updateUserById(user.user_id, {
-        user_metadata: { role: newRole }
-      });
-
-      if (metadataError) {
-        console.error('Error updating user metadata:', metadataError);
-      }
+      if (profileError) throw profileError;
 
       // Log action
       await supabase.rpc('log_user_action', {
@@ -271,7 +287,7 @@ export default function UserManagement() {
       loadUsers();
 
     } catch (error: any) {
-      console.error('Error updating user role:', error);
+      console.error('Error updating user role');
       toast({
         title: "Error",
         description: "No se pudo actualizar el rol del usuario",

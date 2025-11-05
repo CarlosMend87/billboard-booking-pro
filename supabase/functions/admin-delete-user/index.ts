@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,7 +55,22 @@ serve(async (req) => {
       )
     }
 
-    const { userId } = await req.json()
+    // Validate input
+    const deleteUserSchema = z.object({
+      userId: z.string().uuid("Invalid user ID format")
+    })
+
+    const body = await req.json()
+    const validation = deleteUserSchema.safeParse(body)
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: validation.error.errors[0].message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { userId } = validation.data
 
     // Get user info for logging
     const { data: userProfile } = await supabaseAdmin
@@ -87,9 +103,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error deleting user:', error)
+    console.error('Error deleting user')
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to delete user. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

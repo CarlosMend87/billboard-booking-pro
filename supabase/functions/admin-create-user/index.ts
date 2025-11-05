@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,7 +55,28 @@ serve(async (req) => {
       )
     }
 
-    const { name, email, password, role, phone } = await req.json()
+    // Validate input
+    const createUserSchema = z.object({
+      name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
+      email: z.string().email("Invalid email format").max(255, "Email too long"),
+      password: z.string().min(8, "Password must be at least 8 characters").max(72, "Password too long"),
+      role: z.enum(['advertiser', 'owner', 'admin', 'superadmin'], { 
+        errorMap: () => ({ message: "Invalid role" }) 
+      }),
+      phone: z.string().max(20, "Phone number too long").optional()
+    })
+
+    const body = await req.json()
+    const validation = createUserSchema.safeParse(body)
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ error: validation.error.errors[0].message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { name, email, password, role, phone } = validation.data
 
     // Create user in Auth
     const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
@@ -85,6 +107,19 @@ serve(async (req) => {
       throw profileError
     }
 
+    // Insert role into user_roles table
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: authData.user.id,
+        role,
+        granted_by: user.id
+      })
+
+    if (roleError) {
+      throw roleError
+    }
+
     // Log action
     await supabaseAdmin.rpc('log_user_action', {
       action_type: 'user_created',
@@ -107,9 +142,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error creating user:', error)
+    console.error('Error creating user')
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to create user. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

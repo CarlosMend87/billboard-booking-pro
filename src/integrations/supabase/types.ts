@@ -572,6 +572,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -613,6 +637,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_superadmin_permission: {
         Args: { perm: string; user_uuid: string }
         Returns: boolean
@@ -628,10 +659,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      setup_superadmin: {
-        Args: { admin_email: string; admin_password?: string }
-        Returns: string
-      }
+      setup_superadmin: { Args: { admin_email: string }; Returns: string }
       update_last_login: { Args: { user_uuid: string }; Returns: undefined }
       user_has_permission: {
         Args: {
@@ -642,6 +670,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "superadmin" | "admin" | "owner" | "advertiser"
       permission:
         | "manage_users"
         | "manage_roles"
@@ -780,6 +809,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["superadmin", "admin", "owner", "advertiser"],
       permission: [
         "manage_users",
         "manage_roles",
