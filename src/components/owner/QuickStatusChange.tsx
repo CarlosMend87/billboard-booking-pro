@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Billboard, useBillboards } from "@/hooks/useBillboards";
-import { Check } from "lucide-react";
+import { Billboard, UpdateBillboard } from "@/hooks/useBillboards";
 
 interface QuickStatusChangeProps {
   billboard: Billboard;
+  updateBillboard: (id: string, updates: UpdateBillboard) => Promise<Billboard | undefined>;
 }
 
-export function QuickStatusChange({ billboard }: QuickStatusChangeProps) {
-  const { updateBillboard } = useBillboards();
+export function QuickStatusChange({ billboard, updateBillboard }: QuickStatusChangeProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStatusChange = async (newStatus: string) => {

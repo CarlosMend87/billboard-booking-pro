@@ -22,7 +22,7 @@ import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
 
 export default function OwnerDashboard() {
-  const { billboards, loading, deleteBillboard } = useBillboards();
+  const { billboards, loading, deleteBillboard, updateBillboard } = useBillboards();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -273,7 +273,7 @@ export default function OwnerDashboard() {
                       {/* Edición rápida de estatus */}
                       <div className="mb-4">
                         <label className="text-sm font-medium">Estado:</label>
-                        <QuickStatusChange billboard={billboard} />
+                        <QuickStatusChange billboard={billboard} updateBillboard={updateBillboard} />
                       </div>
                       
                       <div className="flex items-center gap-2">
