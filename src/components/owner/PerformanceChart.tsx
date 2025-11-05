@@ -49,7 +49,7 @@ export function PerformanceChart({ billboards }: PerformanceChartProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top 5 Pantallas Más Rentables</CardTitle>
+          <CardTitle>Top pantallas con mas rentabilidad</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
