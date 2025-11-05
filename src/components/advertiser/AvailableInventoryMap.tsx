@@ -15,53 +15,7 @@ interface AvailableInventoryMapProps {
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
 }
 
-// Mock billboard data with coordinates for Mexico City
-const mockMapBillboards = [
-  {
-    id: "ANU-001",
-    type: "fixed" as const,
-    location: "Av. Insurgentes Sur 123",
-    lat: 19.3640,
-    lng: -99.1678,
-    owner: "JCDecaux",
-    price: 25000,
-    size: "6m × 3m",
-    availableDates: [12, 13, 14, 15, 16, 20, 21, 22]
-  },
-  {
-    id: "DIG-002", 
-    type: "digital" as const,
-    location: "Av. Reforma 456",
-    lat: 19.4260,
-    lng: -99.1679,
-    owner: "Rentable",
-    price: 45000,
-    size: "8m × 4m",
-    availableDates: [10, 11, 12, 18, 19, 25, 26, 27]
-  },
-  {
-    id: "ANU-003",
-    type: "fixed" as const,
-    location: "Eje Central 789",
-    lat: 19.4000,
-    lng: -99.1500,
-    owner: "Grupo Vallas",
-    price: 18000,
-    size: "4m × 2m", 
-    availableDates: [5, 6, 7, 8, 15, 16, 17, 28]
-  },
-  {
-    id: "DIG-004",
-    type: "digital" as const,
-    location: "Periférico Sur 321",
-    lat: 19.3200,
-    lng: -99.1800,
-    owner: "Visual Shot",
-    price: 35000,
-    size: "10m × 5m",
-    availableDates: [14, 15, 16, 17, 18, 24, 25, 26]
-  }
-];
+// No mock data - using real billboards from Supabase
 
 interface MapBillboard {
   id: string;
@@ -94,13 +48,13 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
         if (error) throw error;
 
-        // Combine real billboards with mock data to maintain functionality
+        // Use only real billboards from Supabase
         const realBillboards = data?.map(billboard => ({
           id: billboard.id,
           nombre: billboard.nombre,
           direccion: billboard.direccion,
-          lat: billboard.lat,
-          lng: billboard.lng,
+          lat: Number(billboard.lat),
+          lng: Number(billboard.lng),
           tipo: billboard.tipo,
           owner_id: billboard.owner_id,
           precio: billboard.precio,
@@ -110,34 +64,10 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           last_detection_date: billboard.last_detection_date
         })) || [];
 
-        // Combine with mock data to ensure map functionality
-        const combinedBillboards = [...realBillboards, ...mockMapBillboards.map(mock => ({
-          id: mock.id,
-          nombre: mock.location,
-          direccion: mock.location,
-          lat: mock.lat,
-          lng: mock.lng,
-          tipo: mock.type === 'digital' ? 'digital' : 'espectacular',
-          owner_id: 'ef57691e-4946-43c4-ba5c-b904e93a27cf',
-          precio: { mensual: mock.price },
-          medidas: { ancho_m: parseInt(mock.size.split('×')[0]), alto_m: parseInt(mock.size.split('×')[1]) }
-        }))];
-
-        setBillboards(combinedBillboards);
+        setBillboards(realBillboards);
       } catch (error) {
         console.error('Error fetching billboards:', error);
-        // Fallback to mock data
-        setBillboards(mockMapBillboards.map(mock => ({
-          id: mock.id,
-          nombre: mock.location,
-          direccion: mock.location,
-          lat: mock.lat,
-          lng: mock.lng,
-          tipo: mock.type === 'digital' ? 'digital' : 'espectacular',
-          owner_id: 'ef57691e-4946-43c4-ba5c-b904e93a27cf',
-          precio: { mensual: mock.price },
-          medidas: { ancho_m: parseInt(mock.size.split('×')[0]), alto_m: parseInt(mock.size.split('×')[1]) }
-        })));
+        setBillboards([]);
       }
     };
 
@@ -158,12 +88,14 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-        // Center map on Mexico to show the entire country
-        const center = { lat: 23.6345, lng: -102.5528 }; // Geographic center of Mexico
+        // Calculate center based on available billboards
+        const avgLat = billboards.reduce((sum, b) => sum + b.lat, 0) / billboards.length;
+        const avgLng = billboards.reduce((sum, b) => sum + b.lng, 0) / billboards.length;
+        const center = { lat: avgLat, lng: avgLng };
 
         const map = new Map(mapRef.current, {
           center,
-          zoom: 5, // Zoom level to show all of Mexico
+          zoom: 11, // Closer zoom to see the billboards
           mapId: "available-inventory-map",
           streetViewControl: false,
           mapTypeControl: false,
@@ -334,11 +266,35 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  // You can add a modal to show more details here
+                }}
+              >
                 Ver Detalles
               </Button>
-              <Button className="flex-1">
-                Reservar Ahora
+              <Button 
+                className="flex-1"
+                onClick={() => {
+                  // Convert billboard to InventoryAsset format
+                  const asset: InventoryAsset = {
+                    id: selectedBillboard.id,
+                    tipo: selectedBillboard.tipo as any,
+                    nombre: selectedBillboard.nombre,
+                    lat: selectedBillboard.lat,
+                    lng: selectedBillboard.lng,
+                    medidas: selectedBillboard.medidas,
+                    contratacion: { mensual: true },
+                    precio: selectedBillboard.precio,
+                    estado: 'disponible',
+                    foto: 'https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png'
+                  };
+                  onAddToCart(asset, 'mensual', { fechaInicio: '', fechaFin: '' });
+                }}
+              >
+                Agregar al Carrito
               </Button>
             </div>
           </CardContent>
