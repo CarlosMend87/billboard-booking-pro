@@ -74,32 +74,6 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
-    "id": "VA0123",
-    "tipo": "valla",
-    "nombre": "Periférico Norte",
-    "lat": 19.55,
-    "lng": -99.22,
-    "medidas": {"ancho_m": 4.5, "alto_m": 2.1, "modulos": 1, "caras": 1},
-    "contratacion": {"catorcenal": true},
-    "precio": {"mensual": 14000},
-    "estado": "disponible",
-    "propietario": "Grupo Vallas",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "PB090",
-    "tipo": "parabus",
-    "nombre": "Reforma 123 - Parabús",
-    "lat": 19.432,
-    "lng": -99.15,
-    "medidas": {"ancho_m": 1.77, "alto_m": 1.22, "caras": 1},
-    "contratacion": {"catorcenal": true},
-    "precio": {"mensual": 8000},
-    "estado": "disponible",
-    "propietario": "Visual Shot",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
     "id": "DG002",
     "tipo": "digital",
     "nombre": "Plaza Comercial - Pantalla LED",
@@ -114,19 +88,6 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   },
   {
-    "id": "VF0002",
-    "tipo": "espectacular",
-    "nombre": "Insurgentes Centro",
-    "lat": 19.421,
-    "lng": -99.165,
-    "medidas": {"ancho_m": 12.9, "alto_m": 7.2, "caras": 2},
-    "contratacion": {"mensual": true, "rotativo": true},
-    "precio": {"mensual": 28000},
-    "estado": "disponible",
-    "propietario": "Global",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
     "id": "MU0011",
     "tipo": "muro",
     "nombre": "Polanco - Muro Este",
@@ -137,73 +98,6 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "precio": {"mensual": 45000},
     "estado": "ocupado",
     "propietario": "G8",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "VA0124",
-    "tipo": "valla",
-    "nombre": "Viaducto Sur",
-    "lat": 19.405,
-    "lng": -99.180,
-    "medidas": {"ancho_m": 4.5, "alto_m": 2.1, "modulos": 1, "caras": 1},
-    "contratacion": {"catorcenal": true},
-    "precio": {"mensual": 12000},
-    "estado": "disponible",
-    "propietario": "Grupo Pol",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "PB091",
-    "tipo": "parabus",
-    "nombre": "Santa Fe - Parabús",
-    "lat": 19.360,
-    "lng": -99.259,
-    "medidas": {"ancho_m": 1.77, "alto_m": 1.22, "caras": 1},
-    "contratacion": {"catorcenal": true},
-    "precio": {"mensual": 9500},
-    "estado": "disponible",
-    "propietario": "ATM",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "DG003",
-    "tipo": "digital",
-    "nombre": "Centro Comercial - LED Exterior",
-    "lat": 19.405,
-    "lng": -99.170,
-    "medidas": {"ancho_m": 6, "alto_m": 3, "caras": 1},
-    "digital": {"loop_seg": 45, "slot_seg": 15},
-    "contratacion": {"spot": true, "hora": true, "dia": true, "cpm": true},
-    "precio": {"spot": 12, "hora": 450, "dia": 3200, "cpm": 65},
-    "estado": "disponible",
-    "propietario": "Memije",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "VA0125",
-    "tipo": "valla",
-    "nombre": "Circuito Interior - Módulo Continuo",
-    "lat": 19.428,
-    "lng": -99.188,
-    "medidas": {"ancho_m": 22.5, "alto_m": 2.1, "modulos": 5, "caras": 1},
-    "contratacion": {"catorcenal": true},
-    "precio": {"mensual": 35000},
-    "estado": "disponible",
-    "propietario": "Mepexa",
-    "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
-  },
-  {
-    "id": "DG004",
-    "tipo": "digital",
-    "nombre": "Aeropuerto T2 - Pantalla Premium",
-    "lat": 19.436,
-    "lng": -99.072,
-    "medidas": {"ancho_m": 10, "alto_m": 6, "caras": 1},
-    "digital": {"loop_seg": 90, "slot_seg": 20},
-    "contratacion": {"spot": true, "hora": true, "dia": true, "cpm": true},
-    "precio": {"spot": 25, "hora": 850, "dia": 6500, "cpm": 120},
-    "estado": "disponible",
-    "propietario": "JCDecaux",
     "foto": "https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
   }
 ];
