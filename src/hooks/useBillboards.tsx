@@ -75,6 +75,8 @@ export function useBillboards() {
   const updateBillboard = async (id: string, updates: UpdateBillboard) => {
     setLoading(true);
     try {
+      console.log('Actualizando billboard:', id, updates);
+      
       const { data, error } = await supabase
         .from('billboards')
         .update(updates)
@@ -82,21 +84,37 @@ export function useBillboards() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error al actualizar:', error);
+        throw error;
+      }
 
-      setBillboards(prev => prev.map(b => b.id === id ? data : b));
+      console.log('Billboard actualizado:', data);
+      
+      // Actualizar el estado local inmediatamente
+      setBillboards(prev => {
+        const updated = prev.map(b => b.id === id ? data : b);
+        console.log('Estado actualizado:', updated);
+        return updated;
+      });
+      
       toast({
         title: "Éxito",
         description: "Pantalla actualizada correctamente",
       });
       
+      // Refrescar los datos desde el servidor para asegurar sincronización
+      await fetchBillboards();
+      
       return data;
     } catch (error: any) {
+      console.error('Error en updateBillboard:', error);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+      throw error;
     } finally {
       setLoading(false);
     }

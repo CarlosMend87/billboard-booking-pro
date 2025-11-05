@@ -176,8 +176,11 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       };
 
       if (billboard) {
-        await updateBillboard(billboard.id, billboardData);
+        console.log('Actualizando billboard con datos:', billboardData);
+        const updated = await updateBillboard(billboard.id, billboardData);
+        console.log('Billboard actualizado exitosamente:', updated);
       } else {
+        console.log('Creando nuevo billboard:', billboardData);
         await createBillboard(billboardData);
       }
       

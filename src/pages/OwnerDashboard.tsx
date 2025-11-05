@@ -234,7 +234,13 @@ export default function OwnerDashboard() {
                         </div>
                       )}
                       
-                      <div className="absolute top-2 right-2">
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        {billboard.has_computer_vision && (
+                          <Badge className="bg-blue-600 text-white">
+                            <Camera className="h-3 w-3 mr-1" />
+                            IA Activa
+                          </Badge>
+                        )}
                         <StatusBadge 
                           variant={
                             billboard.status === 'disponible' ? 'available' :
