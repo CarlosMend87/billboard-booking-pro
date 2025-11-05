@@ -88,14 +88,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-        // Calculate center based on available billboards
-        const avgLat = billboards.reduce((sum, b) => sum + b.lat, 0) / billboards.length;
-        const avgLng = billboards.reduce((sum, b) => sum + b.lng, 0) / billboards.length;
-        const center = { lat: avgLat, lng: avgLng };
+        // Center map on Mérida, Yucatán where most billboards are located
+        const center = { lat: 20.97, lng: -89.62 };
 
         const map = new Map(mapRef.current, {
           center,
-          zoom: 11, // Closer zoom to see the billboards
+          zoom: 12, // Zoom level appropriate for Mérida city
           mapId: "available-inventory-map",
           streetViewControl: false,
           mapTypeControl: false,
