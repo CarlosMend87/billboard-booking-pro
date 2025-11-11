@@ -80,26 +80,12 @@ export default function OwnerReservations() {
 
       if (updateError) throw updateError;
 
-      // If accepted, create campaign
-      let campaignId = null;
-      if (action === 'accepted') {
-        const { data: campaignData, error: campaignError } = await supabase
-          .rpc('create_campaign_from_reserva', { reserva_id: reservaId });
-
-        if (campaignError) {
-          console.error('Error creating campaign:', campaignError);
-          throw new Error('Error al crear la campaña');
-        }
-        
-        campaignId = campaignData;
-      }
-
+      // Campaign is automatically created by database trigger
       // Send notification emails
       try {
         const { error: emailError } = await supabase.functions.invoke('send-campaign-pdf', {
           body: {
             reservaId: reservaId,
-            campaignId: campaignId,
             action: action
           }
         });

@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PrePDFDownload } from "@/components/campaign/PrePDFDownload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -352,6 +353,11 @@ export default function ProgresoCampaña() {
                           <p className="text-muted-foreground">{campaign.reservas?.modalidad}</p>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="border-t pt-4 flex gap-2">
+                      <PrePDFDownload campaign={campaign} />
                     </div>
 
                     {/* Extension Controls */}

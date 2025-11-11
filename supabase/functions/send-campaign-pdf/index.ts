@@ -15,7 +15,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface CampaignNotificationRequest {
   reservaId: string;
-  campaignId: string;
   action: 'accepted' | 'rejected';
 }
 
@@ -25,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { reservaId, campaignId, action }: CampaignNotificationRequest = await req.json();
+    const { reservaId, action }: CampaignNotificationRequest = await req.json();
 
     console.log(`Processing ${action} notification for reserva ${reservaId}`);
 
@@ -44,13 +43,15 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Reserva not found');
     }
 
-    // Fetch campaign details if accepted
+    // Fetch campaign details if accepted (find by reserva_id)
     let campaign = null;
-    if (action === 'accepted' && campaignId) {
+    if (action === 'accepted') {
       const { data: campaignData } = await supabase
         .from('campañas')
         .select('*')
-        .eq('id', campaignId)
+        .eq('reserva_id', reservaId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
       campaign = campaignData;
     }
