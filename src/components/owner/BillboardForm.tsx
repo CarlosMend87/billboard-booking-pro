@@ -27,9 +27,6 @@ const billboardSchema = z.object({
   base_m: z.number().optional(),
   caras: z.number().min(1).max(4),
   modulos: z.number().optional(),
-  // Digital
-  loop_seg: z.number().optional(),
-  slot_seg: z.number().optional(),
   // Computer Vision / AdMobilize
   has_computer_vision: z.boolean().optional(),
   admobilize_device_id: z.string().optional(),
@@ -81,8 +78,6 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       alto_m: (billboard?.medidas as any)?.alto_m,
       base_m: (billboard?.medidas as any)?.base_m,
       modulos: (billboard?.medidas as any)?.modulos,
-      loop_seg: (billboard?.digital as any)?.loop_seg,
-      slot_seg: (billboard?.digital as any)?.slot_seg,
       has_computer_vision: (billboard as any)?.has_computer_vision || false,
       admobilize_device_id: (billboard as any)?.admobilize_config?.device_id || "",
       mensual: (billboard?.contratacion as any)?.mensual ?? true,
@@ -154,10 +149,6 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           caras: data.caras,
           modulos: data.modulos,
         },
-        digital: selectedTipo === 'digital' ? {
-          loop_seg: data.loop_seg,
-          slot_seg: data.slot_seg,
-        } : null,
         has_computer_vision: data.has_computer_vision || false,
         admobilize_config: data.has_computer_vision && data.admobilize_device_id ? {
           device_id: data.admobilize_device_id
@@ -411,48 +402,6 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     )}
                   />
                 </div>
-
-                {selectedTipo === 'digital' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="loop_seg"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Loop (segundos)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="60"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="slot_seg"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Slot (segundos)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="10"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
 
                 <div>
                   <Label className="text-base font-medium mb-4 block">Modalidades de Contratación</Label>
