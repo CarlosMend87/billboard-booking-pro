@@ -66,6 +66,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
   const [uploadedImages, setUploadedImages] = useState<string[]>(billboard?.fotos || []);
   const [isUploading, setIsUploading] = useState(false);
 
+  console.log('🔵 BillboardForm renderizado con billboard:', billboard?.id, billboard?.nombre);
+  console.log('📊 Precios del billboard actual:', billboard?.precio);
+
   const form = useForm<BillboardFormData>({
     resolver: zodResolver(billboardSchema),
     defaultValues: {
@@ -103,6 +106,66 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
     }
   });
 
+  // CRITICAL: Resetear el formulario cuando cambia el billboard
+  useEffect(() => {
+    console.log('🔄 Reseteando formulario con billboard:', billboard?.id, billboard?.nombre);
+    if (billboard) {
+      form.reset({
+        nombre: billboard.nombre || "",
+        direccion: billboard.direccion || "",
+        lat: Number(billboard.lat) || 19.4326,
+        lng: Number(billboard.lng) || -99.1332,
+        tipo: (billboard.tipo as any) || 'espectacular',
+        status: (billboard.status as any) || 'disponible',
+        caras: (billboard.medidas as any)?.caras || 1,
+        ancho_m: (billboard.medidas as any)?.ancho_m,
+        alto_m: (billboard.medidas as any)?.alto_m,
+        base_m: (billboard.medidas as any)?.base_m,
+        modulos: (billboard.medidas as any)?.modulos,
+        has_computer_vision: (billboard as any)?.has_computer_vision || false,
+        admobilize_device_id: (billboard as any)?.admobilize_config?.device_id || "",
+        mensual: (billboard.contratacion as any)?.mensual ?? true,
+        catorcenal: (billboard.contratacion as any)?.catorcenal ?? true,
+        semanal: (billboard.contratacion as any)?.semanal ?? true,
+        spot: (billboard.contratacion as any)?.spot ?? true,
+        hora: (billboard.contratacion as any)?.hora ?? true,
+        dia: (billboard.contratacion as any)?.dia ?? true,
+        cpm: (billboard.contratacion as any)?.cpm ?? true,
+        duracion_spot_seg: (billboard.contratacion as any)?.duracion_spot_seg,
+        total_spots_pantalla: (billboard.contratacion as any)?.total_spots_pantalla,
+        spots_disponibles: (billboard.contratacion as any)?.spots_disponibles,
+        precio_mensual: (billboard.precio as any)?.mensual,
+        precio_catorcenal: (billboard.precio as any)?.catorcenal,
+        precio_semanal: (billboard.precio as any)?.semanal,
+        precio_spot: (billboard.precio as any)?.spot,
+        precio_hora: (billboard.precio as any)?.hora,
+        precio_dia: (billboard.precio as any)?.dia,
+        precio_cpm: (billboard.precio as any)?.cpm,
+        descuento_volumen: (billboard.precio as any)?.descuento_volumen,
+      });
+      setUploadedImages(billboard.fotos || []);
+    } else {
+      // Nuevo billboard - valores por defecto
+      form.reset({
+        nombre: "",
+        direccion: "",
+        lat: 19.4326,
+        lng: -99.1332,
+        tipo: 'espectacular',
+        status: 'disponible',
+        caras: 1,
+        mensual: true,
+        catorcenal: true,
+        semanal: true,
+        spot: true,
+        hora: true,
+        dia: true,
+        cpm: true,
+      });
+      setUploadedImages([]);
+    }
+  }, [billboard, form]);
+
   const selectedTipo = form.watch("tipo");
   const isDiaSelected = form.watch("dia");
   
@@ -114,16 +177,21 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
   useEffect(() => {
     if (!precioMensual || precioMensual <= 0) return;
     
+    console.log('💰 Calculando precios automáticamente desde precio mensual:', precioMensual);
+    
     // Calcular tarifa catorcenal (mensual / 2)
     const tarifaCatorcenal = precioMensual / 2;
+    console.log('  - Catorcenal:', tarifaCatorcenal);
     form.setValue("precio_catorcenal", Number(tarifaCatorcenal.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa semanal (mensual / 4)
     const tarifaSemanal = precioMensual / 4;
+    console.log('  - Semanal:', tarifaSemanal);
     form.setValue("precio_semanal", Number(tarifaSemanal.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa diaria (mensual / 30)
     const tarifaDiaria = precioMensual / 30;
+    console.log('  - Diaria:', tarifaDiaria);
     form.setValue("precio_dia", Number(tarifaDiaria.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa por spot solo si hay duración de spot definida
@@ -131,6 +199,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       // Spots posibles en 18 horas: (18 * 3600) / duracion_spot_seg
       const spotsEn18Horas = (18 * 3600) / duracionSpot;
       const tarifaSpot = precioMensual / spotsEn18Horas;
+      console.log('  - Spot:', tarifaSpot, `(${spotsEn18Horas} spots en 18h con duración de ${duracionSpot}s)`);
       form.setValue("precio_spot", Number(tarifaSpot.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     }
   }, [precioMensual, duracionSpot, form]);
