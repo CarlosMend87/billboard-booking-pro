@@ -41,6 +41,8 @@ export default function ProgresoCampaña() {
   const fetchCampaigns = async () => {
     if (!user) return;
 
+    console.log('🔍 Obteniendo campañas para user:', user.id);
+
     try {
       const { data, error } = await supabase
         .from('campañas')
@@ -56,7 +58,12 @@ export default function ProgresoCampaña() {
         .eq('advertiser_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error al obtener campañas:', error);
+        throw error;
+      }
+
+      console.log('✅ Campañas obtenidas:', data?.length || 0, data);
 
       // Calculate days elapsed
       const campaignsWithProgress = data?.map(campaign => {
@@ -74,9 +81,10 @@ export default function ProgresoCampaña() {
         };
       });
 
+      console.log('📊 Campañas con progreso calculado:', campaignsWithProgress);
       setCampaigns(campaignsWithProgress || []);
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      console.error('❌ Error completo al obtener campañas:', error);
     } finally {
       setLoading(false);
     }
