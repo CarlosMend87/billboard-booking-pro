@@ -5,11 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, DollarSign, Plus, Target } from "lucide-react";
+import { Calendar, Clock, DollarSign, Plus, Target, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Campaign {
   id: string;
@@ -133,6 +144,35 @@ export default function ProgresoCampaña() {
     }
   };
 
+  const deleteAllCampaigns = async () => {
+    if (!user) return;
+
+    try {
+      console.log('🗑️ Eliminando todas las campañas del usuario:', user.id);
+      
+      const { error } = await supabase
+        .from('campañas')
+        .delete()
+        .eq('advertiser_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Campañas Eliminadas",
+        description: "Todas las campañas de prueba han sido eliminadas",
+      });
+
+      fetchCampaigns();
+    } catch (error: any) {
+      console.error('❌ Error al eliminar campañas:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchCampaigns();
     
@@ -167,11 +207,39 @@ export default function ProgresoCampaña() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Progreso de Campañas</h1>
-          <p className="text-muted-foreground">
-            Monitorea el progreso de tus campañas publicitarias activas
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Progreso de Campañas</h1>
+            <p className="text-muted-foreground">
+              Monitorea el progreso de tus campañas publicitarias activas
+            </p>
+          </div>
+          
+          {campaigns.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Limpiar Campañas de Prueba
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar todas las campañas?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción eliminará todas tus campañas de prueba de forma permanente. 
+                    Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={deleteAllCampaigns}>
+                    Eliminar Todas
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {campaigns.length === 0 ? (
