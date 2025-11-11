@@ -506,7 +506,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               <FormControl>
                                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
-                              <FormLabel>Spot</FormLabel>
+                              <FormLabel>Por Spot</FormLabel>
                             </FormItem>
                           )}
                         />
