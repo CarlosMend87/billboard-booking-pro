@@ -346,26 +346,24 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                   </div>
                 </div>
 
-                {asset.tipo !== 'digital' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-sm">Días disponibles este mes:</span>
-                    </div>
-                    <div className="ml-4 flex flex-wrap gap-1">
-                      {availableDates.slice(0, 10).map(date => (
-                        <Badge key={date} variant="outline" className="text-xs">
-                          {date}
-                        </Badge>
-                      ))}
-                      {availableDates.length > 10 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{availableDates.length - 10} más
-                        </Badge>
-                      )}
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-sm">Días disponibles este mes:</span>
                   </div>
-                )}
+                  <div className="ml-4 flex flex-wrap gap-1">
+                    {availableDates.slice(0, 10).map(date => (
+                      <Badge key={date} variant="outline" className="text-xs">
+                        {date}
+                      </Badge>
+                    ))}
+                    {availableDates.length > 10 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{availableDates.length - 10} más
+                      </Badge>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex gap-2 pt-2">
                   {(asset as any).has_computer_vision ? (
