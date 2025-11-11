@@ -16,7 +16,9 @@ import {
   ShoppingCart,
   Camera,
   Users,
-  Activity
+  Activity,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
@@ -25,6 +27,8 @@ import { formatShortId } from "@/lib/utils";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { supabase } from "@/integrations/supabase/client";
 import admobilizeImage from "@/assets/admobilize-detection.png";
+
+const ITEMS_PER_PAGE = 10;
 
 interface AvailableInventoryListProps {
   filters: InventoryFilters;
@@ -91,6 +95,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   const [selectedModalidad, setSelectedModalidad] = useState<{[key: string]: CartItemModalidad}>({});
   const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
   const [selectedAssetForDetails, setSelectedAssetForDetails] = useState<(InventoryAsset & { has_computer_vision?: boolean; last_detection_count?: number }) | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch available billboards from owners
   useEffect(() => {
@@ -116,12 +121,13 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     fetchOwnerBillboards();
   }, []);
 
-  // Filter available assets based on filters
-  const availableAssets = useMemo(() => {
+  // Filter and sort available assets based on filters
+  const { filteredAssets, totalPages } = useMemo(() => {
     // Combine mock inventory with owner billboards
     const allAssets = [...mockInventoryAssets, ...ownerBillboards];
     
-    return allAssets.filter(asset => {
+    // Apply filters
+    let filtered = allAssets.filter(asset => {
       // Only show available assets
       if (asset.estado !== "disponible") return false;
 
@@ -130,11 +136,78 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
         return false;
       }
 
-      // Owner filter removed - now shows all inventory from all owners
+      // Filter by billboard type
+      if (filters.advancedFilters.billboardTypes.length > 0) {
+        if (!filters.advancedFilters.billboardTypes.includes(asset.tipo)) {
+          return false;
+        }
+      }
+
+      // Filter by modalidades
+      if (filters.advancedFilters.modalidades.length > 0) {
+        const hasModalidad = filters.advancedFilters.modalidades.some(modalidad => {
+          return asset.contratacion[modalidad as keyof typeof asset.contratacion];
+        });
+        if (!hasModalidad) return false;
+      }
+
+      // Filter by price range (using mensual price as reference)
+      const precio = asset.precio.mensual || 0;
+      if (precio < filters.advancedFilters.priceRange[0] || precio > filters.advancedFilters.priceRange[1]) {
+        return false;
+      }
+
+      // Filter by computer vision
+      if (filters.advancedFilters.hasComputerVision !== null) {
+        const hasCV = (asset as any).has_computer_vision || false;
+        if (hasCV !== filters.advancedFilters.hasComputerVision) {
+          return false;
+        }
+      }
 
       return true;
     });
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (filters.sortBy) {
+        case "nombre-asc":
+          return a.nombre.localeCompare(b.nombre);
+        case "nombre-desc":
+          return b.nombre.localeCompare(a.nombre);
+        case "precio-asc":
+          return (a.precio.mensual || 0) - (b.precio.mensual || 0);
+        case "precio-desc":
+          return (b.precio.mensual || 0) - (a.precio.mensual || 0);
+        case "detecciones-desc":
+          return ((b as any).last_detection_count || 0) - ((a as any).last_detection_count || 0);
+        case "detecciones-asc":
+          return ((a as any).last_detection_count || 0) - ((b as any).last_detection_count || 0);
+        default:
+          return 0;
+      }
+    });
+
+    // Calculate pagination
+    const total = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    
+    return {
+      filteredAssets: filtered,
+      totalPages: total
+    };
   }, [searchTerm, filters, ownerBillboards]);
+
+  // Get current page assets
+  const paginatedAssets = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredAssets.slice(startIndex, endIndex);
+  }, [filteredAssets, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm]);
 
   const getTipoLabel = (tipo: string) => {
     const labels = {
@@ -223,7 +296,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
               Inventario Disponible
             </CardTitle>
             <Badge variant="secondary">
-              {availableAssets.length} anuncios disponibles
+              {filteredAssets.length} anuncio{filteredAssets.length !== 1 ? 's' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         </CardHeader>
@@ -231,7 +304,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por ubicación..."
+              placeholder="Buscar por nombre o ubicación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -241,7 +314,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {availableAssets.map((asset) => {
+        {paginatedAssets.map((asset) => {
           const availableDates = getRandomAvailableDates();
           const typeLabel = getTipoLabel(asset.tipo);
           const modalidadOptions = getModalidadOptions(asset);
@@ -398,7 +471,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
         })}
       </div>
 
-      {availableAssets.length === 0 && (
+      {filteredAssets.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -406,6 +479,65 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
             <p className="text-muted-foreground">
               Intenta ajustar los filtros para encontrar más opciones disponibles.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages} ({filteredAssets.length} resultados)
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

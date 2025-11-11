@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFilter";
 import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
+import { AdvancedFilters, AdvancedFiltersState } from "@/components/advertiser/AdvancedFilters";
+import { SortOptions, SortOption } from "@/components/advertiser/SortOptions";
 import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
 import { CartSidebar } from "@/components/cart/CartSidebar";
@@ -19,6 +21,8 @@ export interface InventoryFilters {
     endDate: Date | null;
   };
   billboardType?: string;
+  advancedFilters: AdvancedFiltersState;
+  sortBy: SortOption;
 }
 
 export default function DisponibilidadAnuncios() {
@@ -28,7 +32,14 @@ export default function DisponibilidadAnuncios() {
     dateRange: {
       startDate: null,
       endDate: null
-    }
+    },
+    advancedFilters: {
+      billboardTypes: [],
+      modalidades: [],
+      priceRange: [0, 100000],
+      hasComputerVision: null
+    },
+    sortBy: "nombre-asc" as SortOption
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
@@ -37,8 +48,32 @@ export default function DisponibilidadAnuncios() {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
-  const activeFiltersCount = filters.locationKeywords.length + 
-    (filters.dateRange.startDate && filters.dateRange.endDate ? 1 : 0);
+  const handleAdvancedFiltersChange = (newAdvancedFilters: Partial<AdvancedFiltersState>) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      advancedFilters: { ...prev.advancedFilters, ...newAdvancedFilters }
+    }));
+  };
+
+  const handleClearAdvancedFilters = () => {
+    setFilters(prev => ({
+      ...prev,
+      advancedFilters: {
+        billboardTypes: [],
+        modalidades: [],
+        priceRange: [0, 100000],
+        hasComputerVision: null
+      }
+    }));
+  };
+
+  const activeFiltersCount = 
+    filters.locationKeywords.length + 
+    (filters.dateRange.startDate && filters.dateRange.endDate ? 1 : 0) +
+    filters.advancedFilters.billboardTypes.length +
+    filters.advancedFilters.modalidades.length +
+    (filters.advancedFilters.hasComputerVision !== null ? 1 : 0) +
+    (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000 ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,6 +128,13 @@ export default function DisponibilidadAnuncios() {
                   </CardContent>
                 </Card>
 
+                {/* Filtros Avanzados */}
+                <AdvancedFilters
+                  filters={filters.advancedFilters}
+                  onFiltersChange={handleAdvancedFiltersChange}
+                  onClearFilters={handleClearAdvancedFilters}
+                />
+
                 {/* Filtros Activos */}
                 {activeFiltersCount > 0 && (
                   <Card>
@@ -111,7 +153,7 @@ export default function DisponibilidadAnuncios() {
 
               {/* Main Content */}
               <div className="lg:col-span-3">
-                <div className="mb-4">
+                <div className="mb-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Inventario Disponible</h3>
                     <div className="flex bg-muted rounded-lg p-1">
@@ -135,6 +177,16 @@ export default function DisponibilidadAnuncios() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Sort Options */}
+                  {viewMode === 'list' && (
+                    <div className="flex items-center justify-between">
+                      <SortOptions
+                        value={filters.sortBy}
+                        onChange={(sortBy) => handleFilterChange({ sortBy })}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {viewMode === 'map' ? (
