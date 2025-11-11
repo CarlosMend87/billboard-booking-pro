@@ -41,6 +41,10 @@ const billboardSchema = z.object({
   hora: z.boolean().optional(),
   dia: z.boolean().optional(),
   cpm: z.boolean().optional(),
+  // Campos adicionales para "Por Spot"
+  duracion_spot_seg: z.number().optional(),
+  total_spots_pantalla: z.number().optional(),
+  spots_disponibles: z.number().optional(),
   // Precios
   precio_mensual: z.number().optional(),
   precio_spot: z.number().optional(),
@@ -88,6 +92,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       hora: (billboard?.contratacion as any)?.hora || false,
       dia: (billboard?.contratacion as any)?.dia || false,
       cpm: (billboard?.contratacion as any)?.cpm || false,
+      duracion_spot_seg: (billboard?.contratacion as any)?.duracion_spot_seg,
+      total_spots_pantalla: (billboard?.contratacion as any)?.total_spots_pantalla,
+      spots_disponibles: (billboard?.contratacion as any)?.spots_disponibles,
       precio_mensual: (billboard?.precio as any)?.mensual,
       precio_spot: (billboard?.precio as any)?.spot,
       precio_hora: (billboard?.precio as any)?.hora,
@@ -163,6 +170,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           hora: data.hora,
           dia: data.dia,
           cpm: data.cpm,
+          duracion_spot_seg: data.duracion_spot_seg,
+          total_spots_pantalla: data.total_spots_pantalla,
+          spots_disponibles: data.spots_disponibles,
         },
         precio: {
           mensual: data.precio_mensual,
@@ -345,12 +355,12 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     name="ancho_m"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ancho (m)</FormLabel>
+                        <FormLabel>Resolución (ancho en píxeles)</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
-                            step="0.1" 
-                            placeholder="12.0"
+                            step="1" 
+                            placeholder="1920"
                             {...field}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                           />
@@ -365,12 +375,12 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     name="alto_m"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Alto (m)</FormLabel>
+                        <FormLabel>Resolución (alto en píxeles)</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
-                            step="0.1" 
-                            placeholder="7.2"
+                            step="1" 
+                            placeholder="1080"
                             {...field}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                           />
@@ -542,6 +552,70 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                       </>
                     )}
                   </div>
+
+                  {form.watch("spot") && (
+                    <div className="mt-6 p-4 border rounded-lg bg-muted/50">
+                      <Label className="text-sm font-medium mb-4 block">Configuración de Spots</Label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="duracion_spot_seg"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Duración del spot (segundos)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="10"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="total_spots_pantalla"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Total de spots por pantalla</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="100"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="spots_disponibles"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Spots disponibles</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="85"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
