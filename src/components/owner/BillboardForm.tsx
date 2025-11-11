@@ -100,6 +100,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
   });
 
   const selectedTipo = form.watch("tipo");
+  const isDiaSelected = form.watch("dia");
   
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -164,6 +165,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           duracion_spot_seg: data.duracion_spot_seg,
           total_spots_pantalla: data.total_spots_pantalla,
           spots_disponibles: data.spots_disponibles,
+          rotativo: undefined, // Eliminar propiedad antigua
         },
         precio: {
           mensual: data.precio_mensual,
@@ -479,7 +481,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                       )}
                     />
 
-                    {selectedTipo === 'digital' && (
+                    {(selectedTipo === 'digital' || isDiaSelected) && (
                       <FormField
                         control={form.control}
                         name="hora"
@@ -494,7 +496,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                       />
                     )}
 
-                    {selectedTipo === 'digital' && !form.watch("dia") && (
+                    {(selectedTipo === 'digital' || isDiaSelected) && !isDiaSelected && (
                       <FormField
                         control={form.control}
                         name="cpm"
