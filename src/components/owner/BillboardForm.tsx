@@ -116,22 +116,22 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
     
     // Calcular tarifa catorcenal (mensual / 2)
     const tarifaCatorcenal = precioMensual / 2;
-    form.setValue("precio_catorcenal", Number(tarifaCatorcenal.toFixed(2)));
+    form.setValue("precio_catorcenal", Number(tarifaCatorcenal.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa semanal (mensual / 4)
     const tarifaSemanal = precioMensual / 4;
-    form.setValue("precio_semanal", Number(tarifaSemanal.toFixed(2)));
+    form.setValue("precio_semanal", Number(tarifaSemanal.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa diaria (mensual / 30)
     const tarifaDiaria = precioMensual / 30;
-    form.setValue("precio_dia", Number(tarifaDiaria.toFixed(2)));
+    form.setValue("precio_dia", Number(tarifaDiaria.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     
     // Calcular tarifa por spot solo si hay duración de spot definida
     if (duracionSpot && duracionSpot > 0) {
       // Spots posibles en 18 horas: (18 * 3600) / duracion_spot_seg
       const spotsEn18Horas = (18 * 3600) / duracionSpot;
       const tarifaSpot = precioMensual / spotsEn18Horas;
-      form.setValue("precio_spot", Number(tarifaSpot.toFixed(2)));
+      form.setValue("precio_spot", Number(tarifaSpot.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     }
   }, [precioMensual, duracionSpot, form]);
   
@@ -715,9 +715,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               <Input 
                                 type="number" 
                                 placeholder="12500"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                disabled
+                                value={field.value || ''}
+                                readOnly
+                                className="bg-muted cursor-not-allowed"
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 2)</p>
@@ -738,9 +738,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               <Input 
                                 type="number" 
                                 placeholder="6250"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                disabled
+                                value={field.value || ''}
+                                readOnly
+                                className="bg-muted cursor-not-allowed"
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 4)</p>
@@ -761,9 +761,9 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               <Input 
                                 type="number" 
                                 placeholder="833"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                disabled
+                                value={field.value || ''}
+                                readOnly
+                                className="bg-muted cursor-not-allowed"
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 30)</p>
@@ -784,9 +784,14 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               <Input 
                                 type="number" 
                                 placeholder="15"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                disabled={!!(precioMensual && duracionSpot)}
+                                value={field.value || ''}
+                                readOnly={!!(precioMensual && duracionSpot)}
+                                className={precioMensual && duracionSpot ? "bg-muted cursor-not-allowed" : ""}
+                                onChange={(e) => {
+                                  if (!precioMensual || !duracionSpot) {
+                                    field.onChange(e.target.value ? parseFloat(e.target.value) : undefined);
+                                  }
+                                }}
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">
