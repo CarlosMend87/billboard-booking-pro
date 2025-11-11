@@ -531,33 +531,33 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     />
 
                     {selectedTipo === 'digital' && (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="hora"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                              <FormLabel>Por Hora</FormLabel>
-                            </FormItem>
-                          )}
-                        />
+                      <FormField
+                        control={form.control}
+                        name="hora"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <FormLabel>Por Hora</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
-                        <FormField
-                          control={form.control}
-                          name="cpm"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                              <FormLabel>CPM</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      </>
+                    {selectedTipo === 'digital' && !form.watch("dia") && (
+                      <FormField
+                        control={form.control}
+                        name="cpm"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <FormLabel>CPM</FormLabel>
+                          </FormItem>
+                        )}
+                      />
                     )}
                   </div>
 
