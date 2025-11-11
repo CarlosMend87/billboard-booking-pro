@@ -3,7 +3,7 @@ import { InventoryAsset } from "@/lib/mockInventory";
 export type CartItemModalidad = 
   | 'mensual' 
   | 'catorcenal' 
-  | 'rotativo' 
+  | 'semanal' 
   | 'spot' 
   | 'hora' 
   | 'dia' 

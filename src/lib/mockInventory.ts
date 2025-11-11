@@ -20,7 +20,7 @@ export interface InventoryAsset {
   contratacion: {
     mensual?: boolean;
     catorcenal?: boolean;
-    rotativo?: boolean;
+    semanal?: boolean;
     spot?: boolean;
     hora?: boolean;
     dia?: boolean;
@@ -54,7 +54,7 @@ export const mockInventoryAssets: InventoryAsset[] = [
     "lat": 19.435,
     "lng": -99.085,
     "medidas": {"ancho_m": 12.9, "alto_m": 7.2, "caras": 2},
-    "contratacion": {"mensual": true, "rotativo": true},
+    "contratacion": {"mensual": true, "semanal": true},
     "precio": {"mensual": 25000, "descuento_volumen": 8, "precio_original": 27000},
     "estado": "en_revision",
     "propietario": "JCDecaux",

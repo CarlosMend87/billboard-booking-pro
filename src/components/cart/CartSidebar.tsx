@@ -19,7 +19,7 @@ export function CartSidebar({ cart, onRemoveItem, onUpdateQuantity, onClearCart 
     const labels = {
       'mensual': 'Mensual',
       'catorcenal': 'Catorcenal',
-      'rotativo': 'Rotativo',
+      'semanal': 'Semanal',
       'spot': 'Por Spot',
       'hora': 'Por Hora',
       'dia': 'Por Día',

@@ -36,7 +36,7 @@ const billboardSchema = z.object({
   // Contratación
   mensual: z.boolean().optional(),
   catorcenal: z.boolean().optional(),
-  rotativo: z.boolean().optional(),
+  semanal: z.boolean().optional(),
   spot: z.boolean().optional(),
   hora: z.boolean().optional(),
   dia: z.boolean().optional(),
@@ -85,13 +85,13 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       slot_seg: (billboard?.digital as any)?.slot_seg,
       has_computer_vision: (billboard as any)?.has_computer_vision || false,
       admobilize_device_id: (billboard as any)?.admobilize_config?.device_id || "",
-      mensual: (billboard?.contratacion as any)?.mensual || false,
-      catorcenal: (billboard?.contratacion as any)?.catorcenal || false,
-      rotativo: (billboard?.contratacion as any)?.rotativo || false,
-      spot: (billboard?.contratacion as any)?.spot || false,
-      hora: (billboard?.contratacion as any)?.hora || false,
-      dia: (billboard?.contratacion as any)?.dia || false,
-      cpm: (billboard?.contratacion as any)?.cpm || false,
+      mensual: (billboard?.contratacion as any)?.mensual ?? true,
+      catorcenal: (billboard?.contratacion as any)?.catorcenal ?? true,
+      semanal: (billboard?.contratacion as any)?.semanal ?? true,
+      spot: (billboard?.contratacion as any)?.spot ?? true,
+      hora: (billboard?.contratacion as any)?.hora ?? true,
+      dia: (billboard?.contratacion as any)?.dia ?? true,
+      cpm: (billboard?.contratacion as any)?.cpm ?? true,
       duracion_spot_seg: (billboard?.contratacion as any)?.duracion_spot_seg,
       total_spots_pantalla: (billboard?.contratacion as any)?.total_spots_pantalla,
       spots_disponibles: (billboard?.contratacion as any)?.spots_disponibles,
@@ -165,7 +165,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
         contratacion: {
           mensual: data.mensual,
           catorcenal: data.catorcenal,
-          rotativo: data.rotativo,
+          semanal: data.semanal,
           spot: data.spot,
           hora: data.hora,
           dia: data.dia,
@@ -485,13 +485,13 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
 
                     <FormField
                       control={form.control}
-                      name="rotativo"
+                      name="semanal"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
                             <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                          <FormLabel>Rotativo</FormLabel>
+                          <FormLabel>Semanal</FormLabel>
                         </FormItem>
                       )}
                     />
@@ -509,6 +509,27 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="dia"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox 
+                              checked={field.value} 
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                if (checked) {
+                                  form.setValue('tipo', 'digital');
+                                }
+                              }} 
+                            />
+                          </FormControl>
+                          <FormLabel>Por Día</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+
                     {selectedTipo === 'digital' && (
                       <>
                         <FormField
@@ -520,19 +541,6 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
                               <FormLabel>Por Hora</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="dia"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                              <FormLabel>Por Día</FormLabel>
                             </FormItem>
                           )}
                         />

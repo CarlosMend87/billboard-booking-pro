@@ -149,7 +149,7 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     const labels = {
       'mensual': 'Mensual',
       'catorcenal': 'Catorcenal',
-      'rotativo': 'Rotativo',
+      'semanal': 'Semanal',
       'spot': 'Por Spot',
       'hora': 'Por Hora',
       'dia': 'Por Día',

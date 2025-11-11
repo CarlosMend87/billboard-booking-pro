@@ -38,7 +38,7 @@ export function ModalidadConfig({ item, onUpdate }: ModalidadConfigProps) {
     const labels = {
       'mensual': 'Mensual',
       'catorcenal': 'Catorcenal',
-      'rotativo': 'Rotativo',
+      'semanal': 'Semanal',
       'spot': 'Por Spot',
       'hora': 'Por Hora',
       'dia': 'Por Día',

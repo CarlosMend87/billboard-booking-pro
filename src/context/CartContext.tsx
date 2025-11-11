@@ -51,15 +51,14 @@ function calculatePrice(asset: InventoryAsset, modalidad: CartItemModalidad, con
         esRotativo: false
       });
     
-    case 'rotativo':
-      const basePrice = totalTradicional({
-        tipoPeriodo: config.meses ? 'mensual' : 'catorcenal',
+    case 'semanal':
+      return totalTradicional({
+        tipoPeriodo: 'semanal',
         precioMensual: asset.precio.mensual || 0,
         meses: config.meses || 1,
         catorcenas: config.catorcenas || 1,
         esRotativo: false
       });
-      return basePrice * 0.5;
     
     case 'spot':
       return totalDigitalSpot({

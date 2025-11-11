@@ -71,7 +71,7 @@ const convertBillboardToAsset = (billboard: any): InventoryAsset & {
     contratacion: {
       mensual: billboard.contratacion?.mensual || false,
       catorcenal: billboard.contratacion?.catorcenal || false,
-      rotativo: billboard.contratacion?.rotativo || false,
+      semanal: billboard.contratacion?.semanal || false,
       spot: billboard.contratacion?.spot || false,
       hora: billboard.contratacion?.hora || false,
       dia: billboard.contratacion?.dia || false,
@@ -152,8 +152,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     
     if (asset.contratacion.mensual) options.push('mensual');
     if (asset.contratacion.catorcenal) options.push('catorcenal');
-    if (asset.contratacion.rotativo && esElegibleRotativo({ estadoPeriodo: 'vacante', diasParaInicio: 3 })) {
-      options.push('rotativo');
+    if (asset.contratacion.semanal) {
+      options.push('semanal');
     }
     if (asset.contratacion.spot) options.push('spot');
     if (asset.contratacion.hora) options.push('hora');
@@ -167,7 +167,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     const labels = {
       'mensual': 'Mensual',
       'catorcenal': 'Catorcenal', 
-      'rotativo': 'Rotativo (-50%)',
+      'semanal': 'Semanal',
       'spot': 'Por Spot',
       'hora': 'Por Hora',
       'dia': 'Por Día',
@@ -184,8 +184,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
         return formatPrice(asset.precio.mensual || 0);
       case 'catorcenal':
         return formatPrice((asset.precio.mensual || 0) / 2);
-      case 'rotativo':
-        return formatPrice(((asset.precio.mensual || 0) / 2) * 0.5);
+      case 'semanal':
+        return formatPrice((asset.precio.mensual || 0) / 4);
       case 'spot':
         return formatPrice(asset.precio.spot || 0);
       case 'hora':
@@ -342,11 +342,6 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                   <div className="ml-4">
                     <p className="text-lg font-semibold text-primary">
                       {getCurrentPrice(asset, currentModalidad)}
-                      {currentModalidad === 'rotativo' && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          ¡Oportunidad -50%!
-                        </Badge>
-                      )}
                     </p>
                   </div>
                 </div>
