@@ -44,6 +44,8 @@ const billboardSchema = z.object({
   spots_disponibles: z.number().optional(),
   // Precios
   precio_mensual: z.number().optional(),
+  precio_catorcenal: z.number().optional(),
+  precio_semanal: z.number().optional(),
   precio_spot: z.number().optional(),
   precio_hora: z.number().optional(),
   precio_dia: z.number().optional(),
@@ -91,6 +93,8 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       total_spots_pantalla: (billboard?.contratacion as any)?.total_spots_pantalla,
       spots_disponibles: (billboard?.contratacion as any)?.spots_disponibles,
       precio_mensual: (billboard?.precio as any)?.mensual,
+      precio_catorcenal: (billboard?.precio as any)?.catorcenal,
+      precio_semanal: (billboard?.precio as any)?.semanal,
       precio_spot: (billboard?.precio as any)?.spot,
       precio_hora: (billboard?.precio as any)?.hora,
       precio_dia: (billboard?.precio as any)?.dia,
@@ -101,6 +105,35 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
 
   const selectedTipo = form.watch("tipo");
   const isDiaSelected = form.watch("dia");
+  
+  // Watch para el cálculo automático de precios
+  const precioMensual = form.watch("precio_mensual");
+  const duracionSpot = form.watch("duracion_spot_seg");
+  
+  // Efecto para calcular automáticamente las tarifas cuando cambia el precio mensual
+  useEffect(() => {
+    if (!precioMensual || precioMensual <= 0) return;
+    
+    // Calcular tarifa catorcenal (mensual / 2)
+    const tarifaCatorcenal = precioMensual / 2;
+    form.setValue("precio_catorcenal", Number(tarifaCatorcenal.toFixed(2)));
+    
+    // Calcular tarifa semanal (mensual / 4)
+    const tarifaSemanal = precioMensual / 4;
+    form.setValue("precio_semanal", Number(tarifaSemanal.toFixed(2)));
+    
+    // Calcular tarifa diaria (mensual / 30)
+    const tarifaDiaria = precioMensual / 30;
+    form.setValue("precio_dia", Number(tarifaDiaria.toFixed(2)));
+    
+    // Calcular tarifa por spot solo si hay duración de spot definida
+    if (duracionSpot && duracionSpot > 0) {
+      // Spots posibles en 18 horas: (18 * 3600) / duracion_spot_seg
+      const spotsEn18Horas = (18 * 3600) / duracionSpot;
+      const tarifaSpot = precioMensual / spotsEn18Horas;
+      form.setValue("precio_spot", Number(tarifaSpot.toFixed(2)));
+    }
+  }, [precioMensual, duracionSpot, form]);
   
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -169,6 +202,8 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
         },
         precio: {
           mensual: data.precio_mensual,
+          catorcenal: data.precio_catorcenal,
+          semanal: data.precio_semanal,
           spot: data.precio_spot,
           hora: data.precio_hora,
           dia: data.precio_dia,
@@ -643,7 +678,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                 <CardTitle>Configuración de Precios</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   {form.watch("mensual") && (
                     <FormField
                       control={form.control}
@@ -659,114 +694,174 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                               onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                             />
                           </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            Al ingresar este precio, se calcularán automáticamente las tarifas para las demás modalidades
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
 
-                  {form.watch("spot") && (
-                    <FormField
-                      control={form.control}
-                      name="precio_spot"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio por Spot ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="15"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {form.watch("hora") && (
-                    <FormField
-                      control={form.control}
-                      name="precio_hora"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio por Hora ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="600"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {form.watch("dia") && (
-                    <FormField
-                      control={form.control}
-                      name="precio_dia"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio por Día ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="4000"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {form.watch("cpm") && (
-                    <FormField
-                      control={form.control}
-                      name="precio_cpm"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio CPM ($)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="80"
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="descuento_volumen"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descuento por Volumen (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="8"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="grid grid-cols-2 gap-4">
+                    {form.watch("catorcenal") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_catorcenal"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio Catorcenal ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="12500"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                disabled
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 2)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
+
+                    {form.watch("semanal") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_semanal"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio Semanal ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="6250"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                disabled
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 4)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {form.watch("dia") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_dia"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio por Día ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="833"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                disabled
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Calculado automáticamente (Mensual / 30)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {form.watch("spot") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_spot"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio por Spot ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="15"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                disabled={!!(precioMensual && duracionSpot)}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                              {precioMensual && duracionSpot 
+                                ? `Calculado automáticamente basado en ${duracionSpot}s de duración en 18h de transmisión`
+                                : 'Requiere precio mensual y duración de spot para cálculo automático'
+                              }
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {form.watch("hora") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_hora"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio por Hora ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="600"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {form.watch("cpm") && (
+                      <FormField
+                        control={form.control}
+                        name="precio_cpm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio CPM ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="80"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="descuento_volumen"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descuento por Volumen (%)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="8"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
