@@ -67,7 +67,7 @@ export function NotificationsDropdown() {
 
       // Navigate based on notification type
       if (notification.tipo === 'reserva_pendiente') {
-        navigate('/owner/reservations');
+        navigate('/owner-reservations');
       } else if (notification.tipo === 'compra_aceptada') {
         navigate('/progreso-campana');
       }
