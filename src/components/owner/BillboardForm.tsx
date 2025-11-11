@@ -496,21 +496,21 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="spot"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                          <FormLabel>Por Spot</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+
                     {selectedTipo === 'digital' && (
                       <>
-                        <FormField
-                          control={form.control}
-                          name="spot"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                              <FormLabel>Por Spot</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-
                         <FormField
                           control={form.control}
                           name="hora"
