@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import jsPDF from "jspdf";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Campaign {
   id: string;
@@ -80,12 +82,12 @@ export function PrePDFDownload({ campaign }: PrePDFDownloadProps) {
   return (
     <Button
       onClick={generatePrePDF}
-      variant="outline"
+      variant="default"
       size="sm"
       className="gap-2"
     >
       <Download className="h-4 w-4" />
-      Descargar Pre-Comprobante
+      Descargar Propuesta Aprobada
     </Button>
   );
 }

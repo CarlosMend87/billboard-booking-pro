@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -29,6 +30,7 @@ export function NotificationsDropdown() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -50,20 +52,27 @@ export function NotificationsDropdown() {
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const handleNotificationClick = async (notification: Notification) => {
     try {
+      // Delete the notification
       const { error } = await supabase
         .from('notificaciones')
-        .update({ leida: true })
-        .eq('id', notificationId);
+        .delete()
+        .eq('id', notification.id);
 
       if (error) throw error;
 
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, leida: true } : n)
-      );
+      // Remove from local state
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+
+      // Navigate based on notification type
+      if (notification.tipo === 'reserva_pendiente') {
+        navigate('/owner/reservations');
+      } else if (notification.tipo === 'compra_aceptada') {
+        navigate('/progreso-campana');
+      }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error handling notification:', error);
     }
   };
 
@@ -169,41 +178,20 @@ export function NotificationsDropdown() {
           notifications.map((notification) => (
             <DropdownMenuItem 
               key={notification.id} 
-              className={`flex flex-col items-start p-4 ${!notification.leida ? 'bg-muted/50' : ''}`}
+              className={`flex flex-col items-start p-4 cursor-pointer hover:bg-accent ${!notification.leida ? 'bg-muted/50' : ''}`}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex justify-between items-start w-full">
                 <div className="flex-1">
                   <p className="font-medium text-sm">{notification.titulo}</p>
                   <p className="text-xs text-muted-foreground mt-1">{notification.mensaje}</p>
-                  
-                  {notification.tipo === 'reserva_pendiente' && notification.reserva_id && (
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => acceptReservation(notification.reserva_id!)}
-                      >
-                        Aceptar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => rejectReservation(notification.reserva_id!)}
-                      >
-                        Rechazar
-                      </Button>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Haz clic para ver detalles
+                  </p>
                 </div>
                 
                 {!notification.leida && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => markAsRead(notification.id)}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
+                  <Badge variant="default" className="h-2 w-2 p-0 rounded-full" />
                 )}
               </div>
             </DropdownMenuItem>
