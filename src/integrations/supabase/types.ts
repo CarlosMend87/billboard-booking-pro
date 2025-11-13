@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      agentes_venta: {
+        Row: {
+          activo: boolean | null
+          codigo_agente: string
+          comision_monto_fijo: number | null
+          comision_porcentaje: number | null
+          created_at: string | null
+          email: string
+          id: string
+          nombre_completo: string
+          owner_id: string
+          telefono: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          codigo_agente: string
+          comision_monto_fijo?: number | null
+          comision_porcentaje?: number | null
+          created_at?: string | null
+          email: string
+          id?: string
+          nombre_completo: string
+          owner_id: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          codigo_agente?: string
+          comision_monto_fijo?: number | null
+          comision_porcentaje?: number | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          nombre_completo?: string
+          owner_id?: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -124,6 +166,53 @@ export type Database = {
         }
         Relationships: []
       }
+      bonificaciones: {
+        Row: {
+          campana_id: string
+          codigo_bonificacion: string
+          created_at: string | null
+          dias_bonificados: number
+          fecha_fin_bonificacion: string
+          fecha_inicio_bonificacion: string
+          id: string
+          motivo: string | null
+          owner_id: string
+          valor_dias_bonificados: number
+        }
+        Insert: {
+          campana_id: string
+          codigo_bonificacion: string
+          created_at?: string | null
+          dias_bonificados: number
+          fecha_fin_bonificacion: string
+          fecha_inicio_bonificacion: string
+          id?: string
+          motivo?: string | null
+          owner_id: string
+          valor_dias_bonificados: number
+        }
+        Update: {
+          campana_id?: string
+          codigo_bonificacion?: string
+          created_at?: string | null
+          dias_bonificados?: number
+          fecha_fin_bonificacion?: string
+          fecha_inicio_bonificacion?: string
+          id?: string
+          motivo?: string | null
+          owner_id?: string
+          valor_dias_bonificados?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonificaciones_campana_id_fkey"
+            columns: ["campana_id"]
+            isOneToOne: false
+            referencedRelation: "campañas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campañas: {
         Row: {
           advertiser_id: string
@@ -180,6 +269,69 @@ export type Database = {
           },
           {
             foreignKeyName: "campañas_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materiales_campana: {
+        Row: {
+          archivo_material: string | null
+          campana_id: string | null
+          created_at: string | null
+          dias_retraso: number | null
+          fecha_limite_entrega: string | null
+          fecha_recepcion: string | null
+          foto_confirmacion: string | null
+          id: string
+          material_recibido: boolean | null
+          notas: string | null
+          quien_imprime: string | null
+          reserva_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          archivo_material?: string | null
+          campana_id?: string | null
+          created_at?: string | null
+          dias_retraso?: number | null
+          fecha_limite_entrega?: string | null
+          fecha_recepcion?: string | null
+          foto_confirmacion?: string | null
+          id?: string
+          material_recibido?: boolean | null
+          notas?: string | null
+          quien_imprime?: string | null
+          reserva_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          archivo_material?: string | null
+          campana_id?: string | null
+          created_at?: string | null
+          dias_retraso?: number | null
+          fecha_limite_entrega?: string | null
+          fecha_recepcion?: string | null
+          foto_confirmacion?: string | null
+          id?: string
+          material_recibido?: boolean | null
+          notas?: string | null
+          quien_imprime?: string | null
+          reserva_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materiales_campana_campana_id_fkey"
+            columns: ["campana_id"]
+            isOneToOne: false
+            referencedRelation: "campañas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materiales_campana_reserva_id_fkey"
             columns: ["reserva_id"]
             isOneToOne: false
             referencedRelation: "reservas"
@@ -341,13 +493,69 @@ export type Database = {
         }
         Relationships: []
       }
+      renovaciones_campana: {
+        Row: {
+          campana_id: string
+          created_at: string | null
+          fecha_recordatorio: string
+          id: string
+          notas: string | null
+          nueva_campana_id: string | null
+          recordatorio_enviado: boolean | null
+          respuesta_owner: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campana_id: string
+          created_at?: string | null
+          fecha_recordatorio: string
+          id?: string
+          notas?: string | null
+          nueva_campana_id?: string | null
+          recordatorio_enviado?: boolean | null
+          respuesta_owner?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campana_id?: string
+          created_at?: string | null
+          fecha_recordatorio?: string
+          id?: string
+          notas?: string | null
+          nueva_campana_id?: string | null
+          recordatorio_enviado?: boolean | null
+          respuesta_owner?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renovaciones_campana_campana_id_fkey"
+            columns: ["campana_id"]
+            isOneToOne: false
+            referencedRelation: "campañas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renovaciones_campana_nueva_campana_id_fkey"
+            columns: ["nueva_campana_id"]
+            isOneToOne: false
+            referencedRelation: "campañas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservas: {
         Row: {
           advertiser_id: string
+          agente_id: string | null
           asset_name: string
           asset_type: string
+          cliente_email: string | null
+          cliente_nombre: string | null
+          cliente_razon_social: string | null
           config: Json
           created_at: string
+          es_agencia: boolean | null
           fecha_fin: string
           fecha_inicio: string
           id: string
@@ -355,14 +563,22 @@ export type Database = {
           owner_id: string
           precio_total: number
           status: string | null
+          tarifa_final: number | null
+          tarifa_publicada: number | null
+          tipo_contrato: string | null
           updated_at: string
         }
         Insert: {
           advertiser_id: string
+          agente_id?: string | null
           asset_name: string
           asset_type: string
+          cliente_email?: string | null
+          cliente_nombre?: string | null
+          cliente_razon_social?: string | null
           config?: Json
           created_at?: string
+          es_agencia?: boolean | null
           fecha_fin: string
           fecha_inicio: string
           id?: string
@@ -370,14 +586,22 @@ export type Database = {
           owner_id: string
           precio_total: number
           status?: string | null
+          tarifa_final?: number | null
+          tarifa_publicada?: number | null
+          tipo_contrato?: string | null
           updated_at?: string
         }
         Update: {
           advertiser_id?: string
+          agente_id?: string | null
           asset_name?: string
           asset_type?: string
+          cliente_email?: string | null
+          cliente_nombre?: string | null
+          cliente_razon_social?: string | null
           config?: Json
           created_at?: string
+          es_agencia?: boolean | null
           fecha_fin?: string
           fecha_inicio?: string
           id?: string
@@ -385,6 +609,9 @@ export type Database = {
           owner_id?: string
           precio_total?: number
           status?: string | null
+          tarifa_final?: number | null
+          tarifa_publicada?: number | null
+          tipo_contrato?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -394,6 +621,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "reservas_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes_venta"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "reservas_owner_id_fkey"
