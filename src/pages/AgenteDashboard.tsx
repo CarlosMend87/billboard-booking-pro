@@ -10,6 +10,7 @@ import { Calendar, DollarSign, TrendingUp, Package } from "lucide-react";
 import { NuevaVentaDialog } from "@/components/agente/NuevaVentaDialog";
 import { Header } from "@/components/layout/Header";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Reserva {
   id: string;
@@ -36,10 +37,11 @@ interface Campana {
 
 export default function AgenteDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [openDialog, setOpenDialog] = useState(false);
 
   // Obtener datos del agente
-  const { data: agenteData } = useQuery({
+  const { data: agenteData, isLoading: loadingAgente } = useQuery({
     queryKey: ["agente-info", user?.id],
     queryFn: async () => {
       const { data: authUser } = await supabase.auth.getUser();
@@ -127,7 +129,17 @@ export default function AgenteDashboard() {
 
   return (
     <>
-      <Header onNuevaVenta={() => setOpenDialog(true)} />
+      <Header onNuevaVenta={() => {
+        if (!agenteData && !loadingAgente) {
+          toast({ 
+            title: "Error", 
+            description: "No se pudo cargar la información del agente",
+            variant: "destructive" 
+          });
+          return;
+        }
+        setOpenDialog(true);
+      }} />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -140,16 +152,14 @@ export default function AgenteDashboard() {
           </div>
         </div>
 
-        {agenteData && (
-          <NuevaVentaDialog
-            open={openDialog}
-            onOpenChange={setOpenDialog}
-            agenteId={agenteData.id}
-            ownerId={agenteData.owner_id}
-            comisionPorcentaje={agenteData.comision_porcentaje || 0}
-            comisionMontoFijo={agenteData.comision_monto_fijo || 0}
-          />
-        )}
+        <NuevaVentaDialog
+          open={openDialog}
+          onOpenChange={setOpenDialog}
+          agenteId={agenteData?.id || ""}
+          ownerId={agenteData?.owner_id || ""}
+          comisionPorcentaje={agenteData?.comision_porcentaje || 0}
+          comisionMontoFijo={agenteData?.comision_monto_fijo || 0}
+        />
 
       {/* Estadísticas */}
       <div className="grid gap-4 md:grid-cols-4">
