@@ -41,6 +41,11 @@ export function Header() {
                 Anunciante
               </Badge>
             )}
+            {role === 'agente' && (
+              <Badge variant="outline" className="hidden sm:inline-flex">
+                Agente de Ventas
+              </Badge>
+            )}
           </div>
           
           <div className="flex items-center space-x-2">

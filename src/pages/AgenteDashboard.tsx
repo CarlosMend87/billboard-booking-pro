@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, Package, LogOut, Settings } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Package, Plus } from "lucide-react";
 import { NuevaVentaDialog } from "@/components/agente/NuevaVentaDialog";
-import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/layout/Header";
+import { useState } from "react";
 
 interface Reserva {
   id: string;
@@ -34,8 +35,8 @@ interface Campana {
 }
 
 export default function AgenteDashboard() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [openDialog, setOpenDialog] = useState(false);
 
   // Obtener datos del agente
   const { data: agenteData } = useQuery({
@@ -125,33 +126,36 @@ export default function AgenteDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard de Agente</h1>
+    <>
+      <Header />
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard de Agente</h1>
+            {agenteData && (
+              <p className="text-muted-foreground">
+                {agenteData.nombre_completo} - {agenteData.codigo_agente}
+              </p>
+            )}
+          </div>
           {agenteData && (
-            <p className="text-muted-foreground">
-              {agenteData.nombre_completo} - {agenteData.codigo_agente}
-            </p>
+            <Button onClick={() => setOpenDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Venta
+            </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {agenteData && (
-            <NuevaVentaDialog
-              agenteId={agenteData.id}
-              ownerId={agenteData.owner_id}
-              comisionPorcentaje={agenteData.comision_porcentaje || 0}
-              comisionMontoFijo={agenteData.comision_monto_fijo || 0}
-            />
-          )}
-          <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
-            <Settings className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={signOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+
+        {agenteData && (
+          <NuevaVentaDialog
+            open={openDialog}
+            onOpenChange={setOpenDialog}
+            agenteId={agenteData.id}
+            ownerId={agenteData.owner_id}
+            comisionPorcentaje={agenteData.comision_porcentaje || 0}
+            comisionMontoFijo={agenteData.comision_monto_fijo || 0}
+          />
+        )}
 
       {/* Estadísticas */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -335,5 +339,6 @@ export default function AgenteDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
