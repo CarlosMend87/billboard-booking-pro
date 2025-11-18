@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, UserPlus, Phone, Mail, Hash, Percent, DollarSign } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Phone, Mail, Hash } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 interface Agente {
@@ -31,8 +31,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
     email: "",
     telefono: "",
     codigo_agente: "",
-    comision_porcentaje: "",
-    comision_monto_fijo: "",
     activo: true,
   });
   const { toast } = useToast();
@@ -60,8 +58,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
         email: data.email,
         telefono: data.telefono || null,
         codigo_agente: data.codigo_agente,
-        comision_porcentaje: data.comision_porcentaje ? parseFloat(data.comision_porcentaje) : null,
-        comision_monto_fijo: data.comision_monto_fijo ? parseFloat(data.comision_monto_fijo) : null,
         activo: data.activo,
       });
       if (error) throw error;
@@ -86,8 +82,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
           email: data.email,
           telefono: data.telefono || null,
           codigo_agente: data.codigo_agente,
-          comision_porcentaje: data.comision_porcentaje ? parseFloat(data.comision_porcentaje) : null,
-          comision_monto_fijo: data.comision_monto_fijo ? parseFloat(data.comision_monto_fijo) : null,
           activo: data.activo,
         })
         .eq("id", id);
@@ -124,8 +118,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
       email: "",
       telefono: "",
       codigo_agente: "",
-      comision_porcentaje: "",
-      comision_monto_fijo: "",
       activo: true,
     });
     setEditingAgente(null);
@@ -138,8 +130,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
       email: agente.email,
       telefono: agente.telefono || "",
       codigo_agente: agente.codigo_agente,
-      comision_porcentaje: agente.comision_porcentaje?.toString() || "",
-      comision_monto_fijo: agente.comision_monto_fijo?.toString() || "",
       activo: agente.activo ?? true,
     });
     setIsDialogOpen(true);
@@ -234,40 +224,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="comision_porcentaje">Comisión (%)</Label>
-                    <div className="relative">
-                      <Percent className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="comision_porcentaje"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={formData.comision_porcentaje}
-                        onChange={(e) => setFormData({ ...formData, comision_porcentaje: e.target.value })}
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="comision_monto_fijo">Comisión Fija ($)</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="comision_monto_fijo"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.comision_monto_fijo}
-                        onChange={(e) => setFormData({ ...formData, comision_monto_fijo: e.target.value })}
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="activo"
@@ -302,7 +258,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Contacto</TableHead>
-                <TableHead>Comisión</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -325,19 +280,6 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
                           <Phone className="h-3 w-3" />
                           {agente.telefono}
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {agente.comision_porcentaje && (
-                        <div>{agente.comision_porcentaje}%</div>
-                      )}
-                      {agente.comision_monto_fijo && (
-                        <div>${agente.comision_monto_fijo.toLocaleString()}</div>
-                      )}
-                      {!agente.comision_porcentaje && !agente.comision_monto_fijo && (
-                        <span className="text-muted-foreground">Sin comisión</span>
                       )}
                     </div>
                   </TableCell>
