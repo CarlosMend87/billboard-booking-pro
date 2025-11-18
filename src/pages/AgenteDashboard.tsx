@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, Package, Plus } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Package } from "lucide-react";
 import { NuevaVentaDialog } from "@/components/agente/NuevaVentaDialog";
 import { Header } from "@/components/layout/Header";
 import { useState } from "react";
@@ -127,7 +127,7 @@ export default function AgenteDashboard() {
 
   return (
     <>
-      <Header />
+      <Header onNuevaVenta={() => setOpenDialog(true)} />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -138,12 +138,6 @@ export default function AgenteDashboard() {
               </p>
             )}
           </div>
-          {agenteData && (
-            <Button onClick={() => setOpenDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Venta
-            </Button>
-          )}
         </div>
 
         {agenteData && (
