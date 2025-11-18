@@ -20,9 +20,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
+import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function OwnerDashboard() {
   const { billboards, loading, deleteBillboard, updateBillboard } = useBillboards();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -119,9 +122,10 @@ export default function OwnerDashboard() {
         </div>
 
         <Tabs defaultValue="resumen" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="financiero">Financiero</TabsTrigger>
+            <TabsTrigger value="agentes">Agentes</TabsTrigger>
             <TabsTrigger value="mapa">Mapa</TabsTrigger>
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
           </TabsList>
@@ -331,6 +335,10 @@ export default function OwnerDashboard() {
 
           <TabsContent value="financiero" className="space-y-6">
             <PerformanceChart billboards={billboards} />
+          </TabsContent>
+
+          <TabsContent value="agentes" className="space-y-6">
+            {user && <AgentesVentaManager ownerId={user.id} />}
           </TabsContent>
 
           <TabsContent value="mapa" className="space-y-6">
