@@ -9,9 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, DollarSign } from "lucide-react";
+import { Calculator, DollarSign, Tag, Calendar as CalendarIcon, Info } from "lucide-react";
 import { totalTradicional, totalDigitalSpot, totalDigitalHora, totalDigitalDia, totalDigitalCPM } from "@/lib/pricing";
 import type { Billboard } from "@/hooks/useBillboards";
+import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 interface NuevaVentaDialogProps {
   agenteId: string;
@@ -23,6 +26,14 @@ interface NuevaVentaDialogProps {
 }
 
 type Modalidad = 'mensual' | 'catorcenal' | 'semanal' | 'spot' | 'hora' | 'dia' | 'cpm';
+
+const reservaSchema = z.object({
+  clienteNombre: z.string().trim().min(1, "Nombre requerido").max(200),
+  clienteEmail: z.string().trim().email("Email inválido").max(255).optional().or(z.literal("")),
+  billboardId: z.string().uuid("Selecciona un anuncio"),
+  fechaInicio: z.string().min(1, "Fecha inicio requerida"),
+  fechaFin: z.string().min(1, "Fecha fin requerida"),
+});
 
 export function NuevaVentaDialog({ 
   agenteId, 
@@ -36,11 +47,9 @@ export function NuevaVentaDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Use external or internal open state
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = externalOnOpenChange || setInternalOpen;
 
-  // Form state
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteEmail, setClienteEmail] = useState("");
   const [clienteRazonSocial, setClienteRazonSocial] = useState("");
@@ -52,7 +61,6 @@ export function NuevaVentaDialog({
   const [tipoContrato, setTipoContrato] = useState<"fijo" | "renovable">("fijo");
   const [codigoDescuentoId, setCodigoDescuentoId] = useState<string>("");
   
-  // Configuration based on modalidad
   const [meses, setMeses] = useState(1);
   const [catorcenas, setCatorcenas] = useState(1);
   const [semanas, setSemanas] = useState(1);
@@ -61,7 +69,6 @@ export function NuevaVentaDialog({
   const [dias, setDias] = useState(1);
   const [impresiones, setImpresiones] = useState(1000);
 
-  // Fetch available billboards from owner
   const { data: billboards } = useQuery({
     queryKey: ["billboards-owner", ownerId],
     queryFn: async () => {
@@ -76,7 +83,6 @@ export function NuevaVentaDialog({
     enabled: open && !!ownerId,
   });
 
-  // Fetch existing reservations for selected billboard
   const { data: existingReservations } = useQuery({
     queryKey: ["billboard-reservations", billboardId],
     queryFn: async () => {
@@ -95,7 +101,6 @@ export function NuevaVentaDialog({
     enabled: !!billboardId && !!billboards,
   });
 
-  // Fetch discount codes from owner
   const { data: codigosDescuento } = useQuery({
     queryKey: ["codigos-descuento", ownerId],
     queryFn: async () => {
@@ -110,10 +115,8 @@ export function NuevaVentaDialog({
     enabled: open && !!ownerId,
   });
 
-  // Get selected billboard
   const selectedBillboard = billboards?.find((b) => b.id === billboardId);
 
-  // Calculate price
   const config = {
     meses: modalidad === "mensual" ? meses : undefined,
     catorcenas: modalidad === "catorcenal" ? catorcenas : undefined,
@@ -126,46 +129,26 @@ export function NuevaVentaDialog({
 
   const calculatePrice = (): number => {
     if (!selectedBillboard) return 0;
-
     const precioData = selectedBillboard.precio as any;
     const digitalData = selectedBillboard.digital as any;
 
-    // Traditional billboard
     if (!selectedBillboard.digital) {
       const precioMensual = precioData?.mensual || 0;
-      
-      if (modalidad === "mensual") {
-        return totalTradicional({ tipoPeriodo: "mensual", precioMensual, meses });
-      } else if (modalidad === "catorcenal") {
-        return totalTradicional({ tipoPeriodo: "catorcenal", precioMensual, catorcenas });
-      } else if (modalidad === "semanal") {
-        return totalTradicional({ tipoPeriodo: "semanal", precioMensual });
-      }
+      if (modalidad === "mensual") return totalTradicional({ tipoPeriodo: "mensual", precioMensual, meses });
+      if (modalidad === "catorcenal") return totalTradicional({ tipoPeriodo: "catorcenal", precioMensual, catorcenas });
+      if (modalidad === "semanal") return totalTradicional({ tipoPeriodo: "semanal", precioMensual });
     }
 
-    // Digital billboard
     if (selectedBillboard.digital) {
-      if (modalidad === "spot") {
-        const tarifaSpot = digitalData?.tarifas?.spot || 0;
-        return totalDigitalSpot({ tarifaSpot, spotsDia, dias });
-      } else if (modalidad === "hora") {
-        const tarifaHora = digitalData?.tarifas?.hora || 0;
-        return totalDigitalHora({ tarifaHora, horas, dias });
-      } else if (modalidad === "dia") {
-        const tarifaDia = digitalData?.tarifas?.dia || 0;
-        return totalDigitalDia({ tarifaDia, dias });
-      } else if (modalidad === "cpm") {
-        const cpm = digitalData?.tarifas?.cpm || 0;
-        return totalDigitalCPM({ impresiones, cpm });
-      }
+      if (modalidad === "spot") return totalDigitalSpot({ tarifaSpot: digitalData?.tarifas?.spot || 0, spotsDia, dias });
+      if (modalidad === "hora") return totalDigitalHora({ tarifaHora: digitalData?.tarifas?.hora || 0, horas, dias });
+      if (modalidad === "dia") return totalDigitalDia({ tarifaDia: digitalData?.tarifas?.dia || 0, dias });
+      if (modalidad === "cpm") return totalDigitalCPM({ impresiones, cpm: digitalData?.tarifas?.cpm || 0 });
     }
-
     return 0;
   };
 
   const precioBase = calculatePrice();
-
-  // Calculate discount
   const codigoSeleccionado = codigosDescuento?.find((c) => c.id === codigoDescuentoId);
   const descuentoAplicado = codigoSeleccionado
     ? codigoSeleccionado.tipo_descuento === "porcentaje"
@@ -176,7 +159,6 @@ export function NuevaVentaDialog({
   const precioFinal = precioBase - descuentoAplicado;
   const comisionEstimada = (precioFinal * comisionPorcentaje) / 100 + comisionMontoFijo;
 
-  // Check for date conflicts
   const checkDateConflict = (): string | null => {
     if (!fechaInicio || !fechaFin || !existingReservations) return null;
 
@@ -202,16 +184,28 @@ export function NuevaVentaDialog({
 
   const dateConflictError = checkDateConflict();
 
-  // Create reservation mutation
+  // Validation function
+  const validateForm = (): string | null => {
+    try {
+      reservaSchema.parse({ clienteNombre, clienteEmail: clienteEmail || "", billboardId, fechaInicio, fechaFin });
+      return null;
+    } catch (error) {
+      if (error instanceof z.ZodError) return error.errors[0].message;
+    }
+  };
+
   const createReservaMutation = useMutation({
     mutationFn: async () => {
+      try {
+        reservaSchema.parse({ clienteNombre, clienteEmail: clienteEmail || "", billboardId, fechaInicio, fechaFin });
+      } catch (error) {
+        if (error instanceof z.ZodError) throw new Error(error.errors[0].message);
+      }
+
       if (!selectedBillboard) throw new Error("Selecciona un anuncio");
-      if (!clienteNombre) throw new Error("Ingresa el nombre del cliente");
-      if (!fechaInicio || !fechaFin) throw new Error("Selecciona las fechas");
-      if (dateConflictError) throw new Error(dateConflictError);
 
       const { data, error } = await supabase.from("reservas").insert({
-        advertiser_id: null, // No advertiser for agent sales
+        advertiser_id: null,
         owner_id: ownerId,
         agente_id: agenteId,
         asset_name: selectedBillboard.nombre,
@@ -237,20 +231,12 @@ export function NuevaVentaDialog({
       return data;
     },
     onSuccess: () => {
-      toast({
-        title: "Venta Registrada",
-        description: "La reserva ha sido creada exitosamente",
-      });
-      queryClient.invalidateQueries({ queryKey: ["agente-reservas"] });
+      toast({ title: "¡Venta registrada!", description: "La venta ha sido registrada correctamente" });
       setOpen(false);
-      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["agente-reservas"] });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -276,14 +262,10 @@ export function NuevaVentaDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Nueva Venta</Button>
-      </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Registrar Nueva Venta</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-6">
           {/* Client Information */}
           <div className="space-y-4">
@@ -489,8 +471,7 @@ export function NuevaVentaDialog({
             </div>
           )}
 
-          {/* Additional Options */}
-          <div className="space-y-4">
+            <div className="space-y-4">
             <h3 className="font-semibold text-lg">Opciones Adicionales</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -505,25 +486,111 @@ export function NuevaVentaDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="codigoDescuento">Código de Descuento</Label>
-                <Select value={codigoDescuentoId} onValueChange={setCodigoDescuentoId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sin descuento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin descuento</SelectItem>
-                    {codigosDescuento?.map((codigo) => (
-                      <SelectItem key={codigo.id} value={codigo.id}>
-                        {codigo.codigo} - {codigo.tipo_descuento === "porcentaje" 
-                          ? `${codigo.valor_descuento}%` 
-                          : `$${codigo.valor_descuento}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center space-x-2 pt-8">
+                <Checkbox
+                  id="esAgencia"
+                  checked={esAgencia}
+                  onCheckedChange={(checked) => setEsAgencia(checked as boolean)}
+                />
+                <Label htmlFor="esAgencia" className="cursor-pointer">
+                  ¿Es agencia?
+                </Label>
               </div>
             </div>
+            
+            {/* Discount Codes Section */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Códigos de Descuento Disponibles
+              </Label>
+                  {!codigosDescuento || codigosDescuento.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No hay códigos de descuento disponibles</p>
+                  ) : (
+                    <>
+                      <div className="grid gap-2">
+                        {codigosDescuento.map((codigo) => {
+                          const usosRestantes = codigo.uso_maximo ? codigo.uso_maximo - (codigo.uso_actual || 0) : null;
+                          const fechaValida = (!codigo.fecha_inicio || new Date(codigo.fecha_inicio) <= new Date()) &&
+                                            (!codigo.fecha_fin || new Date(codigo.fecha_fin) >= new Date());
+                          const puedeUsar = fechaValida && (usosRestantes === null || usosRestantes > 0);
+                          
+                          return (
+                            <Card 
+                              key={codigo.id} 
+                              className={`p-3 cursor-pointer transition-colors ${
+                                codigoDescuentoId === codigo.id 
+                                  ? 'border-primary bg-primary/5' 
+                                  : puedeUsar 
+                                    ? 'hover:bg-muted/50' 
+                                    : 'opacity-60 cursor-not-allowed'
+                              }`}
+                              onClick={() => puedeUsar && setCodigoDescuentoId(codigo.id)}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="secondary" className="font-mono">
+                                      {codigo.codigo}
+                                    </Badge>
+                                    <Badge variant={codigo.tipo_descuento === "porcentaje" ? "default" : "outline"}>
+                                      {codigo.tipo_descuento === "porcentaje" 
+                                        ? `${codigo.valor_descuento}% OFF` 
+                                        : `$${codigo.valor_descuento.toLocaleString()} OFF`}
+                                    </Badge>
+                                    {!puedeUsar && <Badge variant="destructive">No disponible</Badge>}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground space-y-1">
+                                    {codigo.notas && <p>{codigo.notas}</p>}
+                                    {(codigo.fecha_inicio || codigo.fecha_fin) && (
+                                      <p className="flex items-center gap-1">
+                                        <CalendarIcon className="h-3 w-3" />
+                                        {codigo.fecha_inicio && `Desde ${new Date(codigo.fecha_inicio).toLocaleDateString()}`}
+                                        {codigo.fecha_fin && ` hasta ${new Date(codigo.fecha_fin).toLocaleDateString()}`}
+                                      </p>
+                                    )}
+                                    {usosRestantes !== null && (
+                                      <p>Usos restantes: {usosRestantes} de {codigo.uso_maximo}</p>
+                                    )}
+                                    {codigo.clientes_permitidos && codigo.clientes_permitidos.length > 0 && (
+                                      <p className="flex items-center gap-1">
+                                        <Info className="h-3 w-3" />
+                                        Solo para clientes específicos
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                {codigoDescuentoId === codigo.id && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCodigoDescuentoId("");
+                                    }}
+                                  >
+                                    Quitar
+                                  </Button>
+                                )}
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                      {codigoDescuentoId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCodigoDescuentoId("")}
+                          className="w-full"
+                        >
+                          No usar descuento
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="esAgencia"
