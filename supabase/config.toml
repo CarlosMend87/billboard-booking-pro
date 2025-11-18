@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.send-campaign-pdf]
 verify_jwt = true
+
+[functions.create-agent-user]
+verify_jwt = true

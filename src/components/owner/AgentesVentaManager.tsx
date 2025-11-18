@@ -29,6 +29,7 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
   const [formData, setFormData] = useState({
     nombre_completo: "",
     email: "",
+    password: "",
     telefono: "",
     codigo_agente: "",
     activo: true,
@@ -52,19 +53,29 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("agentes_venta").insert({
-        owner_id: ownerId,
-        nombre_completo: data.nombre_completo,
-        email: data.email,
-        telefono: data.telefono || null,
-        codigo_agente: data.codigo_agente,
-        activo: data.activo,
+      // Call edge function to create user with credentials
+      const { data: result, error } = await supabase.functions.invoke("create-agent-user", {
+        body: {
+          email: data.email,
+          password: data.password,
+          nombre_completo: data.nombre_completo,
+          telefono: data.telefono || null,
+          codigo_agente: data.codigo_agente,
+          owner_id: ownerId,
+        },
       });
+
       if (error) throw error;
+      if (!result?.success) throw new Error(result?.error || "Error al crear agente");
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agentes-venta", ownerId] });
-      toast({ title: "Agente creado exitosamente" });
+      toast({ 
+        title: "Agente creado exitosamente", 
+        description: "Se ha enviado un email con las credenciales de acceso"
+      });
       resetForm();
       setIsDialogOpen(false);
     },
@@ -116,6 +127,7 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
     setFormData({
       nombre_completo: "",
       email: "",
+      password: "",
       telefono: "",
       codigo_agente: "",
       activo: true,
@@ -128,6 +140,7 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
     setFormData({
       nombre_completo: agente.nombre_completo,
       email: agente.email,
+      password: "", // Don't show existing password
       telefono: agente.telefono || "",
       codigo_agente: agente.codigo_agente,
       activo: agente.activo ?? true,
@@ -207,6 +220,7 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         className="pl-9"
                         required
+                        disabled={!!editingAgente}
                       />
                     </div>
                   </div>
@@ -223,6 +237,24 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
                     </div>
                   </div>
                 </div>
+
+                {!editingAgente && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Contraseña *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      minLength={6}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Se enviará un email al agente con sus credenciales de acceso
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center space-x-2">
                   <Switch
