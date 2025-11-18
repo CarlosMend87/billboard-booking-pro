@@ -63,6 +63,25 @@ export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisi
     enabled: open && !!ownerId,
   });
 
+  // Fetch existing reservations for selected billboard
+  const { data: existingReservations } = useQuery({
+    queryKey: ["billboard-reservations", billboardId],
+    queryFn: async () => {
+      if (!billboardId) return [];
+      const billboard = billboards?.find(b => b.id === billboardId);
+      if (!billboard) return [];
+      
+      const { data, error } = await supabase
+        .from("reservas")
+        .select("fecha_inicio, fecha_fin, status, asset_name")
+        .eq("asset_name", billboard.nombre)
+        .in("status", ["pending", "accepted"]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!billboardId && !!billboards,
+  });
+
   // Fetch discount codes from owner
   const { data: codigosDescuento } = useQuery({
     queryKey: ["codigos-descuento", ownerId],
@@ -144,12 +163,39 @@ export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisi
   const precioFinal = precioBase - descuentoAplicado;
   const comisionEstimada = (precioFinal * comisionPorcentaje) / 100 + comisionMontoFijo;
 
+  // Check for date conflicts
+  const checkDateConflict = (): string | null => {
+    if (!fechaInicio || !fechaFin || !existingReservations) return null;
+
+    const newStart = new Date(fechaInicio);
+    const newEnd = new Date(fechaFin);
+
+    for (const reservation of existingReservations) {
+      const existingStart = new Date(reservation.fecha_inicio);
+      const existingEnd = new Date(reservation.fecha_fin);
+
+      // Check if dates overlap
+      if (
+        (newStart >= existingStart && newStart <= existingEnd) ||
+        (newEnd >= existingStart && newEnd <= existingEnd) ||
+        (newStart <= existingStart && newEnd >= existingEnd)
+      ) {
+        return `Este anuncio ya tiene una reserva del ${new Date(reservation.fecha_inicio).toLocaleDateString()} al ${new Date(reservation.fecha_fin).toLocaleDateString()}`;
+      }
+    }
+
+    return null;
+  };
+
+  const dateConflictError = checkDateConflict();
+
   // Create reservation mutation
   const createReservaMutation = useMutation({
     mutationFn: async () => {
       if (!selectedBillboard) throw new Error("Selecciona un anuncio");
       if (!clienteNombre) throw new Error("Ingresa el nombre del cliente");
       if (!fechaInicio || !fechaFin) throw new Error("Selecciona las fechas");
+      if (dateConflictError) throw new Error(dateConflictError);
 
       const { data, error } = await supabase.from("reservas").insert({
         advertiser_id: null, // No advertiser for agent sales
@@ -408,6 +454,7 @@ export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisi
                     type="date"
                     value={fechaInicio}
                     onChange={(e) => setFechaInicio(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
                 <div>
@@ -417,9 +464,15 @@ export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisi
                     type="date"
                     value={fechaFin}
                     onChange={(e) => setFechaFin(e.target.value)}
+                    min={fechaInicio || new Date().toISOString().split('T')[0]}
                   />
                 </div>
               </div>
+              {dateConflictError && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                  {dateConflictError}
+                </div>
+              )}
             </div>
           )}
 
@@ -501,7 +554,7 @@ export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisi
           <Button
             className="w-full"
             onClick={() => createReservaMutation.mutate()}
-            disabled={createReservaMutation.isPending || !selectedBillboard || !clienteNombre || !fechaInicio || !fechaFin}
+            disabled={createReservaMutation.isPending || !selectedBillboard || !clienteNombre || !fechaInicio || !fechaFin || !!dateConflictError}
           >
             {createReservaMutation.isPending ? "Registrando..." : "Registrar Venta"}
           </Button>
