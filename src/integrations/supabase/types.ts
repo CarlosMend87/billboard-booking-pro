@@ -100,6 +100,44 @@ export type Database = {
           },
         ]
       }
+      billboard_locks: {
+        Row: {
+          billboard_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          locked_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          locked_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          locked_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billboard_locks_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billboards: {
         Row: {
           admobilize_config: Json | null
@@ -835,6 +873,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_locks: { Args: never; Returns: undefined }
+      create_billboard_lock: {
+        Args: { billboard_uuid: string; user_uuid: string }
+        Returns: string
+      }
       create_campaign_from_reserva: {
         Args: { reserva_id: string }
         Returns: string
@@ -883,6 +926,10 @@ export type Database = {
         Returns: boolean
       }
       is_active_superadmin: { Args: { _user: string }; Returns: boolean }
+      is_billboard_locked: {
+        Args: { billboard_uuid: string }
+        Returns: boolean
+      }
       is_superadmin: { Args: { user_uuid: string }; Returns: boolean }
       log_user_action: {
         Args: {

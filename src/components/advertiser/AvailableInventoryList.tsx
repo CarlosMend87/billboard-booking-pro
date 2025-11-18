@@ -27,6 +27,8 @@ import { formatShortId } from "@/lib/utils";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { supabase } from "@/integrations/supabase/client";
 import admobilizeImage from "@/assets/admobilize-detection.png";
+import { BillboardViewsMetric } from "@/components/advertiser/BillboardViewsMetric";
+import { useBillboardLock } from "@/hooks/useBillboardLock";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -96,6 +98,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
   const [selectedAssetForDetails, setSelectedAssetForDetails] = useState<(InventoryAsset & { has_computer_vision?: boolean; last_detection_count?: number }) | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { createLock, isLocked, loading: lockLoading } = useBillboardLock();
 
   // Fetch available billboards from owners
   useEffect(() => {
@@ -272,7 +275,19 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     }
   };
 
-  const handleAddToCart = (asset: InventoryAsset) => {
+  const handleAddToCart = async (asset: InventoryAsset) => {
+    // Check if billboard is locked first
+    const locked = await isLocked(asset.id);
+    if (locked) {
+      return; // isLocked already shows a toast
+    }
+
+    // Create a temporary lock (10 minutes)
+    const lockId = await createLock(asset.id);
+    if (!lockId) {
+      return; // createLock already shows a toast if it fails
+    }
+
     const modalidad = selectedModalidad[asset.id] || getModalidadOptions(asset)[0];
     const config: CartItemConfig = {
       meses: modalidad === 'mensual' ? 1 : undefined,
@@ -438,6 +453,11 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                   </div>
                 </div>
 
+                {/* Métricas de interés - Solo visible para compradores */}
+                <div className="pt-2 border-t">
+                  <BillboardViewsMetric billboardId={asset.id} />
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   {(asset as any).has_computer_vision ? (
                     <Button 
@@ -460,9 +480,14 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                       Ver Detalles
                     </Button>
                   )}
-                  <Button size="sm" className="flex-1" onClick={() => handleAddToCart(asset)}>
+                  <Button 
+                    size="sm" 
+                    className="flex-1" 
+                    onClick={() => handleAddToCart(asset)}
+                    disabled={lockLoading}
+                  >
                     <ShoppingCart className="h-4 w-4 mr-1" />
-                    Agregar
+                    {lockLoading ? 'Verificando...' : 'Agregar'}
                   </Button>
                 </div>
               </CardContent>

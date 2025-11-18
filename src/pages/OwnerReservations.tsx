@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { MaterialManagement } from "@/components/owner/MaterialManagement";
+import { BonificacionesManager } from "@/components/owner/BonificacionesManager";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Reserva {
   id: string;
@@ -27,10 +30,55 @@ interface Reserva {
   };
 }
 
+// Componente auxiliar para obtener y mostrar bonificaciones de la campaña
+function CampaignBonificaciones({ reservaId }: { reservaId: string }) {
+  const [campanaId, setCampanaId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCampana = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('campañas')
+          .select('id')
+          .eq('reserva_id', reservaId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data) {
+          setCampanaId(data.id);
+        }
+      } catch (error) {
+        console.error('Error fetching campaign:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampana();
+  }, [reservaId]);
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground">Cargando campaña...</div>;
+  }
+
+  if (!campanaId) {
+    return (
+      <div className="text-center text-muted-foreground py-4">
+        No hay campaña asociada a esta reserva
+      </div>
+    );
+  }
+
+  return <BonificacionesManager campanaId={campanaId} />;
+}
+
 export default function OwnerReservations() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [expandedReserva, setExpandedReserva] = useState<string | null>(null);
+  const [expandedCampana, setExpandedCampana] = useState<{ [key: string]: string | null }>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -322,37 +370,73 @@ export default function OwnerReservations() {
           <div>
             <h2 className="text-xl font-semibold mb-4">Historial de Reservas</h2>
             <div className="grid gap-4">
-              {processedReservas.map((reserva) => (
-                <Card key={reserva.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          {reserva.asset_name}
-                          <Badge className={getStatusColor(reserva.status)}>
-                            {getStatusIcon(reserva.status)}
-                            <span className="ml-1 capitalize">{reserva.status}</span>
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          {reserva.advertiser?.name || 'N/A'} • {reserva.asset_type} • {reserva.modalidad}
-                        </CardDescription>
+              {processedReservas.map((reserva) => {
+                const isExpanded = expandedReserva === reserva.id;
+                const isAccepted = reserva.status === 'accepted';
+                
+                return (
+                  <Card key={reserva.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="flex items-center gap-2">
+                            {reserva.asset_name}
+                            <Badge className={getStatusColor(reserva.status)}>
+                              {getStatusIcon(reserva.status)}
+                              <span className="ml-1 capitalize">{reserva.status}</span>
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            {reserva.advertiser?.name || 'N/A'} • {reserva.asset_type} • {reserva.modalidad}
+                          </CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold">
+                            ${reserva.precio_total.toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold">
-                          ${reserva.precio_total.toLocaleString()}
-                        </p>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(reserva.fecha_inicio).toLocaleDateString('es-MX')} - {new Date(reserva.fecha_fin).toLocaleDateString('es-MX')}
                       </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(reserva.fecha_inicio).toLocaleDateString('es-MX')} - {new Date(reserva.fecha_fin).toLocaleDateString('es-MX')}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      {/* Mostrar gestión de material y bonificaciones solo para reservas aceptadas */}
+                      {isAccepted && (
+                        <Collapsible
+                          open={isExpanded}
+                          onOpenChange={(open) => setExpandedReserva(open ? reserva.id : null)}
+                        >
+                          <CollapsibleTrigger asChild>
+                            <Button variant="outline" className="w-full">
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-4 w-4 mr-2" />
+                                  Ocultar gestión de campaña
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-4 w-4 mr-2" />
+                                  Gestionar material y bonificaciones
+                                </>
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="space-y-6 pt-6">
+                            {/* Gestión de Material Gráfico */}
+                            <MaterialManagement reservaId={reserva.id} />
+                            
+                            {/* Gestión de Bonificaciones - Obtener campaña asociada */}
+                            <CampaignBonificaciones reservaId={reserva.id} />
+                          </CollapsibleContent>
+                        </Collapsible>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
