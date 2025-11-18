@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
+import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function OwnerDashboard() {
@@ -122,10 +123,11 @@ export default function OwnerDashboard() {
         </div>
 
         <Tabs defaultValue="resumen" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="financiero">Financiero</TabsTrigger>
             <TabsTrigger value="agentes">Agentes</TabsTrigger>
+            <TabsTrigger value="descuentos">Descuentos</TabsTrigger>
             <TabsTrigger value="mapa">Mapa</TabsTrigger>
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
           </TabsList>
@@ -339,6 +341,10 @@ export default function OwnerDashboard() {
 
           <TabsContent value="agentes" className="space-y-6">
             {user && <AgentesVentaManager ownerId={user.id} />}
+          </TabsContent>
+
+          <TabsContent value="descuentos" className="space-y-6">
+            {user && <CodigosDescuentoManager />}
           </TabsContent>
 
           <TabsContent value="mapa" className="space-y-6">
