@@ -314,6 +314,57 @@ export type Database = {
           },
         ]
       }
+      codigos_descuento: {
+        Row: {
+          activo: boolean
+          clientes_permitidos: string[] | null
+          codigo: string
+          created_at: string | null
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          notas: string | null
+          owner_id: string
+          tipo_descuento: string
+          updated_at: string | null
+          uso_actual: number | null
+          uso_maximo: number | null
+          valor_descuento: number
+        }
+        Insert: {
+          activo?: boolean
+          clientes_permitidos?: string[] | null
+          codigo: string
+          created_at?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          notas?: string | null
+          owner_id: string
+          tipo_descuento: string
+          updated_at?: string | null
+          uso_actual?: number | null
+          uso_maximo?: number | null
+          valor_descuento: number
+        }
+        Update: {
+          activo?: boolean
+          clientes_permitidos?: string[] | null
+          codigo?: string
+          created_at?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          notas?: string | null
+          owner_id?: string
+          tipo_descuento?: string
+          updated_at?: string | null
+          uso_actual?: number | null
+          uso_maximo?: number | null
+          valor_descuento?: number
+        }
+        Relationships: []
+      }
       materiales_campana: {
         Row: {
           archivo_material: string | null
@@ -591,8 +642,10 @@ export type Database = {
           cliente_email: string | null
           cliente_nombre: string | null
           cliente_razon_social: string | null
+          codigo_descuento_id: string | null
           config: Json
           created_at: string
+          descuento_aplicado: number | null
           es_agencia: boolean | null
           fecha_fin: string
           fecha_inicio: string
@@ -614,8 +667,10 @@ export type Database = {
           cliente_email?: string | null
           cliente_nombre?: string | null
           cliente_razon_social?: string | null
+          codigo_descuento_id?: string | null
           config?: Json
           created_at?: string
+          descuento_aplicado?: number | null
           es_agencia?: boolean | null
           fecha_fin: string
           fecha_inicio: string
@@ -637,8 +692,10 @@ export type Database = {
           cliente_email?: string | null
           cliente_nombre?: string | null
           cliente_razon_social?: string | null
+          codigo_descuento_id?: string | null
           config?: Json
           created_at?: string
+          descuento_aplicado?: number | null
           es_agencia?: boolean | null
           fecha_fin?: string
           fecha_inicio?: string
@@ -665,6 +722,13 @@ export type Database = {
             columns: ["agente_id"]
             isOneToOne: false
             referencedRelation: "agentes_venta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_codigo_descuento_id_fkey"
+            columns: ["codigo_descuento_id"]
+            isOneToOne: false
+            referencedRelation: "codigos_descuento"
             referencedColumns: ["id"]
           },
           {
@@ -924,6 +988,10 @@ export type Database = {
       has_superadmin_permission: {
         Args: { perm: string; user_uuid: string }
         Returns: boolean
+      }
+      incrementar_uso_codigo_descuento: {
+        Args: { codigo_id: string }
+        Returns: undefined
       }
       is_active_superadmin: { Args: { _user: string }; Returns: boolean }
       is_billboard_locked: {
