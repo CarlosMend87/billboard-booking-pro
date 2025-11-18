@@ -46,6 +46,7 @@ export function CodigosDescuentoManager() {
     uso_maximo: "",
     clientes_permitidos: "",
     notas: "",
+    aplicar_a_todos: true,
   });
 
   const { data: codigos, isLoading } = useQuery({
@@ -74,7 +75,9 @@ export function CodigosDescuentoManager() {
         fecha_inicio: data.fecha_inicio || null,
         fecha_fin: data.fecha_fin || null,
         uso_maximo: data.uso_maximo ? parseInt(data.uso_maximo) : null,
-        clientes_permitidos: data.clientes_permitidos
+        clientes_permitidos: data.aplicar_a_todos
+          ? null
+          : data.clientes_permitidos
           ? data.clientes_permitidos.split(",").map((c) => c.trim())
           : null,
         notas: data.notas || null,
@@ -114,7 +117,9 @@ export function CodigosDescuentoManager() {
           fecha_inicio: data.fecha_inicio || null,
           fecha_fin: data.fecha_fin || null,
           uso_maximo: data.uso_maximo ? parseInt(data.uso_maximo) : null,
-          clientes_permitidos: data.clientes_permitidos
+          clientes_permitidos: data.aplicar_a_todos
+            ? null
+            : data.clientes_permitidos
             ? data.clientes_permitidos.split(",").map((c) => c.trim())
             : null,
           notas: data.notas || null,
@@ -169,6 +174,7 @@ export function CodigosDescuentoManager() {
       uso_maximo: "",
       clientes_permitidos: "",
       notas: "",
+      aplicar_a_todos: true,
     });
     setEditingCodigo(null);
   };
@@ -185,6 +191,7 @@ export function CodigosDescuentoManager() {
       uso_maximo: codigo.uso_maximo?.toString() || "",
       clientes_permitidos: codigo.clientes_permitidos?.join(", ") || "",
       notas: codigo.notas || "",
+      aplicar_a_todos: !codigo.clientes_permitidos || codigo.clientes_permitidos.length === 0,
     });
     setIsDialogOpen(true);
   };
@@ -298,18 +305,42 @@ export function CodigosDescuentoManager() {
                 </div>
               </div>
 
-              <div>
-                <Label>Clientes Permitidos (emails separados por coma)</Label>
-                <Input
-                  value={formData.clientes_permitidos}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      clientes_permitidos: e.target.value,
-                    })
-                  }
-                  placeholder="cliente1@email.com, cliente2@email.com"
-                />
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="aplicar_a_todos"
+                    checked={formData.aplicar_a_todos}
+                    onCheckedChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        aplicar_a_todos: checked,
+                        clientes_permitidos: checked ? "" : formData.clientes_permitidos,
+                      })
+                    }
+                  />
+                  <Label htmlFor="aplicar_a_todos" className="cursor-pointer">
+                    Aplicar a todos los clientes
+                  </Label>
+                </div>
+
+                {!formData.aplicar_a_todos && (
+                  <div>
+                    <Label>Clientes Permitidos (emails separados por coma)</Label>
+                    <Input
+                      value={formData.clientes_permitidos}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          clientes_permitidos: e.target.value,
+                        })
+                      }
+                      placeholder="cliente1@email.com, cliente2@email.com"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Solo estos clientes podrán usar este código de descuento
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
