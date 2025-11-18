@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useUserRole } from "@/hooks/useUserRole"
 import { useCartContext } from "@/context/CartContext"
 import { OwnerNav } from "@/components/layout/OwnerNav"
+import { AgenteNav } from "@/components/layout/AgenteNav"
 import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown"
 import {
   DropdownMenu,
@@ -17,7 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function Header() {
+interface HeaderProps {
+  onNuevaVenta?: () => void;
+}
+
+export function Header({ onNuevaVenta }: HeaderProps = {}) {
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
   const { cart } = useCartContext();
@@ -51,6 +56,10 @@ export function Header() {
           <div className="flex items-center space-x-2">
             {role === 'owner' && (
               <OwnerNav />
+            )}
+            
+            {role === 'agente' && (
+              <AgenteNav onNuevaVenta={onNuevaVenta} />
             )}
             
             {role === 'advertiser' && cart && (
