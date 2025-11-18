@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, DollarSign, TrendingUp, Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, DollarSign, TrendingUp, Package, LogOut, Settings } from "lucide-react";
 import { NuevaVentaDialog } from "@/components/agente/NuevaVentaDialog";
+import { useNavigate } from "react-router-dom";
 
 interface Reserva {
   id: string;
@@ -32,7 +34,8 @@ interface Campana {
 }
 
 export default function AgenteDashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Obtener datos del agente
   const { data: agenteData } = useQuery({
@@ -132,14 +135,22 @@ export default function AgenteDashboard() {
             </p>
           )}
         </div>
-        {agenteData && (
-          <NuevaVentaDialog
-            agenteId={agenteData.id}
-            ownerId={agenteData.owner_id}
-            comisionPorcentaje={agenteData.comision_porcentaje || 0}
-            comisionMontoFijo={agenteData.comision_monto_fijo || 0}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {agenteData && (
+            <NuevaVentaDialog
+              agenteId={agenteData.id}
+              ownerId={agenteData.owner_id}
+              comisionPorcentaje={agenteData.comision_porcentaje || 0}
+              comisionMontoFijo={agenteData.comision_monto_fijo || 0}
+            />
+          )}
+          <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={signOut}>
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Estadísticas */}
