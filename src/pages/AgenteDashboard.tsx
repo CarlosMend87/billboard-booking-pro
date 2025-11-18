@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { NuevaVentaDialog } from "@/components/agente/NuevaVentaDialog";
 
 interface Reserva {
   id: string;
@@ -34,7 +33,6 @@ interface Campana {
 
 export default function AgenteDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   // Obtener datos del agente
   const { data: agenteData } = useQuery({
@@ -134,9 +132,14 @@ export default function AgenteDashboard() {
             </p>
           )}
         </div>
-        <Button onClick={() => navigate("/disponibilidad")}>
-          Nueva Venta
-        </Button>
+        {agenteData && (
+          <NuevaVentaDialog
+            agenteId={agenteData.id}
+            ownerId={agenteData.owner_id}
+            comisionPorcentaje={agenteData.comision_porcentaje || 0}
+            comisionMontoFijo={agenteData.comision_monto_fijo || 0}
+          />
+        )}
       </div>
 
       {/* Estadísticas */}
