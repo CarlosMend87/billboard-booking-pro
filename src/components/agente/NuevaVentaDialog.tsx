@@ -471,7 +471,7 @@ export function NuevaVentaDialog({
             </div>
           )}
 
-            <div className="space-y-4">
+          <div className="space-y-4">
             <h3 className="font-semibold text-lg">Opciones Adicionales</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -504,102 +504,91 @@ export function NuevaVentaDialog({
                 <Tag className="h-4 w-4" />
                 Códigos de Descuento Disponibles
               </Label>
-                  {!codigosDescuento || codigosDescuento.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay códigos de descuento disponibles</p>
-                  ) : (
-                    <>
-                      <div className="grid gap-2">
-                        {codigosDescuento.map((codigo) => {
-                          const usosRestantes = codigo.uso_maximo ? codigo.uso_maximo - (codigo.uso_actual || 0) : null;
-                          const fechaValida = (!codigo.fecha_inicio || new Date(codigo.fecha_inicio) <= new Date()) &&
-                                            (!codigo.fecha_fin || new Date(codigo.fecha_fin) >= new Date());
-                          const puedeUsar = fechaValida && (usosRestantes === null || usosRestantes > 0);
-                          
-                          return (
-                            <Card 
-                              key={codigo.id} 
-                              className={`p-3 cursor-pointer transition-colors ${
-                                codigoDescuentoId === codigo.id 
-                                  ? 'border-primary bg-primary/5' 
-                                  : puedeUsar 
-                                    ? 'hover:bg-muted/50' 
-                                    : 'opacity-60 cursor-not-allowed'
-                              }`}
-                              onClick={() => puedeUsar && setCodigoDescuentoId(codigo.id)}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Badge variant="secondary" className="font-mono">
-                                      {codigo.codigo}
-                                    </Badge>
-                                    <Badge variant={codigo.tipo_descuento === "porcentaje" ? "default" : "outline"}>
-                                      {codigo.tipo_descuento === "porcentaje" 
-                                        ? `${codigo.valor_descuento}% OFF` 
-                                        : `$${codigo.valor_descuento.toLocaleString()} OFF`}
-                                    </Badge>
-                                    {!puedeUsar && <Badge variant="destructive">No disponible</Badge>}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground space-y-1">
-                                    {codigo.notas && <p>{codigo.notas}</p>}
-                                    {(codigo.fecha_inicio || codigo.fecha_fin) && (
-                                      <p className="flex items-center gap-1">
-                                        <CalendarIcon className="h-3 w-3" />
-                                        {codigo.fecha_inicio && `Desde ${new Date(codigo.fecha_inicio).toLocaleDateString()}`}
-                                        {codigo.fecha_fin && ` hasta ${new Date(codigo.fecha_fin).toLocaleDateString()}`}
-                                      </p>
-                                    )}
-                                    {usosRestantes !== null && (
-                                      <p>Usos restantes: {usosRestantes} de {codigo.uso_maximo}</p>
-                                    )}
-                                    {codigo.clientes_permitidos && codigo.clientes_permitidos.length > 0 && (
-                                      <p className="flex items-center gap-1">
-                                        <Info className="h-3 w-3" />
-                                        Solo para clientes específicos
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                {codigoDescuentoId === codigo.id && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCodigoDescuentoId("");
-                                    }}
-                                  >
-                                    Quitar
-                                  </Button>
+              {!codigosDescuento || codigosDescuento.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No hay códigos de descuento disponibles</p>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    {codigosDescuento.map((codigo) => {
+                      const usosRestantes = codigo.uso_maximo ? codigo.uso_maximo - (codigo.uso_actual || 0) : null;
+                      const fechaValida = (!codigo.fecha_inicio || new Date(codigo.fecha_inicio) <= new Date()) &&
+                                        (!codigo.fecha_fin || new Date(codigo.fecha_fin) >= new Date());
+                      const puedeUsar = fechaValida && (usosRestantes === null || usosRestantes > 0);
+                      
+                      return (
+                        <Card 
+                          key={codigo.id} 
+                          className={`p-3 cursor-pointer transition-colors ${
+                            codigoDescuentoId === codigo.id 
+                              ? 'border-primary bg-primary/5' 
+                              : puedeUsar 
+                                ? 'hover:bg-muted/50' 
+                                : 'opacity-60 cursor-not-allowed'
+                          }`}
+                          onClick={() => puedeUsar && setCodigoDescuentoId(codigo.id)}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary" className="font-mono">
+                                  {codigo.codigo}
+                                </Badge>
+                                <Badge variant={codigo.tipo_descuento === "porcentaje" ? "default" : "outline"}>
+                                  {codigo.tipo_descuento === "porcentaje" 
+                                    ? `${codigo.valor_descuento}% OFF` 
+                                    : `$${codigo.valor_descuento.toLocaleString()} OFF`}
+                                </Badge>
+                                {!puedeUsar && <Badge variant="destructive">No disponible</Badge>}
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                {codigo.notas && <p>{codigo.notas}</p>}
+                                {(codigo.fecha_inicio || codigo.fecha_fin) && (
+                                  <p className="flex items-center gap-1">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    {codigo.fecha_inicio && `Desde ${new Date(codigo.fecha_inicio).toLocaleDateString()}`}
+                                    {codigo.fecha_fin && ` hasta ${new Date(codigo.fecha_fin).toLocaleDateString()}`}
+                                  </p>
+                                )}
+                                {usosRestantes !== null && (
+                                  <p>Usos restantes: {usosRestantes} de {codigo.uso_maximo}</p>
+                                )}
+                                {codigo.clientes_permitidos && codigo.clientes_permitidos.length > 0 && (
+                                  <p className="flex items-center gap-1">
+                                    <Info className="h-3 w-3" />
+                                    Solo para clientes específicos
+                                  </p>
                                 )}
                               </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                      {codigoDescuentoId && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCodigoDescuentoId("")}
-                          className="w-full"
-                        >
-                          No usar descuento
-                        </Button>
-                      )}
-                    </>
+                            </div>
+                            {codigoDescuentoId === codigo.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCodigoDescuentoId("");
+                                }}
+                              >
+                                Quitar
+                              </Button>
+                            )}
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                  {codigoDescuentoId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCodigoDescuentoId("")}
+                      className="w-full"
+                    >
+                      No usar descuento
+                    </Button>
                   )}
-                </div>
-              </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="esAgencia"
-                checked={esAgencia}
-                onCheckedChange={(checked) => setEsAgencia(checked as boolean)}
-              />
-              <Label htmlFor="esAgencia" className="cursor-pointer">
-                ¿Es agencia?
-              </Label>
+                </>
+              )}
             </div>
           </div>
 
