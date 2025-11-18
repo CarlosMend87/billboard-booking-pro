@@ -18,14 +18,27 @@ interface NuevaVentaDialogProps {
   ownerId: string;
   comisionPorcentaje: number;
   comisionMontoFijo: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type Modalidad = 'mensual' | 'catorcenal' | 'semanal' | 'spot' | 'hora' | 'dia' | 'cpm';
 
-export function NuevaVentaDialog({ agenteId, ownerId, comisionPorcentaje, comisionMontoFijo }: NuevaVentaDialogProps) {
-  const [open, setOpen] = useState(false);
+export function NuevaVentaDialog({ 
+  agenteId, 
+  ownerId, 
+  comisionPorcentaje, 
+  comisionMontoFijo,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange 
+}: NuevaVentaDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Use external or internal open state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = externalOnOpenChange || setInternalOpen;
 
   // Form state
   const [clienteNombre, setClienteNombre] = useState("");
