@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'owner' | 'advertiser' | null;
+export type UserRole = 'owner' | 'advertiser' | 'agente' | null;
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -37,7 +37,13 @@ export function useUserRole() {
         } else {
           const dbRole = (data?.role as string) || 'advertiser';
           if (!isMounted) return;
-          setRole(dbRole === 'owner' ? 'owner' : 'advertiser');
+          if (dbRole === 'owner') {
+            setRole('owner');
+          } else if (dbRole === 'agente') {
+            setRole('agente');
+          } else {
+            setRole('advertiser');
+          }
         }
       } catch (e) {
         console.error('Error loading user role');
