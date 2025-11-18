@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LayoutDashboard, Bell, Users } from "lucide-react";
+import { LayoutDashboard, Bell, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,11 +61,6 @@ export function OwnerNav() {
       label: 'Reservas',
       icon: Bell,
       badge: pendingCount > 0 ? pendingCount : undefined
-    },
-    {
-      path: '/agentes-venta',
-      label: 'Agentes',
-      icon: Users
     }
   ];
 

@@ -15,7 +15,6 @@ import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import OwnerReservations from "./pages/OwnerReservations";
-import AgentesVenta from "./pages/AgentesVenta";
 import TestOwnerActions from "./pages/TestOwnerActions";
 import SuperAdminAuth from "./pages/SuperAdminAuth";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
@@ -120,11 +119,6 @@ const App = () => (
               <Route path="/owner-reservations" element={
                 <OwnerOnlyRoute>
                   <OwnerReservations />
-                </OwnerOnlyRoute>
-              } />
-              <Route path="/agentes-venta" element={
-                <OwnerOnlyRoute>
-                  <AgentesVenta />
                 </OwnerOnlyRoute>
               } />
               <Route path="/test-owner" element={

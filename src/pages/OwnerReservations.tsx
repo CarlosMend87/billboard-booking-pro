@@ -4,15 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Header } from "@/components/layout/Header";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAgentes } from "@/hooks/useAgentes";
 
 interface Reserva {
   id: string;
@@ -36,22 +31,9 @@ export default function OwnerReservations() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
-  const [showVentaDialog, setShowVentaDialog] = useState(false);
-  const [ventaData, setVentaData] = useState({
-    agente_id: '',
-    tarifa_publicada: 0,
-    tarifa_final: 0,
-    cliente_nombre: '',
-    cliente_email: '',
-    cliente_razon_social: '',
-    es_agencia: false,
-    tipo_contrato: 'fijo' as 'fijo' | 'renovable',
-  });
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { agentes } = useAgentes();
 
   const fetchReservas = async () => {
     if (!user) return;
@@ -84,36 +66,14 @@ export default function OwnerReservations() {
   };
 
   const handleReservaAction = async (reservaId: string, action: 'accepted' | 'rejected') => {
-    if (action === 'accepted') {
-      // Show dialog for sales assignment
-      const reserva = reservas.find(r => r.id === reservaId);
-      if (reserva) {
-        setSelectedReserva(reserva);
-        setVentaData({
-          ...ventaData,
-          tarifa_publicada: reserva.precio_total,
-          tarifa_final: reserva.precio_total,
-          cliente_email: reserva.advertiser.email,
-        });
-        setShowVentaDialog(true);
-      }
-      return;
-    }
-
-    // Direct rejection without sales data
-    await processReserva(reservaId, action, {});
-  };
-
-  const processReserva = async (reservaId: string, action: 'accepted' | 'rejected', salesData: any) => {
     setProcessingId(reservaId);
     
     try {
-      // Update reserva status with sales data
+      // Update reserva status
       const { error: updateError } = await supabase
         .from('reservas')
         .update({ 
           status: action,
-          ...salesData,
           updated_at: new Date().toISOString()
         })
         .eq('id', reservaId);
@@ -147,8 +107,6 @@ export default function OwnerReservations() {
 
       // Refresh the list
       fetchReservas();
-      setShowVentaDialog(false);
-      setSelectedReserva(null);
     } catch (error: any) {
       console.error('Error processing reserva:', error);
       toast({
@@ -159,11 +117,6 @@ export default function OwnerReservations() {
     } finally {
       setProcessingId(null);
     }
-  };
-
-  const handleConfirmVenta = async () => {
-    if (!selectedReserva) return;
-    await processReserva(selectedReserva.id, 'accepted', ventaData);
   };
 
   useEffect(() => {
@@ -345,7 +298,7 @@ export default function OwnerReservations() {
                         className="flex-1"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Aceptar y Asignar
+                        {processingId === reserva.id ? 'Procesando...' : 'Aceptar'}
                       </Button>
                       <Button
                         variant="destructive"
@@ -363,131 +316,6 @@ export default function OwnerReservations() {
             </div>
           </div>
         )}
-
-        {/* Dialog for Sales Assignment */}
-        <Dialog open={showVentaDialog} onOpenChange={setShowVentaDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Asignar Información de Venta</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="agente_id">Agente de Venta</Label>
-                <Select
-                  value={ventaData.agente_id}
-                  onValueChange={(value) => setVentaData({ ...ventaData, agente_id: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar agente (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin agente</SelectItem>
-                    {agentes.filter(a => a.activo).map((agente) => (
-                      <SelectItem key={agente.id} value={agente.id}>
-                        {agente.nombre_completo} ({agente.codigo_agente})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="tarifa_publicada">Tarifa Publicada</Label>
-                  <Input
-                    id="tarifa_publicada"
-                    type="number"
-                    value={ventaData.tarifa_publicada}
-                    onChange={(e) => setVentaData({ ...ventaData, tarifa_publicada: parseFloat(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tarifa_final">Tarifa Final (Venta)</Label>
-                  <Input
-                    id="tarifa_final"
-                    type="number"
-                    value={ventaData.tarifa_final}
-                    onChange={(e) => setVentaData({ ...ventaData, tarifa_final: parseFloat(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="cliente_nombre">Nombre del Cliente</Label>
-                  <Input
-                    id="cliente_nombre"
-                    value={ventaData.cliente_nombre}
-                    onChange={(e) => setVentaData({ ...ventaData, cliente_nombre: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cliente_email">Email del Cliente</Label>
-                  <Input
-                    id="cliente_email"
-                    type="email"
-                    value={ventaData.cliente_email}
-                    onChange={(e) => setVentaData({ ...ventaData, cliente_email: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="cliente_razon_social">Razón Social</Label>
-                <Input
-                  id="cliente_razon_social"
-                  value={ventaData.cliente_razon_social}
-                  onChange={(e) => setVentaData({ ...ventaData, cliente_razon_social: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="tipo_contrato">Tipo de Contrato</Label>
-                  <Select
-                    value={ventaData.tipo_contrato}
-                    onValueChange={(value: 'fijo' | 'renovable') => setVentaData({ ...ventaData, tipo_contrato: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fijo">Fijo</SelectItem>
-                      <SelectItem value="renovable">Renovable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2 pt-8">
-                  <input
-                    type="checkbox"
-                    id="es_agencia"
-                    checked={ventaData.es_agencia}
-                    onChange={(e) => setVentaData({ ...ventaData, es_agencia: e.target.checked })}
-                    className="h-4 w-4"
-                  />
-                  <Label htmlFor="es_agencia">¿Es una agencia?</Label>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowVentaDialog(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleConfirmVenta}
-                  disabled={processingId !== null}
-                  className="flex-1"
-                >
-                  {processingId ? 'Procesando...' : 'Confirmar y Aceptar'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Processed Reservations */}
         {processedReservas.length > 0 && (
