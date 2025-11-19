@@ -23,6 +23,7 @@ import { Bell } from "lucide-react";
 import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
 import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
 import { useAuth } from "@/hooks/useAuth";
+import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 
 export default function OwnerDashboard() {
   const { billboards, loading, deleteBillboard, updateBillboard } = useBillboards();
@@ -89,6 +90,11 @@ export default function OwnerDashboard() {
                   Ver Reservas
                 </Link>
               </Button>
+              
+              <BulkBillboardUpload 
+                ownerId={user?.id || ""} 
+                onSuccess={() => window.location.reload()} 
+              />
               
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
               <DialogTrigger asChild>
