@@ -537,6 +537,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           email: string | null
+          empresa: string | null
           id: string
           last_login_at: string | null
           name: string | null
@@ -553,6 +554,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          empresa?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null
@@ -569,6 +571,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          empresa?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null

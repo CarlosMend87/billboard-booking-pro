@@ -34,6 +34,7 @@ interface User {
   created_at: string;
   phone: string | null;
   avatar_url: string | null;
+  empresa: string | null;
 }
 
 export default function UserManagement() {
@@ -52,7 +53,8 @@ export default function UserManagement() {
     email: "",
     password: "",
     role: "advertiser",
-    phone: ""
+    phone: "",
+    empresa: ""
   });
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -118,7 +120,8 @@ export default function UserManagement() {
           email: newUser.email,
           password: newUser.password,
           role: newUser.role,
-          phone: newUser.phone
+          phone: newUser.phone,
+          empresa: newUser.empresa
         })
       });
 
@@ -134,7 +137,7 @@ export default function UserManagement() {
       });
 
       setIsCreateDialogOpen(false);
-      setNewUser({ name: "", email: "", password: "", role: "advertiser", phone: "" });
+      setNewUser({ name: "", email: "", password: "", role: "advertiser", phone: "", empresa: "" });
       loadUsers();
 
     } catch (error: any) {
@@ -444,6 +447,16 @@ export default function UserManagement() {
                       value={newUser.phone}
                       onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
                       placeholder="+52 55 1234 5678"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="empresa">Empresa</Label>
+                    <Input
+                      id="empresa"
+                      value={newUser.empresa}
+                      onChange={(e) => setNewUser({...newUser, empresa: e.target.value})}
+                      placeholder="Nombre de la empresa"
+                      required
                     />
                   </div>
                 </div>
