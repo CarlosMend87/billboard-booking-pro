@@ -40,15 +40,15 @@ serve(async (req) => {
       )
     }
 
-    // Check if user is superadmin
-    const { data: superadmin } = await supabaseAdmin
-      .from('superadmins')
-      .select('status')
+    // Check if user is superadmin using user_roles table
+    const { data: superadminRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
       .eq('user_id', user.id)
-      .eq('status', 'active')
+      .eq('role', 'superadmin')
       .maybeSingle()
 
-    if (!superadmin) {
+    if (!superadminRole) {
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -63,7 +63,8 @@ serve(async (req) => {
       role: z.enum(['advertiser', 'owner', 'admin', 'superadmin'], { 
         errorMap: () => ({ message: "Invalid role" }) 
       }),
-      phone: z.string().max(20, "Phone number too long").optional()
+      phone: z.string().max(20, "Phone number too long").optional(),
+      empresa: z.string().trim().min(1, "Company is required").max(200, "Company name too long")
     })
 
     const body = await req.json()
@@ -76,7 +77,7 @@ serve(async (req) => {
       )
     }
 
-    const { name, email, password, role, phone } = validation.data
+    const { name, email, password, role, phone, empresa } = validation.data
 
     // Create user in Auth
     const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
@@ -99,6 +100,7 @@ serve(async (req) => {
         email,
         role,
         phone: phone || null,
+        empresa,
         status: 'active',
         created_by: user.id
       })
