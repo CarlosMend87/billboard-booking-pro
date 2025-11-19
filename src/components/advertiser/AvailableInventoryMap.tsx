@@ -224,7 +224,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           filteredBillboards.forEach(billboard => {
             bounds.extend({ lat: billboard.lat, lng: billboard.lng });
           });
-          mapInstanceRef.current?.fitBounds(bounds, { padding: 80 });
+          mapInstanceRef.current?.fitBounds(bounds, 80);
         }
       } catch (error) {
         console.error('Error updating markers:', error);
@@ -238,7 +238,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     if (!mapInstanceRef.current || filteredBillboards.length === 0) return;
     const bounds = new google.maps.LatLngBounds();
     filteredBillboards.forEach(billboard => bounds.extend({ lat: billboard.lat, lng: billboard.lng }));
-    mapInstanceRef.current.fitBounds(bounds, { padding: 80 });
+    mapInstanceRef.current.fitBounds(bounds, 80);
   };
 
   const stats = useMemo(() => {
@@ -387,12 +387,25 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
                 <Button onClick={() => {
                     const asset: InventoryAsset = {
-                      id: selectedBillboard.id, nombre: selectedBillboard.nombre, tipo: selectedBillboard.tipo as any,
-                      ubicacion: { direccion: selectedBillboard.direccion, coordenadas: { lat: selectedBillboard.lat, lng: selectedBillboard.lng } },
-                      medidas: selectedBillboard.medidas, precio: selectedBillboard.precio,
-                      digital: selectedBillboard.tipo === 'digital' ? { resolucion: '', refresh_rate: '' } : undefined
+                      id: selectedBillboard.id, 
+                      nombre: selectedBillboard.nombre, 
+                      tipo: selectedBillboard.tipo as any,
+                      lat: selectedBillboard.lat, 
+                      lng: selectedBillboard.lng,
+                      medidas: selectedBillboard.medidas, 
+                      precio: selectedBillboard.precio,
+                      contratacion: { mensual: true },
+                      estado: 'disponible',
+                      foto: '',
+                      digital: selectedBillboard.tipo === 'digital' ? { loop_seg: 10, slot_seg: 5 } : undefined
                     };
-                    onAddToCart(asset, 'mensual', { fechaInicio: new Date(), fechaFin: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), duracion: 30 });
+                    const startDate = new Date();
+                    const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                    onAddToCart(asset, 'mensual', { 
+                      fechaInicio: startDate.toISOString(), 
+                      fechaFin: endDate.toISOString(), 
+                      meses: 1
+                    });
                     setIsSidebarOpen(false);
                   }} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg" size="lg">
                   <ShoppingCart className="h-4 w-4 mr-2" />

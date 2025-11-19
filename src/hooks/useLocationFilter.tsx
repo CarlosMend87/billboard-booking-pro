@@ -36,7 +36,7 @@ export function useLocationFilter() {
     const initPlacesService = async () => {
       try {
         const loader = new Loader({
-          apiKey: "AIzaSyAv_L01N8g8zYGsPWlT4iWKQVQxV5TGLfc", // From GOOGLE_MAPS_API_KEY secret
+          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
           version: "weekly",
           libraries: ["places"]
         });
