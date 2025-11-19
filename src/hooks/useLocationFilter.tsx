@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { useGoogleMaps } from './useGoogleMaps';
 
 // Mapping of Spanish keywords to search terms for nearby places
 const KEYWORD_TO_SEARCH_TERMS: { [key: string]: string[] } = {
@@ -30,27 +30,23 @@ export function useLocationFilter() {
   const [nearbyPlacesCache, setNearbyPlacesCache] = useState<NearbyPlacesCache>({});
   const [loading, setLoading] = useState(false);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const { loaded: mapsLoaded } = useGoogleMaps();
 
   // Initialize Google Maps Places Service
   useEffect(() => {
+    if (!mapsLoaded) return;
+
     const initPlacesService = async () => {
       try {
-        const loader = new Loader({
-          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
-          version: "weekly",
-          libraries: ["places"]
-        });
-
-        await loader.load();
         const service = new google.maps.places.PlacesService(document.createElement('div'));
         setPlacesService(service);
       } catch (error) {
-        console.error('Error loading Google Maps:', error);
+        console.error('Error loading Google Maps Places:', error);
       }
     };
 
     initPlacesService();
-  }, []);
+  }, [mapsLoaded]);
 
   const checkNearbyPlaces = async (
     billboardId: string,

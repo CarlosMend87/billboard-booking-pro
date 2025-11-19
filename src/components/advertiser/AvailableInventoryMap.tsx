@@ -6,11 +6,11 @@ import { MapPin, Monitor, Building, Loader2, Camera, Users, Navigation, Eye, Sho
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
-import { Loader } from "@googlemaps/js-api-loader";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTruncatedId } from "@/lib/utils";
 import { useDateAvailability } from "@/hooks/useDateAvailability";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useGoogleMaps } from "@/hooks/useGoogleMaps";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
@@ -36,11 +36,11 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [billboards, setBillboards] = useState<MapBillboard[]>([]);
   const [selectedBillboard, setSelectedBillboard] = useState<MapBillboard | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const { loaded: mapsLoaded, loading: mapsLoading, error: mapsError } = useGoogleMaps();
   const { isAvailable } = useDateAvailability(
     filters.dateRange.startDate || new Date(),
     filters.dateRange.endDate || new Date()
@@ -111,16 +111,10 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current || !mapsLoaded) return;
 
       try {
-        const loader = new Loader({
-          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
-          version: "weekly",
-          libraries: ["places", "geometry", "marker"]
-        });
-
-        const { Map } = await loader.importLibrary("maps");
+        const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
         const center = { lat: 20.97, lng: -89.62 };
 
         const map = new Map(mapRef.current, {
@@ -134,26 +128,20 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         });
 
         mapInstanceRef.current = map;
-        setIsLoading(false);
       } catch (error) {
         console.error('Error initializing map:', error);
-        setIsLoading(false);
       }
     };
 
     initMap();
-  }, []);
+  }, [mapsLoaded]);
 
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current || !mapsLoaded) return;
 
     const updateMarkers = async () => {
       try {
-        const { AdvancedMarkerElement } = await new Loader({
-          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
-          version: "weekly",
-          libraries: ["marker"]
-        }).importLibrary("marker");
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
 
         markersRef.current.forEach(marker => {
           const element = marker.element as HTMLElement;
@@ -232,7 +220,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     };
 
     updateMarkers();
-  }, [filteredBillboards]);
+  }, [filteredBillboards, mapsLoaded]);
 
   const handleRecenter = () => {
     if (!mapInstanceRef.current || filteredBillboards.length === 0) return;
@@ -301,11 +289,20 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
         <Card className="overflow-hidden shadow-soft hover:shadow-medium transition-shadow">
           <CardContent className="p-0 relative">
-            {isLoading && (
+            {(mapsLoading || !mapsLoaded) && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                 <div className="text-center space-y-2">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                   <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+                </div>
+              </div>
+            )}
+            
+            {mapsError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                <div className="text-center space-y-2 p-4">
+                  <p className="text-sm text-destructive">Error al cargar el mapa</p>
+                  <p className="text-xs text-muted-foreground">{mapsError.message}</p>
                 </div>
               </div>
             )}
