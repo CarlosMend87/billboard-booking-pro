@@ -18,7 +18,8 @@ import {
   Users,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
@@ -29,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import admobilizeImage from "@/assets/admobilize-detection.png";
 import { BillboardViewsMetric } from "@/components/advertiser/BillboardViewsMetric";
 import { useBillboardLock } from "@/hooks/useBillboardLock";
+import { useLocationFilter } from "@/hooks/useLocationFilter";
+import { useDateAvailability } from "@/hooks/useDateAvailability";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -98,7 +101,13 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
   const [selectedAssetForDetails, setSelectedAssetForDetails] = useState<(InventoryAsset & { has_computer_vision?: boolean; last_detection_count?: number }) | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [locationCheckResults, setLocationCheckResults] = useState<{[id: string]: boolean}>({});
   const { createLock, isLocked, loading: lockLoading } = useBillboardLock();
+  const { checkNearbyPlaces, loading: locationLoading } = useLocationFilter();
+  const { isAvailable: isDateAvailable, loading: dateLoading } = useDateAvailability(
+    filters.dateRange.startDate,
+    filters.dateRange.endDate
+  );
 
   // Fetch available billboards from owners
   useEffect(() => {
@@ -124,6 +133,33 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     fetchOwnerBillboards();
   }, []);
 
+  // Check location filters for all billboards when filters change
+  useEffect(() => {
+    if (filters.locationKeywords.length === 0) {
+      setLocationCheckResults({});
+      return;
+    }
+
+    const checkAllLocations = async () => {
+      const allAssets = [...mockInventoryAssets, ...ownerBillboards];
+      const results: {[id: string]: boolean} = {};
+
+      for (const asset of allAssets) {
+        const hasNearby = await checkNearbyPlaces(
+          asset.id,
+          asset.lat,
+          asset.lng,
+          filters.locationKeywords
+        );
+        results[asset.id] = hasNearby;
+      }
+
+      setLocationCheckResults(results);
+    };
+
+    checkAllLocations();
+  }, [filters.locationKeywords, ownerBillboards, checkNearbyPlaces]);
+
   // Filter and sort available assets based on filters
   const { filteredAssets, totalPages } = useMemo(() => {
     // Combine mock inventory with owner billboards
@@ -137,6 +173,25 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
       // Filter by location search
       if (searchTerm && !asset.nombre.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
+      }
+
+      // Filter by location keywords (nearby places)
+      if (filters.locationKeywords.length > 0) {
+        // If we haven't checked this asset yet, don't filter it out (let the loading state handle it)
+        if (locationCheckResults[asset.id] === undefined && !locationLoading) {
+          return true;
+        }
+        // If we have results, filter based on them
+        if (locationCheckResults[asset.id] === false) {
+          return false;
+        }
+      }
+
+      // Filter by date availability
+      if (filters.dateRange.startDate && filters.dateRange.endDate) {
+        if (!isDateAvailable(asset.id)) {
+          return false;
+        }
       }
 
       // Filter by billboard type
@@ -198,7 +253,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
       filteredAssets: filtered,
       totalPages: total
     };
-  }, [searchTerm, filters, ownerBillboards]);
+  }, [searchTerm, filters, ownerBillboards, locationCheckResults, locationLoading, isDateAvailable]);
 
   // Get current page assets
   const paginatedAssets = useMemo(() => {
@@ -327,6 +382,17 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
           </div>
         </CardContent>
       </Card>
+
+      {(locationLoading || dateLoading) && (
+        <Card className="bg-muted/50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Aplicando filtros de {locationLoading && 'ubicación'}{locationLoading && dateLoading && ' y '}{dateLoading && 'disponibilidad'}...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedAssets.map((asset) => {
