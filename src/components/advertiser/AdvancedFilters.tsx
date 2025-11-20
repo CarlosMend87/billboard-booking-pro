@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Camera, X } from "lucide-react";
+import { Filter, Camera, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface AdvancedFiltersState {
   billboardTypes: string[];
   modalidades: string[];
+  proximityFilters: string[];
   priceRange: [number, number];
   hasComputerVision: boolean | null;
 }
@@ -28,12 +31,27 @@ const BILLBOARD_TYPES = [
   { value: "parabus", label: "Parabús" }
 ];
 
+const PROXIMIDAD_FILTROS = [
+  { value: "restaurantes", label: "Restaurantes" },
+  { value: "mcdonalds", label: "McDonald's" },
+  { value: "starbucks", label: "Starbucks" },
+  { value: "hospitales", label: "Hospitales" },
+  { value: "concesionarios", label: "Concesionarios de Autos" },
+  { value: "tiendas_conveniencia", label: "Tiendas de Conveniencia" },
+  { value: "supermercados", label: "Supermercados" },
+  { value: "centros_comerciales", label: "Centros Comerciales" },
+  { value: "universidades", label: "Universidades" },
+  { value: "bancos", label: "Bancos" },
+  { value: "gasolineras", label: "Gasolineras" },
+  { value: "farmacias", label: "Farmacias" },
+  { value: "gimnasios", label: "Gimnasios" },
+  { value: "cines", label: "Cines" }
+];
+
 const MODALIDADES = [
   { value: "mensual", label: "Mensual" },
   { value: "catorcenal", label: "Catorcenal" },
   { value: "semanal", label: "Semanal" },
-  { value: "spot", label: "Por Spot" },
-  { value: "hora", label: "Por Hora" },
   { value: "dia", label: "Por Día" },
   { value: "cpm", label: "CPM" }
 ];
@@ -55,11 +73,21 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
     onFiltersChange({ modalidades: newModalidades });
   };
 
+  const handleProximityToggle = (proximity: string) => {
+    const newProximity = filters.proximityFilters.includes(proximity)
+      ? filters.proximityFilters.filter(p => p !== proximity)
+      : [...filters.proximityFilters, proximity];
+    onFiltersChange({ proximityFilters: newProximity });
+  };
+
   const activeFiltersCount = 
     filters.billboardTypes.length +
     filters.modalidades.length +
+    filters.proximityFilters.length +
     (filters.hasComputerVision !== null ? 1 : 0) +
     (filters.priceRange[0] > 0 || filters.priceRange[1] < MAX_PRICE ? 1 : 0);
+
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <Card>
@@ -69,17 +97,19 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
             <Filter className="h-4 w-4" />
             Filtros Avanzados
           </CardTitle>
-          {activeFiltersCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearFilters}
-              className="h-8 text-xs"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Limpiar
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearFilters}
+                className="h-8 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Limpiar
+              </Button>
+            )}
+          </div>
         </div>
         {activeFiltersCount > 0 && (
           <Badge variant="secondary" className="w-fit text-xs">
@@ -87,23 +117,55 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
           </Badge>
         )}
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Tipo de Pantalla */}
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-full flex items-center justify-between mb-2 px-6">
+            <span className="text-sm text-muted-foreground">
+              {isOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+            </span>
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {/* Tipo de Pantalla */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Tipo de Pantalla</Label>
+              <div className="space-y-2">
+                {BILLBOARD_TYPES.map((type) => (
+                  <div key={type.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`type-${type.value}`}
+                      checked={filters.billboardTypes.includes(type.value)}
+                      onCheckedChange={() => handleTypeToggle(type.value)}
+                    />
+                    <Label
+                      htmlFor={`type-${type.value}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {type.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+        {/* Proximidad a Puntos de Interés */}
         <div className="space-y-3">
-          <Label className="text-sm font-semibold">Tipo de Pantalla</Label>
-          <div className="space-y-2">
-            {BILLBOARD_TYPES.map((type) => (
-              <div key={type.value} className="flex items-center gap-2">
+          <Label className="text-sm font-semibold">Proximidad a Puntos de Interés</Label>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {PROXIMIDAD_FILTROS.map((proximity) => (
+              <div key={proximity.value} className="flex items-center gap-2">
                 <Checkbox
-                  id={`type-${type.value}`}
-                  checked={filters.billboardTypes.includes(type.value)}
-                  onCheckedChange={() => handleTypeToggle(type.value)}
+                  id={`proximity-${proximity.value}`}
+                  checked={filters.proximityFilters.includes(proximity.value)}
+                  onCheckedChange={() => handleProximityToggle(proximity.value)}
                 />
                 <Label
-                  htmlFor={`type-${type.value}`}
+                  htmlFor={`proximity-${proximity.value}`}
                   className="text-sm font-normal cursor-pointer"
                 >
-                  {type.label}
+                  {proximity.label}
                 </Label>
               </div>
             ))}
@@ -180,6 +242,8 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
           </Select>
         </div>
       </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
