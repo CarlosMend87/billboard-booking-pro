@@ -38,8 +38,6 @@ const ITEMS_PER_PAGE = 10;
 interface AvailableInventoryListProps {
   filters: InventoryFilters;
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
-  selectedAssetId?: string | null;
-  onAssetSelect?: (assetId: string | null) => void;
 }
 
 // Mock available dates for demonstration
@@ -97,12 +95,7 @@ const convertBillboardToAsset = (billboard: any): InventoryAsset & {
   };
 };
 
-export function AvailableInventoryList({ 
-  filters, 
-  onAddToCart, 
-  selectedAssetId, 
-  onAssetSelect 
-}: AvailableInventoryListProps) {
+export function AvailableInventoryList({ filters, onAddToCart }: AvailableInventoryListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedModalidad, setSelectedModalidad] = useState<{[key: string]: CartItemModalidad}>({});
   const [ownerBillboards, setOwnerBillboards] = useState<InventoryAsset[]>([]);
@@ -369,23 +362,15 @@ export function AvailableInventoryList({
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedAssets.map((asset) => {
           const availableDates = getRandomAvailableDates();
           const typeLabel = getTipoLabel(asset.tipo);
           const modalidadOptions = getModalidadOptions(asset);
           const currentModalidad = selectedModalidad[asset.id] || modalidadOptions[0];
-          const isSelected = selectedAssetId === asset.id;
-          const distanceInfo = (asset as any).distance !== undefined;
           
           return (
-            <Card 
-              key={asset.id} 
-              className={`hover:shadow-medium transition-all cursor-pointer ${
-                isSelected ? 'ring-2 ring-primary shadow-lg' : ''
-              }`}
-              onClick={() => onAssetSelect?.(asset.id)}
-            >
+            <Card key={asset.id} className="hover:shadow-medium transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -397,11 +382,6 @@ export function AvailableInventoryList({
                       <Badge variant="secondary" className="text-xs">
                         ID: {formatShortId(asset.id)}
                       </Badge>
-                      {distanceInfo && (
-                        <Badge variant="default" className="text-xs bg-blue-600">
-                          {formatDistance((asset as any).distance)} - {(asset as any).nearestPOI}
-                        </Badge>
-                      )}
                     </div>
                     <h3 className="font-semibold text-lg">{asset.nombre}</h3>
                     <p className="text-sm text-muted-foreground">{asset.propietario}</p>

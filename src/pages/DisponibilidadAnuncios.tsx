@@ -8,7 +8,9 @@ import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventor
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, List, Search, Filter, ShoppingCart } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
 import { Link } from "react-router-dom";
 
@@ -24,7 +26,7 @@ export interface InventoryFilters {
 }
 
 export default function DisponibilidadAnuncios() {
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [filters, setFilters] = useState<InventoryFilters>({
     locationKeywords: [],
     dateRange: {
@@ -123,47 +125,60 @@ export default function DisponibilidadAnuncios() {
               onClearFilters={handleClearAdvancedFilters}
             />
 
-            <SortOptions
-              value={filters.sortBy}
-              onChange={(sortBy) => handleFilterChange({ sortBy })}
-            />
+            {viewMode === 'list' && (
+              <SortOptions
+                value={filters.sortBy}
+                onChange={(sortBy) => handleFilterChange({ sortBy })}
+              />
+            )}
+
+            <div className="flex bg-muted rounded-lg p-1 ml-auto">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="flex items-center gap-1"
+              >
+                <List className="h-4 w-4" />
+                Lista
+              </Button>
+              <Button
+                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('map')}
+                className="flex items-center gap-1"
+              >
+                <MapPin className="h-4 w-4" />
+                Mapa
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area - Dual View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - List */}
-        <div className="w-1/2 border-r overflow-y-auto">
-          <div className="p-4">
-            <AvailableInventoryList 
-              filters={filters} 
-              onAddToCart={addItem}
-              selectedAssetId={selectedAssetId}
-              onAssetSelect={setSelectedAssetId}
+      {/* Main Content Area - Full Height with Map */}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 flex">
+          {viewMode === 'map' ? (
+            <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              <div className="container mx-auto px-4 py-6">
+                <AvailableInventoryList filters={filters} onAddToCart={addItem} />
+              </div>
+            </div>
+          )}
+          
+          {/* Floating Cart Sidebar */}
+          <div className="w-80 border-l bg-background overflow-y-auto">
+            <CartSidebar 
+              cart={cart}
+              onRemoveItem={removeItem}
+              onUpdateQuantity={updateQuantity}
+              onClearCart={clearCart}
             />
           </div>
         </div>
-        
-        {/* Right Panel - Map */}
-        <div className="w-1/2 relative">
-          <AvailableInventoryMap 
-            filters={filters} 
-            onAddToCart={addItem}
-            selectedAssetId={selectedAssetId}
-            onAssetSelect={setSelectedAssetId}
-          />
-        </div>
-      </div>
-
-      {/* Floating Cart Sidebar */}
-      <div className="fixed right-0 top-[140px] bottom-0 w-80 border-l bg-background shadow-lg z-30 overflow-y-auto">
-        <CartSidebar 
-          cart={cart}
-          onRemoveItem={removeItem}
-          onUpdateQuantity={updateQuantity}
-          onClearCart={clearCart}
-        />
       </div>
     </div>
   );

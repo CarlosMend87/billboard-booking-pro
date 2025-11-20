@@ -11,13 +11,10 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTruncatedId } from "@/lib/utils";
-import { isWithinProximity } from "@/lib/geoUtils";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
-  selectedAssetId?: string | null;
-  onAssetSelect?: (assetId: string | null) => void;
 }
 
 // No mock data - using real billboards from Supabase
@@ -37,18 +34,11 @@ interface MapBillboard {
   last_detection_date?: string;
 }
 
-export function AvailableInventoryMap({ 
-  filters, 
-  onAddToCart, 
-  selectedAssetId, 
-  onAssetSelect 
-}: AvailableInventoryMapProps) {
+export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInventoryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [billboards, setBillboards] = useState<MapBillboard[]>([]);
-  const [filteredBillboards, setFilteredBillboards] = useState<MapBillboard[]>([]);
   const [selectedBillboard, setSelectedBillboard] = useState<MapBillboard | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
@@ -88,68 +78,6 @@ export function AvailableInventoryMap({
     fetchBillboards();
   }, []);
 
-  // Apply filters to billboards
-  useEffect(() => {
-    let filtered = [...billboards];
-
-    // Filter by billboard type
-    if (filters.advancedFilters.billboardTypes.length > 0) {
-      filtered = filtered.filter(b => 
-        filters.advancedFilters.billboardTypes.includes(b.tipo)
-      );
-    }
-
-    // Filter by price range
-    const [minPrice, maxPrice] = filters.advancedFilters.priceRange;
-    filtered = filtered.filter(b => {
-      const price = b.precio?.mensual || 0;
-      return price >= minPrice && price <= maxPrice;
-    });
-
-    // Filter by computer vision
-    if (filters.advancedFilters.hasComputerVision !== null) {
-      filtered = filtered.filter(b => 
-        b.has_computer_vision === filters.advancedFilters.hasComputerVision
-      );
-    }
-
-    // Filter by proximity
-    if (filters.advancedFilters.proximityFilters.length > 0) {
-      filtered = filtered.filter(b => {
-        const { isNear } = isWithinProximity(
-          b.lat,
-          b.lng,
-          filters.advancedFilters.proximityFilters
-        );
-        return isNear;
-      });
-    }
-
-    setFilteredBillboards(filtered);
-  }, [billboards, filters]);
-
-  // Sync with selected asset from list
-  useEffect(() => {
-    if (selectedAssetId && mapInstanceRef.current) {
-      const billboard = filteredBillboards.find(b => b.id === selectedAssetId);
-      if (billboard) {
-        setSelectedBillboard(billboard);
-        mapInstanceRef.current.panTo({ lat: billboard.lat, lng: billboard.lng });
-        mapInstanceRef.current.setZoom(14);
-        
-        // Highlight the marker
-        const marker = markersRef.current.get(billboard.id);
-        if (marker) {
-          const markerElement = marker.element as HTMLElement;
-          if (markerElement) {
-            markerElement.style.transform = 'scale(1.3) translateY(-8px)';
-            markerElement.style.zIndex = '1000';
-          }
-        }
-      }
-    }
-  }, [selectedAssetId, filteredBillboards]);
-
   // Get marker color based on billboard status and type
   const getMarkerColor = (billboard: MapBillboard) => {
     if (billboard.tipo === 'digital') return '#3b82f6'; // blue for digital
@@ -162,15 +90,15 @@ export function AvailableInventoryMap({
 
   // Calculate statistics
   const stats = {
-    total: filteredBillboards.length,
-    digital: filteredBillboards.filter(b => b.tipo === 'digital').length,
-    fijo: filteredBillboards.filter(b => b.tipo !== 'digital').length,
-    withCV: filteredBillboards.filter(b => b.has_computer_vision).length,
+    total: billboards.length,
+    digital: billboards.filter(b => b.tipo === 'digital').length,
+    fijo: billboards.filter(b => b.tipo !== 'digital').length,
+    withCV: billboards.filter(b => b.has_computer_vision).length,
   };
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapRef.current || filteredBillboards.length === 0) return;
+      if (!mapRef.current || billboards.length === 0) return;
 
       try {
         const loader = new Loader({
@@ -194,12 +122,11 @@ export function AvailableInventoryMap({
         });
 
         mapInstanceRef.current = map;
-        markersRef.current.clear();
 
         // Create markers with clustering
         const markers: google.maps.marker.AdvancedMarkerElement[] = [];
 
-        filteredBillboards.forEach((billboard) => {
+        billboards.forEach((billboard) => {
           const markerElement = document.createElement('div');
           markerElement.style.cursor = 'pointer';
           markerElement.style.transition = 'all 0.3s ease';
@@ -256,13 +183,11 @@ export function AvailableInventoryMap({
           markerElement.addEventListener('click', () => {
             setSelectedBillboard(billboard);
             setIsPanelOpen(true);
-            onAssetSelect?.(billboard.id);
             map.panTo({ lat: billboard.lat, lng: billboard.lng });
             map.setZoom(Math.max(map.getZoom() || 12, 12));
           });
 
           markers.push(marker);
-          markersRef.current.set(billboard.id, marker);
         });
 
         // Add marker clustering
@@ -282,7 +207,7 @@ export function AvailableInventoryMap({
     };
 
     initMap();
-  }, [filteredBillboards, onAssetSelect]);
+  }, [billboards]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
