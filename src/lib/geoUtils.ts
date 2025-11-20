@@ -35,8 +35,7 @@ export function formatDistance(meters: number): string {
 }
 
 /**
- * Simplified proximity check - returns true for all billboards when filters are selected
- * Real Google Places API integration will be added in a future update
+ * Simplified proximity check - placeholder
  */
 export function isWithinProximity(
   billboardLat: number,
@@ -47,8 +46,7 @@ export function isWithinProximity(
     return { isNear: true };
   }
 
-  // For now, return true to show all billboards
-  // Real proximity filtering will be implemented later
+  // Placeholder - real proximity filtering will be implemented later
   return { 
     isNear: true,
     nearestPOI: selectedPOIs[0],

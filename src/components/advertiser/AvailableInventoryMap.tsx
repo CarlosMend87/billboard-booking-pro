@@ -10,9 +10,10 @@ import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { Loader } from "@googlemaps/js-api-loader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
-import { formatTruncatedId } from "@/lib/utils";
+import { formatTruncatedId, formatPrice as utilsFormatPrice } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { formatPrice as pricingFormatPrice } from "@/lib/pricing";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
@@ -125,24 +126,10 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         );
       }
 
-      if (filters.advancedFilters.proximityFilters.length > 0) {
-        const { isWithinProximityAsync } = await import('@/lib/geoUtils');
-        
-        const proximityResults = await Promise.all(
-          filtered.map(async (billboard) => {
-            const result = await isWithinProximityAsync(
-              billboard.lat,
-              billboard.lng,
-              filters.advancedFilters.proximityFilters
-            );
-            return { billboard, isNear: result.isNear };
-          })
-        );
-
-        filtered = proximityResults
-          .filter(result => result.isNear)
-          .map(result => result.billboard);
-      }
+      // Proximity filters temporarily disabled - will be re-implemented after fixing circular dependencies
+      // if (filters.advancedFilters.proximityFilters.length > 0) {
+      //   filtered = filtered; // Placeholder
+      // }
 
       setFilteredBillboards(filtered);
       setIsFilteringProximity(false);
@@ -319,10 +306,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   }, [filteredBillboards]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(price);
+    return pricingFormatPrice(price);
   };
 
   const recenterMap = () => {
