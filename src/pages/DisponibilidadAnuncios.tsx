@@ -79,18 +79,19 @@ export default function DisponibilidadAnuncios() {
     (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000 ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+      {/* Fixed Header Section with Filters */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 Disponibilidad de Anuncios
               </h1>
-              <p className="text-muted-foreground mt-2">
-                Consulta el inventario disponible y encuentra los mejores espacios publicitarios
+              <p className="text-sm text-muted-foreground mt-1">
+                {activeFiltersCount} filtros aplicados
               </p>
             </div>
             
@@ -105,112 +106,80 @@ export default function DisponibilidadAnuncios() {
               )}
             </div>
           </div>
+
+          {/* Compact Filters Row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <LocationKeywordFilter
+              selectedKeywords={filters.locationKeywords}
+              onKeywordChange={(locationKeywords) => handleFilterChange({ locationKeywords })}
+            />
+            
+            <DateAvailabilityFilter
+              dateRange={filters.dateRange}
+              onDateRangeChange={(dateRange) => handleFilterChange({ dateRange })}
+            />
+            
+            <AdvancedFilters
+              filters={filters.advancedFilters}
+              onFiltersChange={handleAdvancedFiltersChange}
+              onClearFilters={handleClearAdvancedFilters}
+            />
+
+            {viewMode === 'list' && (
+              <SortOptions
+                value={filters.sortBy}
+                onChange={(sortBy) => handleFilterChange({ sortBy })}
+              />
+            )}
+
+            <div className="flex bg-muted rounded-lg p-1 ml-auto">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="flex items-center gap-1"
+              >
+                <List className="h-4 w-4" />
+                Lista
+              </Button>
+              <Button
+                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('map')}
+                className="flex items-center gap-1"
+              >
+                <MapPin className="h-4 w-4" />
+                Mapa
+              </Button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Filters Sidebar */}
-              <div className="lg:col-span-1 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Search className="h-5 w-5" />
-                      Filtros de Búsqueda
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <LocationKeywordFilter
-                      selectedKeywords={filters.locationKeywords}
-                      onKeywordChange={(locationKeywords) => handleFilterChange({ locationKeywords })}
-                    />
-                    
-                    <DateAvailabilityFilter
-                      dateRange={filters.dateRange}
-                      onDateRangeChange={(dateRange) => handleFilterChange({ dateRange })}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Filtros Avanzados */}
-                <AdvancedFilters
-                  filters={filters.advancedFilters}
-                  onFiltersChange={handleAdvancedFiltersChange}
-                  onClearFilters={handleClearAdvancedFilters}
-                />
-
-                {/* Filtros Activos */}
-                {activeFiltersCount > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">Filtros Activos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Filter className="h-3 w-3" />
-                        {activeFiltersCount} filtros aplicados
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-                <div className="mb-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Inventario Disponible</h3>
-                    <div className="flex bg-muted rounded-lg p-1">
-                      <Button
-                        variant={viewMode === 'list' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('list')}
-                        className="flex items-center gap-1"
-                      >
-                        <List className="h-4 w-4" />
-                        Lista
-                      </Button>
-                      <Button
-                        variant={viewMode === 'map' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('map')}
-                        className="flex items-center gap-1"
-                      >
-                        <MapPin className="h-4 w-4" />
-                        Mapa
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Sort Options */}
-                  {viewMode === 'list' && (
-                    <div className="flex items-center justify-between">
-                      <SortOptions
-                        value={filters.sortBy}
-                        onChange={(sortBy) => handleFilterChange({ sortBy })}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {viewMode === 'map' ? (
-                  <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
-                ) : (
-                  <AvailableInventoryList filters={filters} onAddToCart={addItem} />
-                )}
-              </div>
-              
-              {/* Cart Sidebar */}
-              <div className="lg:col-span-1">
-                <CartSidebar 
-                  cart={cart}
-                  onRemoveItem={removeItem}
-                  onUpdateQuantity={updateQuantity}
-                  onClearCart={clearCart}
-                />
+      {/* Main Content Area - Full Height with Map */}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0 flex">
+          {viewMode === 'map' ? (
+            <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              <div className="container mx-auto px-4 py-6">
+                <AvailableInventoryList filters={filters} onAddToCart={addItem} />
               </div>
             </div>
+          )}
+          
+          {/* Floating Cart Sidebar */}
+          <div className="w-80 border-l bg-background overflow-y-auto">
+            <CartSidebar 
+              cart={cart}
+              onRemoveItem={removeItem}
+              onUpdateQuantity={updateQuantity}
+              onClearCart={clearCart}
+            />
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

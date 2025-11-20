@@ -18,8 +18,11 @@ import {
   Users,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from "lucide-react";
+import { isWithinProximity, formatDistance } from "@/lib/geoUtils";
+import { generatePDFReport } from "@/components/advertiser/PDFReportGenerator";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
@@ -171,6 +174,22 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
       return true;
     });
 
+    // Apply proximity filter separately and enrich with distance data
+    if (filters.advancedFilters.proximityFilters.length > 0) {
+      filtered = filtered.filter(asset => {
+        const { isNear, nearestPOI, distance } = isWithinProximity(
+          asset.lat,
+          asset.lng,
+          filters.advancedFilters.proximityFilters
+        );
+        if (isNear && nearestPOI && distance !== undefined) {
+          (asset as any).distance = distance;
+          (asset as any).nearestPOI = nearestPOI;
+        }
+        return isNear;
+      });
+    }
+
     // Apply sorting
     filtered.sort((a, b) => {
       switch (filters.sortBy) {
@@ -297,6 +316,14 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     onAddToCart(asset, modalidad, config, 1);
   };
 
+  const handleDownloadPDF = () => {
+    generatePDFReport({
+      filteredAssets: filteredAssets as any,
+      appliedFilters: filters.advancedFilters,
+      totalCount: filteredAssets.length
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -306,9 +333,20 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
               <Building className="h-5 w-5" />
               Inventario Disponible
             </CardTitle>
-            <Badge variant="secondary">
-              {filteredAssets.length} anuncio{filteredAssets.length !== 1 ? 's' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPDF}
+                disabled={filteredAssets.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
+              <Badge variant="secondary">
+                {filteredAssets.length} anuncio{filteredAssets.length !== 1 ? 's' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

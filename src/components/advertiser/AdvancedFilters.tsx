@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Camera, X, ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Filter, Camera, X } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface AdvancedFiltersState {
   billboardTypes: string[];
@@ -87,17 +88,25 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
     (filters.hasComputerVision !== null ? 1 : 0) +
     (filters.priceRange[0] > 0 || filters.priceRange[1] < MAX_PRICE ? 1 : 0);
 
-  const [isOpen, setIsOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="h-4 w-4" />
-            Filtros Avanzados
-          </CardTitle>
-          <div className="flex items-center gap-2">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Filter className="h-4 w-4" />
+          Filtros Avanzados
+          {activeFiltersCount > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {activeFiltersCount}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96" align="start">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Filtros Avanzados</h4>
             {activeFiltersCount > 0 && (
               <Button
                 variant="ghost"
@@ -110,140 +119,134 @@ export function AdvancedFilters({ filters, onFiltersChange, onClearFilters }: Ad
               </Button>
             )}
           </div>
-        </div>
-        {activeFiltersCount > 0 && (
-          <Badge variant="secondary" className="w-fit text-xs">
-            {activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} activo{activeFiltersCount !== 1 ? 's' : ''}
-          </Badge>
-        )}
-      </CardHeader>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-full flex items-center justify-between mb-2 px-6">
-            <span className="text-sm text-muted-foreground">
-              {isOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
-            </span>
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <CardContent className="space-y-6">
-            {/* Tipo de Pantalla */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Tipo de Pantalla</Label>
-              <div className="space-y-2">
-                {BILLBOARD_TYPES.map((type) => (
-                  <div key={type.value} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`type-${type.value}`}
-                      checked={filters.billboardTypes.includes(type.value)}
-                      onCheckedChange={() => handleTypeToggle(type.value)}
-                    />
-                    <Label
-                      htmlFor={`type-${type.value}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {type.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-        {/* Proximidad a Puntos de Interés */}
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold">Proximidad a Puntos de Interés</Label>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {PROXIMIDAD_FILTROS.map((proximity) => (
-              <div key={proximity.value} className="flex items-center gap-2">
-                <Checkbox
-                  id={`proximity-${proximity.value}`}
-                  checked={filters.proximityFilters.includes(proximity.value)}
-                  onCheckedChange={() => handleProximityToggle(proximity.value)}
-                />
-                <Label
-                  htmlFor={`proximity-${proximity.value}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {proximity.label}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Modalidad de Contratación */}
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold">Modalidad de Contratación</Label>
-          <div className="space-y-2">
-            {MODALIDADES.map((modalidad) => (
-              <div key={modalidad.value} className="flex items-center gap-2">
-                <Checkbox
-                  id={`modalidad-${modalidad.value}`}
-                  checked={filters.modalidades.includes(modalidad.value)}
-                  onCheckedChange={() => handleModalidadToggle(modalidad.value)}
-                />
-                <Label
-                  htmlFor={`modalidad-${modalidad.value}`}
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  {modalidad.label}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Rango de Precio */}
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold">
-            Rango de Precio Mensual
-          </Label>
-          <div className="space-y-2">
-            <Slider
-              value={filters.priceRange}
-              min={0}
-              max={MAX_PRICE}
-              step={1000}
-              onValueChange={(value) => onFiltersChange({ priceRange: value as [number, number] })}
-              className="w-full"
-            />
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>${filters.priceRange[0].toLocaleString()}</span>
-              <span>${filters.priceRange[1].toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Computer Vision */}
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold">Tecnología de Detección</Label>
-          <Select
-            value={filters.hasComputerVision === null ? "all" : filters.hasComputerVision ? "yes" : "no"}
-            onValueChange={(value) => 
-              onFiltersChange({ 
-                hasComputerVision: value === "all" ? null : value === "yes" 
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las pantallas</SelectItem>
-              <SelectItem value="yes">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-3 w-3" />
-                  Con Computer Vision
+          <ScrollArea className="h-[500px] pr-4">
+            <div className="space-y-6">
+              {/* Tipo de Pantalla */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Tipo de Pantalla</Label>
+                <div className="space-y-2">
+                  {BILLBOARD_TYPES.map((type) => (
+                    <div key={type.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`type-${type.value}`}
+                        checked={filters.billboardTypes.includes(type.value)}
+                        onCheckedChange={() => handleTypeToggle(type.value)}
+                      />
+                      <Label
+                        htmlFor={`type-${type.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {type.label}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
-              </SelectItem>
-              <SelectItem value="no">Sin Computer Vision</SelectItem>
-            </SelectContent>
-          </Select>
+              </div>
+
+              <Separator />
+
+              {/* Proximidad a Puntos de Interés */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Proximidad a Puntos de Interés</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {PROXIMIDAD_FILTROS.map((proximity) => (
+                    <div key={proximity.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`proximity-${proximity.value}`}
+                        checked={filters.proximityFilters.includes(proximity.value)}
+                        onCheckedChange={() => handleProximityToggle(proximity.value)}
+                      />
+                      <Label
+                        htmlFor={`proximity-${proximity.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {proximity.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Modalidad de Contratación */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Modalidad de Contratación</Label>
+                <div className="space-y-2">
+                  {MODALIDADES.map((modalidad) => (
+                    <div key={modalidad.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`modalidad-${modalidad.value}`}
+                        checked={filters.modalidades.includes(modalidad.value)}
+                        onCheckedChange={() => handleModalidadToggle(modalidad.value)}
+                      />
+                      <Label
+                        htmlFor={`modalidad-${modalidad.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {modalidad.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Rango de Precio */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">
+                  Rango de Precio Mensual
+                </Label>
+                <div className="space-y-2">
+                  <Slider
+                    value={filters.priceRange}
+                    min={0}
+                    max={MAX_PRICE}
+                    step={1000}
+                    onValueChange={(value) => onFiltersChange({ priceRange: value as [number, number] })}
+                    className="w-full"
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>${filters.priceRange[0].toLocaleString()}</span>
+                    <span>${filters.priceRange[1].toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Computer Vision */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Tecnología de Detección</Label>
+                <Select
+                  value={filters.hasComputerVision === null ? "all" : filters.hasComputerVision ? "yes" : "no"}
+                  onValueChange={(value) => 
+                    onFiltersChange({ 
+                      hasComputerVision: value === "all" ? null : value === "yes" 
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las pantallas</SelectItem>
+                    <SelectItem value="yes">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-3 w-3" />
+                        Con Computer Vision
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="no">Sin Computer Vision</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </ScrollArea>
         </div>
-      </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+      </PopoverContent>
+    </Popover>
   );
 }
