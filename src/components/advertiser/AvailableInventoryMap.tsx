@@ -7,7 +7,7 @@ import { MapPin, Monitor, Building, Loader2, Camera, Users, Compass, TrendingUp,
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
-import { getGoogleMapsLoader } from "@/lib/googleMapsLoader";
+import { Loader } from "@googlemaps/js-api-loader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTruncatedId } from "@/lib/utils";
@@ -163,7 +163,11 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
       if (!mapRef.current || filteredBillboards.length === 0) return;
 
       try {
-        const loader = getGoogleMapsLoader();
+        const loader = new Loader({
+          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
+          version: "weekly",
+          libraries: ["visualization", "drawing"]
+        });
 
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
@@ -644,24 +648,63 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     <p className="text-sm text-muted-foreground">Precio Mensual</p>
                     <p className="font-medium">{formatPrice(selectedBillboard.precio?.mensual || 0)}</p>
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <p className="text-sm text-muted-foreground">Dirección</p>
                     <p className="font-medium text-sm">{selectedBillboard.direccion}</p>
                   </div>
                 </div>
 
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    window.open(
-                      `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedBillboard.lat},${selectedBillboard.lng}`,
-                      '_blank'
-                    );
-                  }}
-                >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Ver en Street View
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      window.open(
+                        `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedBillboard.lat},${selectedBillboard.lng}`,
+                        '_blank'
+                      );
+                    }}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Ver en Street View
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      // Convert MapBillboard to InventoryAsset format
+                      const asset: InventoryAsset = {
+                        id: selectedBillboard.id,
+                        nombre: selectedBillboard.nombre,
+                        direccion: selectedBillboard.direccion,
+                        lat: selectedBillboard.lat,
+                        lng: selectedBillboard.lng,
+                        tipo: selectedBillboard.tipo as any,
+                        status: 'disponible',
+                        owner_id: selectedBillboard.owner_id,
+                        precio: selectedBillboard.precio,
+                        medidas: selectedBillboard.medidas,
+                        fotos: [],
+                        contratacion: {
+                          mensual: true,
+                          por_dia: false,
+                          cpm: false,
+                          spot: false,
+                          hora: false
+                        },
+                        has_computer_vision: selectedBillboard.has_computer_vision
+                      };
+                      
+                      onAddToCart(asset, 'mensual', { 
+                        meses: 1,
+                        desde: new Date().toISOString().split('T')[0],
+                        hasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                      });
+                      setIsPanelOpen(false);
+                    }}
+                  >
+                    Agregar al Carrito
+                  </Button>
+                </div>
               </div>
             </>
           )}
