@@ -22,7 +22,7 @@ import {
   Download,
   Loader2
 } from "lucide-react";
-import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
+import { InventoryFilters } from "@/types/inventory";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
 import { formatShortId } from "@/lib/utils";
