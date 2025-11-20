@@ -1,5 +1,5 @@
 // Google Places API service for finding real POIs
-import { Loader } from "@googlemaps/js-api-loader";
+import { loadGoogleMaps } from "./googleMapsLoader";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80";
 
@@ -64,13 +64,7 @@ export async function initPlacesService(): Promise<google.maps.places.PlacesServ
   }
 
   try {
-    const loader = new Loader({
-      apiKey: GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-      libraries: ["places"]
-    });
-
-    await loader.load();
+    await loadGoogleMaps();
 
     // Create a hidden map div for PlacesService
     const mapDiv = document.createElement('div');

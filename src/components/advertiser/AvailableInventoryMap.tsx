@@ -3,21 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MapPin, Monitor, Building, Loader2, Camera, Users, Compass, TrendingUp, Calendar } from "lucide-react";
+import { MapPin, Monitor, Building, Loader2, Camera, Users, Compass, TrendingUp, Calendar, Download, Edit3, Flame } from "lucide-react";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
-import { Loader } from "@googlemaps/js-api-loader";
+import { getGoogleMapsLoader } from "@/lib/googleMapsLoader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTruncatedId } from "@/lib/utils";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
 }
-
-// No mock data - using real billboards from Supabase
 
 interface MapBillboard {
   id: string;
@@ -43,6 +43,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   const [selectedBillboard, setSelectedBillboard] = useState<MapBillboard | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isFilteringProximity, setIsFilteringProximity] = useState(false);
+  const [heatmapLayer, setHeatmapLayer] = useState<google.maps.visualization.HeatmapLayer | null>(null);
+  const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
+  const [drawnShapes, setDrawnShapes] = useState<google.maps.Polygon[]>([]);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [billboardsInZone, setBillboardsInZone] = useState<MapBillboard[]>([]);
 
   useEffect(() => {
     const fetchBillboards = async () => {
@@ -54,7 +60,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
         if (error) throw error;
 
-        // Use only real billboards from Supabase
         const realBillboards = data?.map(billboard => ({
           id: billboard.id,
           nombre: billboard.nombre,
@@ -80,18 +85,15 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     fetchBillboards();
   }, []);
 
-  // Get marker color based on billboard status and type
   const getMarkerColor = (billboard: MapBillboard) => {
-    if (billboard.tipo === 'digital') return '#3b82f6'; // blue for digital
-    return '#10b981'; // green for disponible fijo
+    if (billboard.tipo === 'digital') return '#3b82f6';
+    return '#10b981';
   };
 
   const getMarkerIcon = (billboard: MapBillboard) => {
     return billboard.tipo === 'digital' ? '📱' : '📋';
   };
 
-
-  // Apply filters including proximity filters
   useEffect(() => {
     const applyFilters = async () => {
       if (billboards.length === 0) {
@@ -103,14 +105,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
       let filtered = [...billboards];
 
-      // Apply billboard type filter
       if (filters.advancedFilters.billboardTypes.length > 0) {
         filtered = filtered.filter(b => 
           filters.advancedFilters.billboardTypes.includes(b.tipo)
         );
       }
 
-      // Apply price filter
       if (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000) {
         filtered = filtered.filter(b => {
           const price = b.precio?.mensual || 0;
@@ -119,14 +119,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         });
       }
 
-      // Apply computer vision filter
       if (filters.advancedFilters.hasComputerVision !== null) {
         filtered = filtered.filter(b => 
           b.has_computer_vision === filters.advancedFilters.hasComputerVision
         );
       }
 
-      // Apply proximity filter with real Google Places API
       if (filters.advancedFilters.proximityFilters.length > 0) {
         const { isWithinProximityAsync } = await import('@/lib/geoUtils');
         
@@ -153,7 +151,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     applyFilters();
   }, [billboards, filters]);
 
-  // Calculate statistics based on filtered billboards
   const stats = {
     total: filteredBillboards.length,
     digital: filteredBillboards.filter(b => b.tipo === 'digital').length,
@@ -161,27 +158,23 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     withCV: filteredBillboards.filter(b => b.has_computer_vision).length,
   };
 
-
   useEffect(() => {
     const initMap = async () => {
       if (!mapRef.current || filteredBillboards.length === 0) return;
 
       try {
-        const loader = new Loader({
-          apiKey: "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80",
-          version: "weekly",
-          libraries: ["places", "geometry"]
-        });
+        const loader = getGoogleMapsLoader();
 
         const { Map } = await loader.importLibrary("maps");
         const { AdvancedMarkerElement } = await loader.importLibrary("marker");
+        const visualization = await loader.importLibrary("visualization") as any;
+        const drawing = await loader.importLibrary("drawing") as any;
 
-        // Center map on Mexico (geographic center)
         const center = { lat: 23.6345, lng: -102.5528 };
 
         const map = new Map(mapRef.current, {
           center,
-          zoom: 5, // Zoom level appropriate for viewing all of Mexico
+          zoom: 5,
           mapId: "available-inventory-map",
           streetViewControl: false,
           mapTypeControl: false,
@@ -189,7 +182,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
         mapInstanceRef.current = map;
 
-        // Create markers with clustering
         const markers: google.maps.marker.AdvancedMarkerElement[] = [];
 
         filteredBillboards.forEach((billboard) => {
@@ -235,7 +227,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             title: billboard.nombre
           });
 
-          // Hover effect
           markerElement.addEventListener('mouseenter', () => {
             markerElement.style.transform = 'scale(1.15) translateY(-5px)';
             markerContent.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
@@ -256,13 +247,57 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           markers.push(marker);
         });
 
-        // Add marker clustering
         new MarkerClusterer({
           map,
           markers,
           algorithmOptions: {
             maxZoom: 14,
           },
+        });
+
+        // Create heatmap
+        const heatmapData = filteredBillboards.map(billboard => ({
+          location: new google.maps.LatLng(billboard.lat, billboard.lng),
+          weight: billboard.has_computer_vision && billboard.last_detection_count 
+            ? billboard.last_detection_count / 100 
+            : 1
+        }));
+
+        const heatmap = new visualization.HeatmapLayer({
+          data: heatmapData,
+          map: null,
+          radius: 50,
+          opacity: 0.7
+        });
+        setHeatmapLayer(heatmap);
+
+        // Create drawing manager
+        const drawManager = new drawing.DrawingManager({
+          drawingMode: null,
+          drawingControl: false,
+          polygonOptions: {
+            fillColor: '#3b82f6',
+            fillOpacity: 0.3,
+            strokeWeight: 2,
+            strokeColor: '#3b82f6',
+            editable: true,
+            draggable: true
+          }
+        });
+        drawManager.setMap(map);
+        setDrawingManager(drawManager);
+
+        google.maps.event.addListener(drawManager, 'polygoncomplete', (polygon: google.maps.Polygon) => {
+          setDrawnShapes(prev => [...prev, polygon]);
+          
+          const billboardsInPolygon = filteredBillboards.filter(billboard => {
+            const point = new google.maps.LatLng(billboard.lat, billboard.lng);
+            return google.maps.geometry.poly.containsLocation(point, polygon);
+          });
+          
+          setBillboardsInZone(billboardsInPolygon);
+          setIsDrawingMode(false);
+          drawManager.setDrawingMode(null);
         });
 
         setIsLoading(false);
@@ -272,9 +307,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
       }
     };
 
-    // Clear existing map and reinitialize when filtered billboards change
     if (mapInstanceRef.current) {
-      // Just reinitialize the map with new markers
       initMap();
     } else {
       initMap();
@@ -295,24 +328,151 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     }
   };
 
+  const toggleHeatmap = () => {
+    if (heatmapLayer) {
+      heatmapLayer.setMap(showHeatmap ? null : mapInstanceRef.current);
+      setShowHeatmap(!showHeatmap);
+    }
+  };
+
+  const toggleDrawingMode = () => {
+    if (drawingManager) {
+      const newMode = !isDrawingMode;
+      setIsDrawingMode(newMode);
+      drawingManager.setDrawingMode(
+        newMode ? google.maps.drawing.OverlayType.POLYGON : null
+      );
+    }
+  };
+
+  const clearDrawnShapes = () => {
+    drawnShapes.forEach(shape => shape.setMap(null));
+    setDrawnShapes([]);
+    setBillboardsInZone([]);
+  };
+
+  const downloadMapPDF = async () => {
+    if (!mapRef.current) return;
+
+    try {
+      const canvas = await html2canvas(mapRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Zona Personalizada", pageWidth / 2, 15, { align: "center" });
+      
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, pageWidth / 2, 22, { align: "center" });
+      
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 10, 28, imgWidth, Math.min(imgHeight, pageHeight - 80));
+      
+      let yPos = Math.min(imgHeight, pageHeight - 80) + 35;
+      
+      if (billboardsInZone.length > 0) {
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`Pantallas en la zona: ${billboardsInZone.length}`, 10, yPos);
+        yPos += 10;
+        
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
+        
+        billboardsInZone.slice(0, 10).forEach((billboard, index) => {
+          if (yPos > pageHeight - 20) {
+            pdf.addPage();
+            yPos = 15;
+          }
+          
+          const price = billboard.precio?.mensual || 0;
+          pdf.text(
+            `${index + 1}. ${billboard.nombre} - ${billboard.tipo} - ${formatPrice(price)}/mes`,
+            10,
+            yPos
+          );
+          yPos += 5;
+        });
+        
+        if (billboardsInZone.length > 10) {
+          pdf.text(`... y ${billboardsInZone.length - 10} más`, 10, yPos);
+        }
+      }
+      
+      pdf.save(`zona-personalizada-${new Date().getTime()}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Mapa de Inventario - México
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={recenterMap}
-              className="flex items-center gap-2"
-            >
-              <Compass className="h-4 w-4" />
-              Recentrar
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={showHeatmap ? "default" : "outline"}
+                size="sm"
+                onClick={toggleHeatmap}
+                className="flex items-center gap-2"
+              >
+                <Flame className="h-4 w-4" />
+                Heatmap
+              </Button>
+              <Button
+                variant={isDrawingMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleDrawingMode}
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="h-4 w-4" />
+                Dibujar Zona
+              </Button>
+              {drawnShapes.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearDrawnShapes}
+                  >
+                    Limpiar
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={downloadMapPDF}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    PDF
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={recenterMap}
+                className="flex items-center gap-2"
+              >
+                <Compass className="h-4 w-4" />
+                Recentrar
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -333,7 +493,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               className="w-full h-[600px] rounded-md bg-muted"
             />
             
-            {/* Mini Stats Cards Over Map */}
+            {/* Mini Stats Cards */}
             <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
               <Card className="bg-background/95 backdrop-blur-sm border-2 border-primary/20 shadow-lg">
                 <CardContent className="p-3">
@@ -384,7 +544,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               </Card>
             </div>
             
-            {/* Map Legend */}
+            {/* Legend */}
             <div className="absolute bottom-4 right-4 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
               <h4 className="font-medium text-sm mb-2">Leyenda</h4>
               <div className="space-y-1 text-xs">
@@ -396,13 +556,29 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
                   <span>Fija</span>
                 </div>
+                {isDrawingMode && (
+                  <div className="mt-2 pt-2 border-t">
+                    <p className="text-yellow-600 dark:text-yellow-400 font-medium">
+                      🖊️ Modo dibujo activo
+                    </p>
+                    <p className="text-muted-foreground mt-1">
+                      Haz clic en el mapa para crear una zona
+                    </p>
+                  </div>
+                )}
+                {billboardsInZone.length > 0 && (
+                  <div className="mt-2 pt-2 border-t">
+                    <p className="font-medium text-primary">
+                      📍 {billboardsInZone.length} pantallas en zona
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Floating Side Panel for Selected Billboard */}
       <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
           {selectedBillboard && (
@@ -431,7 +607,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
-                {/* Photo */}
                 <div className="rounded-lg overflow-hidden bg-muted">
                   <img 
                     src={`https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png`}
@@ -440,8 +615,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                   />
                 </div>
 
-                {/* Detection Stats */}
-                {selectedBillboard.has_computer_vision && selectedBillboard.last_detection_count > 0 && (
+                {selectedBillboard.has_computer_vision && selectedBillboard.last_detection_count && selectedBillboard.last_detection_count > 0 && (
                   <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900">
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-3">
@@ -461,169 +635,38 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                   </Card>
                 )}
 
-                {/* Technical Details */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Detalles Técnicos
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm text-muted-foreground">Tipo</p>
-                        <p className="font-semibold">
-                          {selectedBillboard.tipo === 'digital' ? 'Digital' : 'Espectacular'}
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm text-muted-foreground">Dimensiones</p>
-                        <p className="font-semibold">
-                          {selectedBillboard.medidas?.ancho_m || 6}m × {selectedBillboard.medidas?.alto_m || 3}m
-                        </p>
-                      </CardContent>
-                    </Card>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tipo</p>
+                    <p className="font-medium">{selectedBillboard.tipo}</p>
                   </div>
-
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Ubicación</p>
-                          <p className="font-medium">{selectedBillboard.direccion}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {selectedBillboard.lat.toFixed(4)}, {selectedBillboard.lng.toFixed(4)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Precio Mensual</p>
+                    <p className="font-medium">{formatPrice(selectedBillboard.precio?.mensual || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dirección</p>
+                    <p className="font-medium text-sm">{selectedBillboard.direccion}</p>
+                  </div>
                 </div>
 
-                {/* Pricing */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Precio y Disponibilidad
-                  </h3>
-
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-muted-foreground mb-1">Precio Mensual</p>
-                      <p className="text-3xl font-bold text-primary">
-                        {formatPrice(selectedBillboard.precio?.mensual || 0)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">+ IVA</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-2">
-                  <Button 
-                    className="w-full"
-                    size="lg"
-                    onClick={() => {
-                      const asset: InventoryAsset = {
-                        id: selectedBillboard.id,
-                        tipo: selectedBillboard.tipo as any,
-                        nombre: selectedBillboard.nombre,
-                        lat: selectedBillboard.lat,
-                        lng: selectedBillboard.lng,
-                        medidas: selectedBillboard.medidas,
-                        contratacion: { mensual: true },
-                        precio: selectedBillboard.precio,
-                        estado: 'disponible',
-                        foto: 'https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png'
-                      };
-                      onAddToCart(asset, 'mensual', { fechaInicio: '', fechaFin: '' });
-                      setIsPanelOpen(false);
-                    }}
-                  >
-                    Agregar al Carrito
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      // Open in new window with Google Street View
-                      window.open(
-                        `https://www.google.com/maps/@${selectedBillboard.lat},${selectedBillboard.lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0!2e0!7i13312!8i6656`,
-                        '_blank'
-                      );
-                    }}
-                  >
-                    Ver Street View
-                  </Button>
-                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    window.open(
+                      `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedBillboard.lat},${selectedBillboard.lng}`,
+                      '_blank'
+                    );
+                  }}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Ver en Street View
+                </Button>
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
-
-      {/* Available Billboards List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Anuncios en el Mapa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {billboards.map((billboard) => (
-              <div
-                key={billboard.id}
-                className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
-                  selectedBillboard?.id === billboard.id ? 'border-primary bg-accent' : ''
-                }`}
-                onClick={() => setSelectedBillboard(billboard)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={billboard.tipo === 'digital' ? 'default' : 'secondary'} className="text-xs">
-                      {billboard.tipo === 'digital' ? (
-                        <>
-                          <Monitor className="h-3 w-3 mr-1" />
-                          Digital
-                        </>
-                      ) : (
-                        <>
-                          <Building className="h-3 w-3 mr-1" />
-                          Espectacular
-                        </>
-                      )}
-                    </Badge>
-                    {billboard.has_computer_vision && (
-                      <Badge variant="default" className="text-xs bg-blue-600">
-                        <Camera className="h-3 w-3 mr-1" />
-                        IA
-                      </Badge>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{formatTruncatedId(billboard.id)}</span>
-                </div>
-                <h4 className="font-medium text-sm">{billboard.nombre}</h4>
-                <p className="text-xs text-muted-foreground mb-1">{billboard.direccion}</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-primary">
-                    {formatPrice(billboard.precio?.mensual || 0)}/mes
-                  </p>
-                  {billboard.has_computer_vision && billboard.last_detection_count > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                      <Users className="h-3 w-3" />
-                      <span className="font-medium">{billboard.last_detection_count.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
     </div>
   );
 }
