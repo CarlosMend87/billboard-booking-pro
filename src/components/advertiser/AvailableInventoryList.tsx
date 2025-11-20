@@ -22,8 +22,6 @@ import {
   Download,
   Loader2
 } from "lucide-react";
-// import { isWithinProximity, formatDistance } from "@/lib/geoUtils";
-// import { generatePDFReport } from "@/components/advertiser/PDFReportGenerator";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
@@ -33,6 +31,14 @@ import { supabase } from "@/integrations/supabase/client";
 import admobilizeImage from "@/assets/admobilize-detection.png";
 import { BillboardViewsMetric } from "@/components/advertiser/BillboardViewsMetric";
 import { useBillboardLock } from "@/hooks/useBillboardLock";
+
+// Helper function for formatting distance
+const formatDistance = (meters: number): string => {
+  if (meters < 1000) {
+    return `${Math.round(meters)}m`;
+  }
+  return `${(meters / 1000).toFixed(2)}km`;
+};
 
 const ITEMS_PER_PAGE = 10;
 
@@ -182,31 +188,10 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
         return true;
       });
 
-      // Apply proximity filter asynchronously with real Google Places data
-      if (filters.advancedFilters.proximityFilters.length > 0) {
-        const { isWithinProximityAsync } = await import('@/lib/geoUtils');
-        
-        const proximityPromises = filtered.map(async (asset) => {
-          const result = await isWithinProximityAsync(
-            asset.lat,
-            asset.lng,
-            filters.advancedFilters.proximityFilters
-          );
-          
-          if (result.isNear && result.nearestPOI && result.distance !== undefined) {
-            (asset as any).distance = result.distance;
-            (asset as any).nearestPOI = result.nearestPOI;
-            (asset as any).poiName = result.poiName;
-          }
-          
-          return { asset, isNear: result.isNear };
-        });
-
-        const proximityResults = await Promise.all(proximityPromises);
-        filtered = proximityResults
-          .filter(result => result.isNear)
-          .map(result => result.asset);
-      }
+      // Proximity filters temporarily disabled - will be re-implemented after fixing circular dependencies
+      // if (filters.advancedFilters.proximityFilters.length > 0) {
+      //   filtered = filtered; // Placeholder
+      // }
 
       // Apply sorting
       filtered.sort((a, b) => {
@@ -342,11 +327,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   };
 
   const handleDownloadPDF = () => {
-    generatePDFReport({
-      filteredAssets: filteredAssets as any,
-      appliedFilters: filters.advancedFilters,
-      totalCount: filteredAssets.length
-    });
+    console.log('PDF download feature temporarily disabled');
+    // generatePDFReport will be re-implemented after fixing circular dependencies
   };
 
   return (
