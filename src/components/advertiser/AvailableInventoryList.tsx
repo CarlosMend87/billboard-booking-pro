@@ -228,15 +228,11 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     
     if (asset.contratacion.mensual) options.push('mensual');
     if (asset.contratacion.catorcenal) options.push('catorcenal');
-    if (asset.contratacion.semanal) {
-      options.push('semanal');
-    }
-    if (asset.contratacion.spot) options.push('spot');
-    if (asset.contratacion.hora) options.push('hora');
+    if (asset.contratacion.semanal) options.push('semanal');
     if (asset.contratacion.dia) options.push('dia');
     if (asset.contratacion.cpm) options.push('cpm');
     
-    return options;
+    return options.length > 0 ? options : ['mensual']; // Default to mensual if no options
   };
 
   const getModalidadLabel = (modalidad: CartItemModalidad) => {

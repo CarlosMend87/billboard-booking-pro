@@ -36,6 +36,7 @@ export default function DisponibilidadAnuncios() {
     advancedFilters: {
       billboardTypes: [],
       modalidades: [],
+      proximityFilters: [],
       priceRange: [0, 100000],
       hasComputerVision: null
     },
@@ -61,6 +62,7 @@ export default function DisponibilidadAnuncios() {
       advancedFilters: {
         billboardTypes: [],
         modalidades: [],
+        proximityFilters: [],
         priceRange: [0, 100000],
         hasComputerVision: null
       }
@@ -72,6 +74,7 @@ export default function DisponibilidadAnuncios() {
     (filters.dateRange.startDate && filters.dateRange.endDate ? 1 : 0) +
     filters.advancedFilters.billboardTypes.length +
     filters.advancedFilters.modalidades.length +
+    filters.advancedFilters.proximityFilters.length +
     (filters.advancedFilters.hasComputerVision !== null ? 1 : 0) +
     (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000 ? 1 : 0);
 
