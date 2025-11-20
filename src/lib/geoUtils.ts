@@ -1,4 +1,5 @@
 // Geographical utility functions for distance calculations
+import { searchNearbyPOIs, getPOIRadius, findNearestPOI } from './placesService';
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -35,56 +36,40 @@ export function formatDistance(meters: number): string {
 }
 
 /**
- * POI coordinates for proximity filtering
- * These are example coordinates for major establishments in Mexico
+ * Check if a billboard is within proximity of any selected POIs using real Google Places data
  */
-export const POI_CATEGORIES = {
-  restaurantes: { lat: 19.4326, lng: -99.1332, radius: 500 }, // Mexico City center
-  mcdonalds: { lat: 19.4326, lng: -99.1332, radius: 300 },
-  starbucks: { lat: 19.4326, lng: -99.1332, radius: 300 },
-  hospitales: { lat: 19.4326, lng: -99.1332, radius: 1000 },
-  concesionarios: { lat: 19.4326, lng: -99.1332, radius: 500 },
-  tiendas_conveniencia: { lat: 19.4326, lng: -99.1332, radius: 300 },
-  supermercados: { lat: 19.4326, lng: -99.1332, radius: 400 },
-  centros_comerciales: { lat: 19.4326, lng: -99.1332, radius: 1000 },
-  universidades: { lat: 19.4326, lng: -99.1332, radius: 800 },
-  bancos: { lat: 19.4326, lng: -99.1332, radius: 300 },
-  gasolineras: { lat: 19.4326, lng: -99.1332, radius: 200 },
-  farmacias: { lat: 19.4326, lng: -99.1332, radius: 200 },
-  gimnasios: { lat: 19.4326, lng: -99.1332, radius: 400 },
-  cines: { lat: 19.4326, lng: -99.1332, radius: 500 },
-  bares: { lat: 19.4326, lng: -99.1332, radius: 300 }
-};
-
-/**
- * Check if a billboard is within proximity of any selected POIs
- */
-export function isWithinProximity(
+export async function isWithinProximityAsync(
   billboardLat: number,
   billboardLng: number,
   selectedPOIs: string[]
-): { isNear: boolean; nearestPOI?: string; distance?: number } {
+): Promise<{ isNear: boolean; nearestPOI?: string; distance?: number; poiName?: string }> {
   if (selectedPOIs.length === 0) {
     return { isNear: true }; // No proximity filter applied
   }
 
   let nearestDistance = Infinity;
-  let nearestPOI = '';
+  let nearestPOIType = '';
+  let nearestPOIName = '';
 
-  for (const poi of selectedPOIs) {
-    const poiData = POI_CATEGORIES[poi as keyof typeof POI_CATEGORIES];
-    if (!poiData) continue;
-
-    const distance = calculateDistance(
-      billboardLat,
-      billboardLng,
-      poiData.lat,
-      poiData.lng
+  for (const poiType of selectedPOIs) {
+    const radius = getPOIRadius(poiType);
+    
+    // Search for real POIs near the billboard
+    const pois = await searchNearbyPOIs(
+      { lat: billboardLat, lng: billboardLng },
+      poiType,
+      radius
     );
 
-    if (distance <= poiData.radius && distance < nearestDistance) {
-      nearestDistance = distance;
-      nearestPOI = poi;
+    if (pois.length === 0) continue;
+
+    // Find the nearest POI of this type
+    const nearest = findNearestPOI(billboardLat, billboardLng, pois);
+    
+    if (nearest && nearest.distance < nearestDistance && nearest.distance <= radius) {
+      nearestDistance = nearest.distance;
+      nearestPOIType = poiType;
+      nearestPOIName = nearest.poi.name || '';
     }
   }
 
@@ -94,7 +79,30 @@ export function isWithinProximity(
 
   return {
     isNear: true,
-    nearestPOI,
-    distance: nearestDistance
+    nearestPOI: nearestPOIType,
+    distance: nearestDistance,
+    poiName: nearestPOIName
+  };
+}
+
+/**
+ * Synchronous version for backwards compatibility - returns true by default for selected POIs
+ * Should be replaced with async version for real filtering
+ */
+export function isWithinProximity(
+  billboardLat: number,
+  billboardLng: number,
+  selectedPOIs: string[]
+): { isNear: boolean; nearestPOI?: string; distance?: number } {
+  if (selectedPOIs.length === 0) {
+    return { isNear: true };
+  }
+
+  // For sync version, we'll return true to show all billboards
+  // The actual filtering will happen in the component using the async version
+  return { 
+    isNear: true,
+    nearestPOI: selectedPOIs[0],
+    distance: 0
   };
 }
