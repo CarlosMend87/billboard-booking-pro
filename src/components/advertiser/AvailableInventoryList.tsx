@@ -19,7 +19,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
 import { isWithinProximity, formatDistance } from "@/lib/geoUtils";
 import { generatePDFReport } from "@/components/advertiser/PDFReportGenerator";
@@ -127,97 +128,121 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     fetchOwnerBillboards();
   }, []);
 
+  // State for async filtered assets
+  const [asyncFilteredAssets, setAsyncFilteredAssets] = useState<InventoryAsset[]>([]);
+  const [isFiltering, setIsFiltering] = useState(false);
+
   // Filter and sort available assets based on filters
-  const { filteredAssets, totalPages } = useMemo(() => {
-    // Combine mock inventory with owner billboards
-    const allAssets = [...mockInventoryAssets, ...ownerBillboards];
-    
-    // Apply filters
-    let filtered = allAssets.filter(asset => {
-      // Only show available assets
-      if (asset.estado !== "disponible") return false;
+  useEffect(() => {
+    const filterAssets = async () => {
+      setIsFiltering(true);
+      
+      // Combine mock inventory with owner billboards
+      const allAssets = [...mockInventoryAssets, ...ownerBillboards];
+      
+      // Apply synchronous filters first
+      let filtered = allAssets.filter(asset => {
+        // Only show available assets
+        if (asset.estado !== "disponible") return false;
 
-      // Filter by location search
-      if (searchTerm && !asset.nombre.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-
-      // Filter by billboard type
-      if (filters.advancedFilters.billboardTypes.length > 0) {
-        if (!filters.advancedFilters.billboardTypes.includes(asset.tipo)) {
+        // Filter by location search
+        if (searchTerm && !asset.nombre.toLowerCase().includes(searchTerm.toLowerCase())) {
           return false;
         }
-      }
 
-      // Filter by modalidades
-      if (filters.advancedFilters.modalidades.length > 0) {
-        const hasModalidad = filters.advancedFilters.modalidades.some(modalidad => {
-          return asset.contratacion[modalidad as keyof typeof asset.contratacion];
-        });
-        if (!hasModalidad) return false;
-      }
+        // Filter by billboard type
+        if (filters.advancedFilters.billboardTypes.length > 0) {
+          if (!filters.advancedFilters.billboardTypes.includes(asset.tipo)) {
+            return false;
+          }
+        }
 
-      // Filter by price range (using mensual price as reference)
-      const precio = asset.precio.mensual || 0;
-      if (precio < filters.advancedFilters.priceRange[0] || precio > filters.advancedFilters.priceRange[1]) {
-        return false;
-      }
+        // Filter by modalidades
+        if (filters.advancedFilters.modalidades.length > 0) {
+          const hasModalidad = filters.advancedFilters.modalidades.some(modalidad => {
+            return asset.contratacion[modalidad as keyof typeof asset.contratacion];
+          });
+          if (!hasModalidad) return false;
+        }
 
-      // Filter by computer vision
-      if (filters.advancedFilters.hasComputerVision !== null) {
-        const hasCV = (asset as any).has_computer_vision || false;
-        if (hasCV !== filters.advancedFilters.hasComputerVision) {
+        // Filter by price range (using mensual price as reference)
+        const precio = asset.precio.mensual || 0;
+        if (precio < filters.advancedFilters.priceRange[0] || precio > filters.advancedFilters.priceRange[1]) {
           return false;
         }
-      }
 
-      return true;
-    });
-
-    // Apply proximity filter separately and enrich with distance data
-    if (filters.advancedFilters.proximityFilters.length > 0) {
-      filtered = filtered.filter(asset => {
-        const { isNear, nearestPOI, distance } = isWithinProximity(
-          asset.lat,
-          asset.lng,
-          filters.advancedFilters.proximityFilters
-        );
-        if (isNear && nearestPOI && distance !== undefined) {
-          (asset as any).distance = distance;
-          (asset as any).nearestPOI = nearestPOI;
+        // Filter by computer vision
+        if (filters.advancedFilters.hasComputerVision !== null) {
+          const hasCV = (asset as any).has_computer_vision || false;
+          if (hasCV !== filters.advancedFilters.hasComputerVision) {
+            return false;
+          }
         }
-        return isNear;
+
+        return true;
       });
-    }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (filters.sortBy) {
-        case "nombre-asc":
-          return a.nombre.localeCompare(b.nombre);
-        case "nombre-desc":
-          return b.nombre.localeCompare(a.nombre);
-        case "precio-asc":
-          return (a.precio.mensual || 0) - (b.precio.mensual || 0);
-        case "precio-desc":
-          return (b.precio.mensual || 0) - (a.precio.mensual || 0);
-        case "detecciones-desc":
-          return ((b as any).last_detection_count || 0) - ((a as any).last_detection_count || 0);
-        case "detecciones-asc":
-          return ((a as any).last_detection_count || 0) - ((b as any).last_detection_count || 0);
-        default:
-          return 0;
+      // Apply proximity filter asynchronously with real Google Places data
+      if (filters.advancedFilters.proximityFilters.length > 0) {
+        const { isWithinProximityAsync } = await import('@/lib/geoUtils');
+        
+        const proximityPromises = filtered.map(async (asset) => {
+          const result = await isWithinProximityAsync(
+            asset.lat,
+            asset.lng,
+            filters.advancedFilters.proximityFilters
+          );
+          
+          if (result.isNear && result.nearestPOI && result.distance !== undefined) {
+            (asset as any).distance = result.distance;
+            (asset as any).nearestPOI = result.nearestPOI;
+            (asset as any).poiName = result.poiName;
+          }
+          
+          return { asset, isNear: result.isNear };
+        });
+
+        const proximityResults = await Promise.all(proximityPromises);
+        filtered = proximityResults
+          .filter(result => result.isNear)
+          .map(result => result.asset);
       }
-    });
 
-    // Calculate pagination
-    const total = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (filters.sortBy) {
+          case "nombre-asc":
+            return a.nombre.localeCompare(b.nombre);
+          case "nombre-desc":
+            return b.nombre.localeCompare(a.nombre);
+          case "precio-asc":
+            return (a.precio.mensual || 0) - (b.precio.mensual || 0);
+          case "precio-desc":
+            return (b.precio.mensual || 0) - (a.precio.mensual || 0);
+          case "detecciones-desc":
+            return ((b as any).last_detection_count || 0) - ((a as any).last_detection_count || 0);
+          case "detecciones-asc":
+            return ((a as any).last_detection_count || 0) - ((b as any).last_detection_count || 0);
+          default:
+            return 0;
+        }
+      });
+
+      setAsyncFilteredAssets(filtered);
+      setIsFiltering(false);
+    };
+
+    filterAssets();
+  }, [searchTerm, filters, ownerBillboards]);
+
+  const { filteredAssets, totalPages } = useMemo(() => {
+    const total = Math.ceil(asyncFilteredAssets.length / ITEMS_PER_PAGE);
     
     return {
-      filteredAssets: filtered,
+      filteredAssets: asyncFilteredAssets,
       totalPages: total
     };
-  }, [searchTerm, filters, ownerBillboards]);
+  }, [asyncFilteredAssets]);
 
   // Get current page assets
   const paginatedAssets = useMemo(() => {
@@ -332,13 +357,14 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
             <CardTitle className="flex items-center gap-2">
               <Building className="h-5 w-5" />
               Inventario Disponible
+              {isFiltering && <Loader2 className="h-4 w-4 animate-spin" />}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadPDF}
-                disabled={filteredAssets.length === 0}
+                disabled={filteredAssets.length === 0 || isFiltering}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Descargar PDF
@@ -361,6 +387,17 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
           </div>
         </CardContent>
       </Card>
+
+      {isFiltering && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <p>Buscando puntos de interés cercanos...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedAssets.map((asset) => {
@@ -397,6 +434,17 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                           <span className="text-sm text-blue-600 dark:text-blue-400">
                             personas detectadas ayer
                           </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(asset as any).distance !== undefined && (asset as any).nearestPOI && (
+                      <div className="flex items-center gap-2 mt-2 p-2 bg-green-50 dark:bg-green-950/30 rounded-md">
+                        <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <div className="text-sm text-green-600 dark:text-green-400">
+                          <span className="font-semibold">{formatDistance((asset as any).distance)}</span>
+                          {' de '}
+                          <span>{(asset as any).poiName || (asset as any).nearestPOI}</span>
                         </div>
                       </div>
                     )}

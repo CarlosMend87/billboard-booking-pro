@@ -39,8 +39,10 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [billboards, setBillboards] = useState<MapBillboard[]>([]);
+  const [filteredBillboards, setFilteredBillboards] = useState<MapBillboard[]>([]);
   const [selectedBillboard, setSelectedBillboard] = useState<MapBillboard | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isFilteringProximity, setIsFilteringProximity] = useState(false);
 
   useEffect(() => {
     const fetchBillboards = async () => {
@@ -88,17 +90,81 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
     return billboard.tipo === 'digital' ? '📱' : '📋';
   };
 
-  // Calculate statistics
+
+  // Apply filters including proximity filters
+  useEffect(() => {
+    const applyFilters = async () => {
+      if (billboards.length === 0) {
+        setFilteredBillboards([]);
+        return;
+      }
+
+      setIsFilteringProximity(filters.advancedFilters.proximityFilters.length > 0);
+
+      let filtered = [...billboards];
+
+      // Apply billboard type filter
+      if (filters.advancedFilters.billboardTypes.length > 0) {
+        filtered = filtered.filter(b => 
+          filters.advancedFilters.billboardTypes.includes(b.tipo)
+        );
+      }
+
+      // Apply price filter
+      if (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000) {
+        filtered = filtered.filter(b => {
+          const price = b.precio?.mensual || 0;
+          return price >= filters.advancedFilters.priceRange[0] && 
+                 price <= filters.advancedFilters.priceRange[1];
+        });
+      }
+
+      // Apply computer vision filter
+      if (filters.advancedFilters.hasComputerVision !== null) {
+        filtered = filtered.filter(b => 
+          b.has_computer_vision === filters.advancedFilters.hasComputerVision
+        );
+      }
+
+      // Apply proximity filter with real Google Places API
+      if (filters.advancedFilters.proximityFilters.length > 0) {
+        const { isWithinProximityAsync } = await import('@/lib/geoUtils');
+        
+        const proximityResults = await Promise.all(
+          filtered.map(async (billboard) => {
+            const result = await isWithinProximityAsync(
+              billboard.lat,
+              billboard.lng,
+              filters.advancedFilters.proximityFilters
+            );
+            return { billboard, isNear: result.isNear };
+          })
+        );
+
+        filtered = proximityResults
+          .filter(result => result.isNear)
+          .map(result => result.billboard);
+      }
+
+      setFilteredBillboards(filtered);
+      setIsFilteringProximity(false);
+    };
+
+    applyFilters();
+  }, [billboards, filters]);
+
+  // Calculate statistics based on filtered billboards
   const stats = {
-    total: billboards.length,
-    digital: billboards.filter(b => b.tipo === 'digital').length,
-    fijo: billboards.filter(b => b.tipo !== 'digital').length,
-    withCV: billboards.filter(b => b.has_computer_vision).length,
+    total: filteredBillboards.length,
+    digital: filteredBillboards.filter(b => b.tipo === 'digital').length,
+    fijo: filteredBillboards.filter(b => b.tipo !== 'digital').length,
+    withCV: filteredBillboards.filter(b => b.has_computer_vision).length,
   };
+
 
   useEffect(() => {
     const initMap = async () => {
-      if (!mapRef.current || billboards.length === 0) return;
+      if (!mapRef.current || filteredBillboards.length === 0) return;
 
       try {
         const loader = new Loader({
@@ -126,7 +192,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         // Create markers with clustering
         const markers: google.maps.marker.AdvancedMarkerElement[] = [];
 
-        billboards.forEach((billboard) => {
+        filteredBillboards.forEach((billboard) => {
           const markerElement = document.createElement('div');
           markerElement.style.cursor = 'pointer';
           markerElement.style.transition = 'all 0.3s ease';
@@ -206,8 +272,14 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
       }
     };
 
-    initMap();
-  }, [billboards]);
+    // Clear existing map and reinitialize when filtered billboards change
+    if (mapInstanceRef.current) {
+      // Just reinitialize the map with new markers
+      initMap();
+    } else {
+      initMap();
+    }
+  }, [filteredBillboards]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -245,11 +317,13 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         </CardHeader>
         <CardContent>
           <div className="relative">
-            {isLoading && (
+            {(isLoading || isFilteringProximity) && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10 rounded-md">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Cargando mapa...</span>
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="text-sm">
+                    {isFilteringProximity ? 'Buscando puntos de interés cercanos...' : 'Cargando mapa...'}
+                  </span>
                 </div>
               </div>
             )}
