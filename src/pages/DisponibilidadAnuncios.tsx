@@ -7,7 +7,6 @@ import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFi
 import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
 import { AdvancedFilters } from "@/components/advertiser/AdvancedFilters";
 import { SortOptions } from "@/components/advertiser/SortOptions";
-import { OwnerFilter } from "@/components/advertiser/OwnerFilter";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +29,7 @@ export default function DisponibilidadAnuncios() {
       priceRange: [0, 100000],
       hasComputerVision: null
     },
-    sortBy: "nombre-asc" as any,
-    ownerFilter: ''
+    sortBy: "nombre-asc" as any
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
@@ -66,8 +64,7 @@ export default function DisponibilidadAnuncios() {
     (filters.advancedFilters.billboardTypes.length > 0 ? 1 : 0) +
     (filters.advancedFilters.modalidades.length > 0 ? 1 : 0) +
     (filters.advancedFilters.proximityFilters.length > 0 ? 1 : 0) +
-    (filters.advancedFilters.hasComputerVision !== null ? 1 : 0) +
-    (filters.ownerFilter ? 1 : 0);
+    (filters.advancedFilters.hasComputerVision !== null ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,7 +105,7 @@ export default function DisponibilidadAnuncios() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 md:gap-4 mb-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <LocationKeywordFilter
               selectedKeywords={filters.location ? [filters.location] : []}
               onKeywordChange={(keywords) => handleFilterChange({ location: keywords[0] || '' })}
@@ -132,13 +129,7 @@ export default function DisponibilidadAnuncios() {
               onClearFilters={handleClearAdvancedFilters}
             />
           </div>
-          <div className="lg:col-span-2">
-            <OwnerFilter
-              selectedOwners={filters.ownerFilter ? [filters.ownerFilter] : []}
-              onOwnerChange={(owners) => handleFilterChange({ ownerFilter: owners[0] || '' })}
-            />
-          </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <SortOptions
               value={filters.sortBy as any}
               onChange={(sortBy) => handleFilterChange({ sortBy: sortBy as any })}

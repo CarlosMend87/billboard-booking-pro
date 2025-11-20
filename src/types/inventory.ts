@@ -14,5 +14,4 @@ export interface InventoryFilters {
   endDate: Date | null;
   advancedFilters: AdvancedFiltersState;
   sortBy: string;
-  ownerFilter: string;
 }
