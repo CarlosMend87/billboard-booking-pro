@@ -22,8 +22,8 @@ import {
   Download,
   Loader2
 } from "lucide-react";
-import { isWithinProximity, formatDistance } from "@/lib/geoUtils";
-import { generatePDFReport } from "@/components/advertiser/PDFReportGenerator";
+// import { isWithinProximity, formatDistance } from "@/lib/geoUtils";
+// import { generatePDFReport } from "@/components/advertiser/PDFReportGenerator";
 import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
 import { mockInventoryAssets, InventoryAsset } from "@/lib/mockInventory";
 import { formatPrice, esElegibleRotativo } from "@/lib/pricing";

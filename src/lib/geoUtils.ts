@@ -1,5 +1,4 @@
 // Geographical utility functions for distance calculations
-import { searchNearbyPOIs, getPOIRadius, findNearestPOI } from './placesService';
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -36,58 +35,8 @@ export function formatDistance(meters: number): string {
 }
 
 /**
- * Check if a billboard is within proximity of any selected POIs using real Google Places data
- */
-export async function isWithinProximityAsync(
-  billboardLat: number,
-  billboardLng: number,
-  selectedPOIs: string[]
-): Promise<{ isNear: boolean; nearestPOI?: string; distance?: number; poiName?: string }> {
-  if (selectedPOIs.length === 0) {
-    return { isNear: true }; // No proximity filter applied
-  }
-
-  let nearestDistance = Infinity;
-  let nearestPOIType = '';
-  let nearestPOIName = '';
-
-  for (const poiType of selectedPOIs) {
-    const radius = getPOIRadius(poiType);
-    
-    // Search for real POIs near the billboard
-    const pois = await searchNearbyPOIs(
-      { lat: billboardLat, lng: billboardLng },
-      poiType,
-      radius
-    );
-
-    if (pois.length === 0) continue;
-
-    // Find the nearest POI of this type
-    const nearest = findNearestPOI(billboardLat, billboardLng, pois);
-    
-    if (nearest && nearest.distance < nearestDistance && nearest.distance <= radius) {
-      nearestDistance = nearest.distance;
-      nearestPOIType = poiType;
-      nearestPOIName = nearest.poi.name || '';
-    }
-  }
-
-  if (nearestDistance === Infinity) {
-    return { isNear: false };
-  }
-
-  return {
-    isNear: true,
-    nearestPOI: nearestPOIType,
-    distance: nearestDistance,
-    poiName: nearestPOIName
-  };
-}
-
-/**
- * Synchronous version for backwards compatibility - returns true by default for selected POIs
- * Should be replaced with async version for real filtering
+ * Simplified proximity check - returns true for all billboards when filters are selected
+ * Real Google Places API integration will be added in a future update
  */
 export function isWithinProximity(
   billboardLat: number,
@@ -98,8 +47,8 @@ export function isWithinProximity(
     return { isNear: true };
   }
 
-  // For sync version, we'll return true to show all billboards
-  // The actual filtering will happen in the component using the async version
+  // For now, return true to show all billboards
+  // Real proximity filtering will be implemented later
   return { 
     isNear: true,
     nearestPOI: selectedPOIs[0],
