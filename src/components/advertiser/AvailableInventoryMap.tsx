@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MapPin, Monitor, Building, Loader2, Camera, Users, Compass, TrendingUp, Calendar, Download, Edit3, Flame } from "lucide-react";
-import { InventoryFilters } from "@/pages/DisponibilidadAnuncios";
+import { MapPin, Monitor, Building, Loader2, Camera, Users, Compass, TrendingUp, Calendar, Download, Edit3, Flame, ShoppingCart } from "lucide-react";
+import { InventoryFilters } from "@/types/inventory";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { Loader } from "@googlemaps/js-api-loader";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase } from "@/integrations/supabase/client";
-import { formatTruncatedId, formatPrice as utilsFormatPrice } from "@/lib/utils";
+import { formatTruncatedId } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { formatPrice as pricingFormatPrice } from "@/lib/pricing";
@@ -429,7 +429,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                 className="flex items-center gap-2"
               >
                 <Edit3 className="h-4 w-4" />
-                Dibujar Zona
+                <span className="hidden md:inline">Dibujar Zona</span>
               </Button>
               {drawnShapes.length > 0 && (
                 <>
@@ -447,7 +447,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    PDF
+                    <span className="hidden md:inline">PDF</span>
                   </Button>
                 </>
               )}
@@ -478,11 +478,11 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             
             <div 
               ref={mapRef} 
-              className="w-full h-[600px] rounded-md bg-muted"
+              className="w-full h-[500px] md:h-[600px] rounded-md bg-muted"
             />
             
             {/* Mini Stats Cards */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            <div className="absolute top-2 left-2 md:top-4 md:left-4 flex flex-col gap-2 z-10">
               <Card className="bg-background/95 backdrop-blur-sm border-2 border-primary/20 shadow-lg">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2">
@@ -533,8 +533,8 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
             </div>
             
             {/* Legend */}
-            <div className="absolute bottom-4 right-4 bg-background/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border">
-              <h4 className="font-medium text-sm mb-2">Leyenda</h4>
+            <div className="absolute bottom-2 right-2 md:bottom-4 md:right-4 bg-background/95 backdrop-blur-sm rounded-lg p-2 md:p-3 shadow-lg border text-xs md:text-sm">
+              <h4 className="font-medium mb-2">Leyenda</h4>
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
@@ -659,33 +659,33 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                       const asset: InventoryAsset = {
                         id: selectedBillboard.id,
                         nombre: selectedBillboard.nombre,
-                        direccion: selectedBillboard.direccion,
                         lat: selectedBillboard.lat,
                         lng: selectedBillboard.lng,
                         tipo: selectedBillboard.tipo as any,
-                        status: 'disponible',
                         owner_id: selectedBillboard.owner_id,
                         precio: selectedBillboard.precio,
                         medidas: selectedBillboard.medidas,
-                        fotos: [],
                         contratacion: {
                           mensual: true,
-                          por_dia: false,
-                          cpm: false,
+                          catorcenal: false,
+                          semanal: false,
                           spot: false,
-                          hora: false
+                          hora: false,
+                          dia: false,
+                          cpm: false
                         },
-                        has_computer_vision: selectedBillboard.has_computer_vision
+                        estado: 'disponible',
+                        propietario: selectedBillboard.owner_id,
+                        foto: ''
                       };
                       
                       onAddToCart(asset, 'mensual', { 
-                        meses: 1,
-                        desde: new Date().toISOString().split('T')[0],
-                        hasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        meses: 1
                       });
                       setIsPanelOpen(false);
                     }}
                   >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
                     Agregar al Carrito
                   </Button>
                 </div>

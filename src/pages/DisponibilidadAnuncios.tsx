@@ -1,38 +1,28 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/Header";
+import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
+import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
+import { CartSidebar } from "@/components/cart/CartSidebar";
 import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFilter";
 import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
-import { AdvancedFilters, AdvancedFiltersState } from "@/components/advertiser/AdvancedFilters";
-import { SortOptions, SortOption } from "@/components/advertiser/SortOptions";
-import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
-import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
-import { CartSidebar } from "@/components/cart/CartSidebar";
+import { AdvancedFilters } from "@/components/advertiser/AdvancedFilters";
+import { SortOptions } from "@/components/advertiser/SortOptions";
+import { OwnerFilter } from "@/components/advertiser/OwnerFilter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, List, Search, Filter, ShoppingCart } from "lucide-react";
+import { MapPin, List } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
-import { Link } from "react-router-dom";
+import { InventoryFilters, AdvancedFiltersState } from "@/types/inventory";
 
-export interface InventoryFilters {
-  locationKeywords: string[];
-  dateRange: {
-    startDate: Date | null;
-    endDate: Date | null;
-  };
-  billboardType?: string;
-  advancedFilters: AdvancedFiltersState;
-  sortBy: SortOption;
-}
+export type { InventoryFilters, AdvancedFiltersState };
 
 export default function DisponibilidadAnuncios() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [filters, setFilters] = useState<InventoryFilters>({
-    locationKeywords: [],
-    dateRange: {
-      startDate: null,
-      endDate: null
-    },
+    location: '',
+    startDate: null,
+    endDate: null,
     advancedFilters: {
       billboardTypes: [],
       modalidades: [],
@@ -40,7 +30,8 @@ export default function DisponibilidadAnuncios() {
       priceRange: [0, 100000],
       hasComputerVision: null
     },
-    sortBy: "nombre-asc" as SortOption
+    sortBy: "nombre-asc" as any,
+    ownerFilter: ''
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
@@ -49,10 +40,10 @@ export default function DisponibilidadAnuncios() {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
-  const handleAdvancedFiltersChange = (newAdvancedFilters: Partial<AdvancedFiltersState>) => {
+  const handleAdvancedFiltersChange = (advancedFilters: Partial<AdvancedFiltersState>) => {
     setFilters(prev => ({ 
       ...prev, 
-      advancedFilters: { ...prev.advancedFilters, ...newAdvancedFilters }
+      advancedFilters: { ...prev.advancedFilters, ...advancedFilters }
     }));
   };
 
@@ -70,107 +61,101 @@ export default function DisponibilidadAnuncios() {
   };
 
   const activeFiltersCount = 
-    filters.locationKeywords.length + 
-    (filters.dateRange.startDate && filters.dateRange.endDate ? 1 : 0) +
-    filters.advancedFilters.billboardTypes.length +
-    filters.advancedFilters.modalidades.length +
-    filters.advancedFilters.proximityFilters.length +
+    (filters.location ? 1 : 0) +
+    (filters.startDate || filters.endDate ? 1 : 0) +
+    (filters.advancedFilters.billboardTypes.length > 0 ? 1 : 0) +
+    (filters.advancedFilters.modalidades.length > 0 ? 1 : 0) +
+    (filters.advancedFilters.proximityFilters.length > 0 ? 1 : 0) +
     (filters.advancedFilters.hasComputerVision !== null ? 1 : 0) +
-    (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000 ? 1 : 0);
+    (filters.ownerFilter ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
       
-      {/* Fixed Header Section with Filters */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
                 Disponibilidad de Anuncios
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {activeFiltersCount} filtros aplicados
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {cart.itemCount > 0 && (
-                <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
-                  <Link to="/booking-wizard">
-                    <ShoppingCart className="h-4 w-4 mr-1" />
-                    Continuar Reserva ({cart.itemCount})
-                  </Link>
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary">{activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} aplicado{activeFiltersCount !== 1 ? 's' : ''}</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center gap-2"
+                >
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">Lista</span>
                 </Button>
-              )}
-            </div>
-          </div>
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('map')}
+                  className="flex items-center gap-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="hidden sm:inline">Mapa</span>
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
-          {/* Compact Filters Row */}
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2 md:gap-4 mb-6">
+          <div className="lg:col-span-2">
             <LocationKeywordFilter
-              selectedKeywords={filters.locationKeywords}
-              onKeywordChange={(locationKeywords) => handleFilterChange({ locationKeywords })}
+              selectedKeywords={filters.location ? [filters.location] : []}
+              onKeywordChange={(keywords) => handleFilterChange({ location: keywords[0] || '' })}
             />
-            
+          </div>
+          <div className="lg:col-span-3">
             <DateAvailabilityFilter
-              dateRange={filters.dateRange}
-              onDateRangeChange={(dateRange) => handleFilterChange({ dateRange })}
+              dateRange={{
+                startDate: filters.startDate,
+                endDate: filters.endDate
+              }}
+              onDateRangeChange={({ startDate, endDate }) => 
+                handleFilterChange({ startDate, endDate })
+              }
             />
-            
+          </div>
+          <div className="lg:col-span-3">
             <AdvancedFilters
               filters={filters.advancedFilters}
               onFiltersChange={handleAdvancedFiltersChange}
               onClearFilters={handleClearAdvancedFilters}
             />
-
-            {viewMode === 'list' && (
-              <SortOptions
-                value={filters.sortBy}
-                onChange={(sortBy) => handleFilterChange({ sortBy })}
-              />
-            )}
-
-            <div className="flex bg-muted rounded-lg p-1 ml-auto">
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="flex items-center gap-1"
-              >
-                <List className="h-4 w-4" />
-                Lista
-              </Button>
-              <Button
-                variant={viewMode === 'map' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('map')}
-                className="flex items-center gap-1"
-              >
-                <MapPin className="h-4 w-4" />
-                Mapa
-              </Button>
-            </div>
+          </div>
+          <div className="lg:col-span-2">
+            <OwnerFilter
+              selectedOwners={filters.ownerFilter ? [filters.ownerFilter] : []}
+              onOwnerChange={(owners) => handleFilterChange({ ownerFilter: owners[0] || '' })}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <SortOptions
+              value={filters.sortBy as any}
+              onChange={(sortBy) => handleFilterChange({ sortBy: sortBy as any })}
+            />
           </div>
         </div>
-      </div>
 
-      {/* Main Content Area - Full Height with Map */}
-      <div className="flex-1 relative">
-        <div className="absolute inset-0 flex">
-          {viewMode === 'map' ? (
-            <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              <div className="container mx-auto px-4 py-6">
-                <AvailableInventoryList filters={filters} onAddToCart={addItem} />
-              </div>
-            </div>
-          )}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            {viewMode === 'map' ? (
+              <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
+            ) : (
+              <AvailableInventoryList filters={filters} onAddToCart={addItem} />
+            )}
+          </div>
           
-          {/* Floating Cart Sidebar */}
-          <div className="w-80 border-l bg-background overflow-y-auto">
+          <div className="xl:col-span-1">
             <CartSidebar 
               cart={cart}
               onRemoveItem={removeItem}
