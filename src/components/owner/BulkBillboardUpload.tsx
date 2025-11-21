@@ -21,6 +21,7 @@ interface ColumnMapping {
 }
 
 const REQUIRED_COLUMNS = [
+  { key: "frame_id", label: "Frame_ID", required: false },
   { key: "venue_type", label: "Venue type", required: true },
   { key: "address", label: "Address", required: true },
   { key: "floor", label: "Floor", required: false },
@@ -62,6 +63,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const downloadTemplate = () => {
     const template = [
       {
+        "Frame_ID": "FRAME-001",
         "Venue type": "espectacular",
         "Address": "Av. Reforma 123, Col. Centro",
         "Floor": "0",
@@ -88,6 +90,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         "Backlighted?": "yes"
       },
       {
+        "Frame_ID": "FRAME-002",
         "Venue type": "digital",
         "Address": "Av. Insurgentes 456, Col. Roma",
         "Floor": "1",
@@ -168,8 +171,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     const width = parseFloat(getValue("width") || "0");
     const height = parseFloat(getValue("height") || "0");
 
+    const frameId = getValue("frame_id");
+    
     return {
-      nombre: `${getValue("venue_type")} - ${getValue("address")}`,
+      nombre: frameId ? `${frameId} - ${getValue("venue_type")}` : `${getValue("venue_type")} - ${getValue("address")}`,
       direccion: getValue("address"),
       tipo: getValue("venue_type") || "espectacular",
       lat: parseFloat(getValue("latitude")),
@@ -210,6 +215,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       owner_id: ownerId,
       // Campos adicionales
       metadata: {
+        frame_id: getValue("frame_id"),
         piso: getValue("floor"),
         distrito: getValue("district"),
         ciudad: getValue("city"),
