@@ -54,9 +54,11 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [progress, setProgress] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [showMapping, setShowMapping] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [previewData, setPreviewData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -271,13 +273,9 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     });
   };
 
-  const handleProcessUpload = async () => {
-    setUploading(true);
-    setErrors([]);
-    setProgress(0);
-
+  const handleGeneratePreview = () => {
     const validationErrors: string[] = [];
-    const validBillboards: any[] = [];
+    const preview: any[] = [];
 
     // Validar mapeo de columnas requeridas
     const missingRequired = REQUIRED_COLUMNS
@@ -286,9 +284,45 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
     if (missingRequired.length > 0) {
       setErrors([`Columnas requeridas sin mapear: ${missingRequired.join(", ")}`]);
-      setUploading(false);
       return;
     }
+
+    // Procesar primeras 10 filas para vista previa
+    const previewRows = csvData.slice(0, 10);
+    
+    previewRows.forEach((row, index) => {
+      try {
+        const billboard = processBillboard(row, columnMapping);
+        
+        if (!billboard.lat || !billboard.lng) {
+          validationErrors.push(`Fila ${index + 2}: Coordenadas inválidas`);
+          return;
+        }
+        
+        preview.push(billboard);
+      } catch (err: any) {
+        validationErrors.push(`Fila ${index + 2}: ${err.message}`);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setPreviewData(preview);
+    setShowMapping(false);
+    setShowPreview(true);
+    setErrors([]);
+  };
+
+  const handleProcessUpload = async () => {
+    setUploading(true);
+    setErrors([]);
+    setProgress(0);
+
+    const validationErrors: string[] = [];
+    const validBillboards: any[] = [];
 
     // Procesar cada fila
     csvData.forEach((row, index) => {
@@ -370,9 +404,11 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         setIsOpen(open);
         if (!open) {
           setShowMapping(false);
+          setShowPreview(false);
           setCsvData([]);
           setCsvHeaders([]);
           setColumnMapping({});
+          setPreviewData([]);
         }
       }}>
         <Button
@@ -386,11 +422,95 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {showMapping ? "Mapear Columnas del CSV" : "Carga Masiva de Inventario"}
+              {showPreview ? "Vista Previa de Carga" : showMapping ? "Mapear Columnas del CSV" : "Carga Masiva de Inventario"}
             </DialogTitle>
           </DialogHeader>
 
-          {!showMapping ? (
+          {showPreview ? (
+            <div className="space-y-4">
+              <Alert>
+                <FileText className="h-4 w-4" />
+                <AlertDescription>
+                  Vista previa de las primeras {previewData.length} filas con precios calculados automáticamente. Revisa los datos antes de confirmar la carga.
+                </AlertDescription>
+              </Alert>
+
+              <div className="overflow-x-auto max-h-96 border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted sticky top-0">
+                    <tr>
+                      <th className="p-2 text-left">Nombre</th>
+                      <th className="p-2 text-left">Tipo</th>
+                      <th className="p-2 text-left">Dirección</th>
+                      <th className="p-2 text-right">Precio Mensual</th>
+                      <th className="p-2 text-right">Precio Semanal</th>
+                      <th className="p-2 text-right">Otros Precios</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((billboard, index) => {
+                      const isDigital = billboard.digital !== null;
+                      return (
+                        <tr key={index} className="border-t">
+                          <td className="p-2">{billboard.nombre}</td>
+                          <td className="p-2">
+                            <span className="text-xs px-2 py-1 rounded bg-primary/10">
+                              {isDigital ? 'Digital' : 'Estático'}
+                            </span>
+                          </td>
+                          <td className="p-2 text-muted-foreground">{billboard.direccion}</td>
+                          <td className="p-2 text-right font-medium">
+                            ${billboard.precio.mensual?.toLocaleString()}
+                          </td>
+                          <td className="p-2 text-right">
+                            ${billboard.precio.semanal?.toLocaleString()}
+                          </td>
+                          <td className="p-2 text-right text-xs text-muted-foreground">
+                            {isDigital ? (
+                              <>
+                                Diario: ${billboard.precio.diario?.toLocaleString()}<br />
+                                Spot: ${billboard.precio.spot?.toLocaleString()}
+                              </>
+                            ) : (
+                              <>Catorcenal: ${billboard.precio.catorcenal?.toLocaleString()}</>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Se procesarán <strong>{csvData.length} pantallas</strong> en total. 
+                  {csvData.length > 10 && ` Mostrando solo las primeras ${previewData.length} para vista previa.`}
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPreview(false);
+                    setShowMapping(true);
+                  }}
+                >
+                  Volver al Mapeo
+                </Button>
+                <Button
+                  onClick={handleProcessUpload}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  Confirmar y Cargar Todo
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : !showMapping ? (
             <div className="space-y-4">
               <Alert>
                 <FileText className="h-4 w-4" />
@@ -482,11 +602,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                   Cancelar
                 </Button>
                 <Button
-                  onClick={handleProcessUpload}
-                  disabled={uploading}
+                  onClick={handleGeneratePreview}
                   className="gap-2"
                 >
-                  Procesar y Cargar
+                  Ver Vista Previa
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
