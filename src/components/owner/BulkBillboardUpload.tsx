@@ -437,16 +437,19 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                       {col.label} {col.required && <span className="text-destructive">*</span>}
                     </Label>
                     <Select
-                      value={columnMapping[col.key] || ""}
+                      value={columnMapping[col.key] || "unmapped"}
                       onValueChange={(value) => 
-                        setColumnMapping(prev => ({ ...prev, [col.key]: value }))
+                        setColumnMapping(prev => ({ 
+                          ...prev, 
+                          [col.key]: value === "unmapped" ? "" : value 
+                        }))
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar columna..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">-- Sin mapear --</SelectItem>
+                        <SelectItem value="unmapped">-- Sin mapear --</SelectItem>
                         {csvHeaders.map((header) => (
                           <SelectItem key={header} value={header}>
                             {header}
