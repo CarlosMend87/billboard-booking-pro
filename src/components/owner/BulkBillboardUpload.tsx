@@ -185,7 +185,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       .replace(/\s+/g, ''); // Eliminar espacios
   };
 
-  const processBillboard = (row: any, mapping: ColumnMapping) => {
+  const processBillboard = (row: any, mapping: ColumnMapping, spotsDisponibles: number = 1) => {
     const getValue = (key: string) => {
       const mappedColumn = mapping[key];
       return mappedColumn ? row[mappedColumn] : "";
@@ -226,7 +226,12 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       contratacion: {
         fijo: true,
         programatico: isDigital,
-        spots: isDigital
+        spots: isDigital,
+        spot: isDigital,
+        // Campos de spots (para todas las pantallas, pero especialmente digitales)
+        duracion_spot_seg: 20, // Duración fija de 20 segundos
+        total_spots_pantalla: 12, // Máximo de 12 spots
+        spots_disponibles: spotsDisponibles // Contado desde el Excel
       },
       precio: isDigital ? {
         mensual: calculatedPrices.mensual,
@@ -515,34 +520,48 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       return;
     }
 
-    // Extraer Frame_IDs del archivo para verificar duplicados
-    const frameIdsInFile = csvData
-      .map(row => {
-        const mappedColumn = columnMapping["frame_id"];
-        return mappedColumn ? row[mappedColumn] : "";
-      })
-      .filter(id => id && id.toString().trim().length > 0)
-      .map(id => id.toString().trim());
+    // Agrupar filas por Frame_ID para contar spots disponibles
+    const frameIdGroups = new Map<string, any[]>();
+    
+    csvData.forEach(row => {
+      const mappedColumn = columnMapping["frame_id"];
+      const frameId = mappedColumn ? String(row[mappedColumn] || "").trim() : "";
+      
+      if (frameId) {
+        if (!frameIdGroups.has(frameId)) {
+          frameIdGroups.set(frameId, []);
+        }
+        frameIdGroups.get(frameId)!.push(row);
+      }
+    });
+
+    // Extraer Frame_IDs únicos del archivo para verificar duplicados
+    const uniqueFrameIds = Array.from(frameIdGroups.keys()).filter(id => id.length > 0);
 
     // Verificar duplicados en la base de datos
-    const duplicates = await checkDuplicateFrameIds(frameIdsInFile);
+    const duplicates = await checkDuplicateFrameIds(uniqueFrameIds);
     setDuplicateFrameIds(duplicates);
 
-    // Procesar primeras 10 filas para vista previa
-    const previewRows = csvData.slice(0, 10);
+    // Procesar primeras 10 pantallas únicas para vista previa
+    const previewFrameIds = Array.from(frameIdGroups.entries()).slice(0, 10);
     
-    previewRows.forEach((row, index) => {
+    previewFrameIds.forEach(([frameId, rows], index) => {
       try {
-        const billboard = processBillboard(row, columnMapping);
+        // Usar la primera fila del grupo para los datos base
+        const firstRow = rows[0];
+        // El número de filas en el grupo = spots disponibles
+        const spotsDisponibles = rows.length;
+        
+        const billboard = processBillboard(firstRow, columnMapping, spotsDisponibles);
         
         if (!billboard.lat || !billboard.lng) {
-          validationErrors.push(`Fila ${index + 2}: Coordenadas inválidas`);
+          validationErrors.push(`Frame_ID ${frameId}: Coordenadas inválidas`);
           return;
         }
         
         preview.push(billboard);
       } catch (err: any) {
-        validationErrors.push(`Fila ${index + 2}: ${err.message}`);
+        validationErrors.push(`Frame_ID ${frameId}: ${err.message}`);
       }
     });
 
@@ -565,20 +584,40 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     const validationErrors: string[] = [];
     const validBillboards: any[] = [];
 
-    // Procesar cada fila
+    // Agrupar filas por Frame_ID
+    const frameIdGroups = new Map<string, any[]>();
+    
     csvData.forEach((row, index) => {
+      const mappedColumn = columnMapping["frame_id"];
+      const frameId = mappedColumn ? String(row[mappedColumn] || "").trim() : "";
+      
+      if (frameId) {
+        if (!frameIdGroups.has(frameId)) {
+          frameIdGroups.set(frameId, []);
+        }
+        frameIdGroups.get(frameId)!.push({ row, originalIndex: index });
+      }
+    });
+
+    // Procesar cada grupo (una pantalla por Frame_ID)
+    frameIdGroups.forEach((rows, frameId) => {
       try {
-        const billboard = processBillboard(row, columnMapping);
+        // Usar la primera fila del grupo para los datos base
+        const firstRowData = rows[0].row;
+        // El número de filas en el grupo = spots disponibles
+        const spotsDisponibles = rows.length;
+        
+        const billboard = processBillboard(firstRowData, columnMapping, spotsDisponibles);
         
         // Validaciones básicas
         if (!billboard.lat || !billboard.lng) {
-          validationErrors.push(`Fila ${index + 2}: Coordenadas inválidas`);
+          validationErrors.push(`Frame_ID ${frameId}: Coordenadas inválidas`);
           return;
         }
         
         validBillboards.push(billboard);
       } catch (err: any) {
-        validationErrors.push(`Fila ${index + 2}: ${err.message}`);
+        validationErrors.push(`Frame_ID ${frameId}: ${err.message}`);
       }
     });
 
@@ -704,15 +743,17 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                     <tr>
                       <th className="p-2 text-left">Nombre</th>
                       <th className="p-2 text-left">Tipo</th>
+                      <th className="p-2 text-center">Spots</th>
                       <th className="p-2 text-left">Dirección</th>
                       <th className="p-2 text-right">Precio Mensual</th>
-                      <th className="p-2 text-right">Precio Semanal</th>
-                      <th className="p-2 text-right">Otros Precios</th>
+                      <th className="p-2 text-right">Precio Spot</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previewData.map((billboard, index) => {
                       const isDigital = billboard.digital !== null;
+                      const spotsDisponibles = billboard.contratacion?.spots_disponibles || 0;
+                      const totalSpots = billboard.contratacion?.total_spots_pantalla || 12;
                       return (
                         <tr key={index} className="border-t">
                           <td className="p-2">{billboard.nombre}</td>
@@ -721,22 +762,17 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                               {isDigital ? 'Digital' : 'Estático'}
                             </span>
                           </td>
-                          <td className="p-2 text-muted-foreground">{billboard.direccion}</td>
+                          <td className="p-2 text-center">
+                            <span className="text-xs font-medium">
+                              {spotsDisponibles}/{totalSpots}
+                            </span>
+                          </td>
+                          <td className="p-2 text-muted-foreground text-xs">{billboard.direccion}</td>
                           <td className="p-2 text-right font-medium">
                             ${billboard.precio.mensual?.toLocaleString()}
                           </td>
-                          <td className="p-2 text-right">
-                            ${billboard.precio.semanal?.toLocaleString()}
-                          </td>
-                          <td className="p-2 text-right text-xs text-muted-foreground">
-                            {isDigital ? (
-                              <>
-                                Diario: ${billboard.precio.diario?.toLocaleString()}<br />
-                                Spot: ${billboard.precio.spot?.toLocaleString()}
-                              </>
-                            ) : (
-                              <>Catorcenal: ${billboard.precio.catorcenal?.toLocaleString()}</>
-                            )}
+                          <td className="p-2 text-right text-xs">
+                            {billboard.precio.spot ? `$${billboard.precio.spot?.toLocaleString()}` : '-'}
                           </td>
                         </tr>
                       );
@@ -748,8 +784,15 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Se procesarán <strong>{csvData.length} pantallas</strong> en total. 
-                  {csvData.length > 10 && ` Mostrando solo las primeras ${previewData.length} para vista previa.`}
+                  Se procesarán <strong>{previewData.length} pantallas únicas</strong> de <strong>{csvData.length} filas</strong> en el archivo.
+                  {previewData.length < csvData.length && (
+                    <>
+                      <br />
+                      <span className="text-xs">
+                        Nota: Filas con el mismo Frame_ID se agrupan en una sola pantalla, contando spots disponibles.
+                      </span>
+                    </>
+                  )}
                 </AlertDescription>
               </Alert>
 
