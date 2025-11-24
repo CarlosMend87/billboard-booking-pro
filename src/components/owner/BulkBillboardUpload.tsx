@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, FileText, AlertCircle, ArrowRight } from "lucide-react";
+import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -62,6 +63,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [selectedEncoding, setSelectedEncoding] = useState<string>("UTF-8");
   const [detectedEncoding, setDetectedEncoding] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [duplicateFrameIds, setDuplicateFrameIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -344,7 +346,43 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     }
   };
 
-  const handleGeneratePreview = () => {
+  const checkDuplicateFrameIds = async (frameIds: string[]): Promise<string[]> => {
+    const validFrameIds = frameIds.filter(id => id && id.trim().length > 0);
+    
+    if (validFrameIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('billboards')
+        .select('nombre')
+        .eq('owner_id', ownerId);
+
+      if (error) {
+        console.error("Error checking duplicates:", error);
+        return [];
+      }
+
+      const duplicates = new Set<string>();
+      
+      data?.forEach(billboard => {
+        validFrameIds.forEach(frameId => {
+          // Buscar en el nombre (formato: "FRAME-XXX - Tipo")
+          if (billboard.nombre.toLowerCase().includes(frameId.toLowerCase())) {
+            duplicates.add(frameId);
+          }
+        });
+      });
+
+      return Array.from(duplicates);
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      return [];
+    }
+  };
+
+  const handleGeneratePreview = async () => {
     const validationErrors: string[] = [];
     const preview: any[] = [];
 
@@ -357,6 +395,19 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       setErrors([`Columnas requeridas sin mapear: ${missingRequired.join(", ")}`]);
       return;
     }
+
+    // Extraer Frame_IDs del archivo para verificar duplicados
+    const frameIdsInFile = csvData
+      .map(row => {
+        const mappedColumn = columnMapping["frame_id"];
+        return mappedColumn ? row[mappedColumn] : "";
+      })
+      .filter(id => id && id.toString().trim().length > 0)
+      .map(id => id.toString().trim());
+
+    // Verificar duplicados en la base de datos
+    const duplicates = await checkDuplicateFrameIds(frameIdsInFile);
+    setDuplicateFrameIds(duplicates);
 
     // Procesar primeras 10 filas para vista previa
     const previewRows = csvData.slice(0, 10);
@@ -483,6 +534,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
           setDetectedEncoding(null);
           setCurrentFile(null);
           setErrors([]);
+          setDuplicateFrameIds([]);
         }
       }}>
         <Button
@@ -502,6 +554,24 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
           {showPreview ? (
             <div className="space-y-4">
+              {duplicateFrameIds.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-semibold mb-2">Frame_IDs duplicados detectados:</p>
+                    <p className="text-sm mb-2">Los siguientes Frame_IDs ya existen en tu inventario:</p>
+                    <ul className="list-disc list-inside text-sm max-h-32 overflow-y-auto">
+                      {duplicateFrameIds.map((id, idx) => (
+                        <li key={idx}>{id}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm mt-2 font-semibold">
+                      No se recomienda continuar con la carga. Elimina o modifica estos Frame_IDs duplicados en tu archivo.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Alert>
                 <FileText className="h-4 w-4" />
                 <AlertDescription>
@@ -576,10 +646,11 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                 </Button>
                 <Button
                   onClick={handleProcessUpload}
-                  disabled={uploading}
+                  disabled={uploading || duplicateFrameIds.length > 0}
                   className="gap-2"
+                  variant={duplicateFrameIds.length > 0 ? "destructive" : "default"}
                 >
-                  Confirmar y Cargar Todo
+                  {duplicateFrameIds.length > 0 ? "No se puede cargar (Duplicados)" : "Confirmar y Cargar Todo"}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
