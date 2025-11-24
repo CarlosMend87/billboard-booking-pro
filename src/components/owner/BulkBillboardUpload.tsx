@@ -743,7 +743,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Label htmlFor="encoding-select" className="text-sm font-medium whitespace-nowrap">
-                    Codificación del archivo:
+                    Codificación (solo CSV):
                   </Label>
                   <Select value={selectedEncoding} onValueChange={setSelectedEncoding}>
                     <SelectTrigger id="encoding-select" className="w-[200px]">
@@ -757,7 +757,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                   </Select>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  El sistema intentará detectar automáticamente la codificación correcta si la seleccionada no funciona.
+                  Para archivos CSV, el sistema intentará detectar automáticamente la codificación correcta. Los archivos Excel (XLSX/XLS) no requieren selección de codificación.
                 </p>
               </div>
 
@@ -765,7 +765,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                 <Upload className="h-12 w-12 text-muted-foreground" />
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-2">
-                    Arrastra un archivo CSV o haz clic para seleccionar
+                    Arrastra un archivo CSV o Excel, o haz clic para seleccionar
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Formatos soportados: CSV, XLSX, XLS
                   </p>
                   <input
                     ref={fileInputRef}
