@@ -175,7 +175,8 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   };
 
   // Función para normalizar texto para matching (sin acentos, lowercase)
-  const normalizeForMatching = (text: string): string => {
+  const normalizeForMatching = (text: string | undefined | null): string => {
+    if (!text || typeof text !== 'string') return '';
     return text
       .toLowerCase()
       .normalize('NFD')
@@ -283,7 +284,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             }
             
             // Primera fila como encabezados, limpiarlos automáticamente
-            const rawHeaders = jsonData[0].map(h => String(h || ''));
+            const rawHeaders = jsonData[0]
+              .map(h => h !== undefined && h !== null ? String(h) : '')
+              .filter(h => h.trim().length > 0); // Filtrar headers vacíos
+            
             const cleanedHeaders = rawHeaders.map(h => cleanHeader(h));
             
             // Resto de filas como datos
@@ -291,7 +295,12 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
               const rowObj: any = {};
               cleanedHeaders.forEach((header, index) => {
                 if (header) {
-                  rowObj[header] = row[index] !== undefined ? row[index] : '';
+                  // Buscar el índice correcto en la fila original
+                  const originalIndex = jsonData[0].findIndex((h: any) => {
+                    const cleanH = h !== undefined && h !== null ? cleanHeader(String(h)) : '';
+                    return cleanH === header;
+                  });
+                  rowObj[header] = originalIndex >= 0 && row[originalIndex] !== undefined ? row[originalIndex] : '';
                 }
               });
               return rowObj;
@@ -299,7 +308,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             
             const results = {
               data: rows.filter(row => Object.values(row).some(v => v !== '')), // Filtrar filas vacías
-              meta: { fields: cleanedHeaders }
+              meta: { fields: cleanedHeaders.filter(h => h && h.trim().length > 0) }
             };
             
             resolve({ success: true, results, encoding: 'Excel' });
@@ -390,7 +399,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     }
 
     const { results, encoding: usedEncoding } = successfulParse;
-    const headers = results.meta.fields || [];
+    const headers = (results.meta.fields || []).filter((h: string) => h && h.trim().length > 0);
     
     setDetectedEncoding(usedEncoding || encoding);
     setCsvHeaders(headers);
