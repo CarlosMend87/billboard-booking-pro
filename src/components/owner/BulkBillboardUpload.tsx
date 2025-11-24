@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, FileText, AlertCircle, ArrowRight } from "lucide-react";
+import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -62,6 +63,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [selectedEncoding, setSelectedEncoding] = useState<string>("UTF-8");
   const [detectedEncoding, setDetectedEncoding] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [duplicateFrameIds, setDuplicateFrameIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -284,7 +286,76 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
     setErrors([]);
     setCurrentFile(file);
-    await processFileWithEncoding(file, selectedEncoding);
+    
+    const fileName = file.name.toLowerCase();
+    
+    // Detectar si es Excel o CSV
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      await processExcelFile(file);
+    } else if (fileName.endsWith('.csv')) {
+      await processFileWithEncoding(file, selectedEncoding);
+    } else {
+      setErrors(["Formato de archivo no soportado. Por favor, sube un archivo CSV, XLS o XLSX."]);
+    }
+  };
+
+  const processExcelFile = async (file: File) => {
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      // Tomar la primera hoja
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convertir a JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      if (jsonData.length === 0) {
+        setErrors(["El archivo Excel está vacío."]);
+        return;
+      }
+      
+      // La primera fila son los encabezados
+      const headers = jsonData[0] as string[];
+      const rows = jsonData.slice(1).map((row: any) => {
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index];
+        });
+        return obj;
+      });
+      
+      setCsvHeaders(headers);
+      setCsvData(rows);
+      
+      // Auto-mapping inteligente
+      const autoMapping: ColumnMapping = {};
+      REQUIRED_COLUMNS.forEach(col => {
+        const exactMatch = headers.find((h: string) => h.toLowerCase() === col.label.toLowerCase());
+        if (exactMatch) {
+          autoMapping[col.key] = exactMatch;
+        } else {
+          const partialMatch = headers.find((h: string) => 
+            h.toLowerCase().includes(col.key.toLowerCase()) ||
+            col.label.toLowerCase().includes(h.toLowerCase())
+          );
+          if (partialMatch) {
+            autoMapping[col.key] = partialMatch;
+          }
+        }
+      });
+      
+      setColumnMapping(autoMapping);
+      setShowMapping(true);
+      
+      toast({
+        title: "Archivo Excel procesado",
+        description: `Se encontraron ${rows.length} filas para procesar.`,
+      });
+    } catch (error: any) {
+      setErrors([`Error al leer el archivo Excel: ${error.message}`]);
+    }
   };
 
   const processFileWithEncoding = async (file: File, encoding: string) => {
@@ -344,7 +415,46 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     }
   };
 
-  const handleGeneratePreview = () => {
+  const checkDuplicateFrameIds = async (frameIds: string[]): Promise<string[]> => {
+    // Filtrar Frame_IDs vacíos
+    const validFrameIds = frameIds.filter(id => id && id.trim().length > 0);
+    
+    if (validFrameIds.length === 0) {
+      return [];
+    }
+
+    try {
+      // Buscar billboards existentes con metadata que contenga estos Frame_IDs
+      // Nota: Esto usa JSONB para buscar en el campo metadata
+      const { data, error } = await supabase
+        .from('billboards')
+        .select('nombre')
+        .eq('owner_id', ownerId);
+
+      if (error) {
+        console.error("Error checking duplicates:", error);
+        return [];
+      }
+
+      // Extraer Frame_IDs de los billboards existentes desde el nombre
+      // Asumiendo que el formato es "FRAME-XXX - Nombre" o contiene el Frame_ID
+      const existingFrameIds = new Set<string>();
+      data?.forEach(billboard => {
+        validFrameIds.forEach(frameId => {
+          if (billboard.nombre.includes(frameId)) {
+            existingFrameIds.add(frameId);
+          }
+        });
+      });
+
+      return Array.from(existingFrameIds);
+    } catch (error) {
+      console.error("Error checking duplicates:", error);
+      return [];
+    }
+  };
+
+  const handleGeneratePreview = async () => {
     const validationErrors: string[] = [];
     const preview: any[] = [];
 
@@ -380,6 +490,20 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       setErrors(validationErrors);
       return;
     }
+
+    // Verificar Frame_IDs duplicados antes de mostrar la vista previa
+    const frameIdsInFile = csvData
+      .map(row => {
+        const getValue = (key: string) => {
+          const mappedColumn = columnMapping[key];
+          return mappedColumn ? row[mappedColumn] : "";
+        };
+        return getValue("frame_id");
+      })
+      .filter(id => id && id.trim().length > 0);
+
+    const duplicates = await checkDuplicateFrameIds(frameIdsInFile);
+    setDuplicateFrameIds(duplicates);
 
     setPreviewData(preview);
     setShowMapping(false);
