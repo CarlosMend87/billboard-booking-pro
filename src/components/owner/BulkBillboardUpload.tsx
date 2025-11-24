@@ -241,6 +241,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      encoding: "UTF-8",
       complete: (results) => {
         const headers = results.meta.fields || [];
         setCsvHeaders(headers);
