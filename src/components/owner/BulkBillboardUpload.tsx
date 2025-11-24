@@ -59,6 +59,9 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [selectedEncoding, setSelectedEncoding] = useState<string>("UTF-8");
+  const [detectedEncoding, setDetectedEncoding] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -232,46 +235,113 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     };
   };
 
+  const tryParseWithEncoding = (file: File, encoding: string): Promise<{ success: boolean; results?: any; encoding?: string }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        
+        // Detectar si hay caracteres corruptos comunes en codificaciones incorrectas
+        const hasCorruptedChars = /[�\uFFFD]/.test(text) || 
+                                  /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text);
+        
+        if (hasCorruptedChars && encoding !== "ISO-8859-1") {
+          resolve({ success: false });
+          return;
+        }
+
+        Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const headers = results.meta.fields || [];
+            const hasValidHeaders = headers.length > 0 && headers.some(h => h && h.trim().length > 0);
+            
+            if (hasValidHeaders && !hasCorruptedChars) {
+              resolve({ success: true, results, encoding });
+            } else {
+              resolve({ success: false });
+            }
+          },
+          error: () => {
+            resolve({ success: false });
+          }
+        });
+      };
+      
+      reader.onerror = () => {
+        resolve({ success: false });
+      };
+      
+      reader.readAsText(file, encoding);
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setErrors([]);
+    setCurrentFile(file);
+    await processFileWithEncoding(file, selectedEncoding);
+  };
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      encoding: "UTF-8",
-      complete: (results) => {
-        const headers = results.meta.fields || [];
-        setCsvHeaders(headers);
-        setCsvData(results.data);
-        
-        // Auto-mapping inteligente
-        const autoMapping: ColumnMapping = {};
-        REQUIRED_COLUMNS.forEach(col => {
-          const exactMatch = headers.find(h => h.toLowerCase() === col.label.toLowerCase());
-          if (exactMatch) {
-            autoMapping[col.key] = exactMatch;
-          } else {
-            // Intentar coincidencias parciales
-            const partialMatch = headers.find(h => 
-              h.toLowerCase().includes(col.key.toLowerCase()) ||
-              col.label.toLowerCase().includes(h.toLowerCase())
-            );
-            if (partialMatch) {
-              autoMapping[col.key] = partialMatch;
-            }
-          }
-        });
-        
-        setColumnMapping(autoMapping);
-        setShowMapping(true);
-      },
-      error: (error) => {
-        setErrors([`Error al leer el archivo: ${error.message}`]);
+  const processFileWithEncoding = async (file: File, encoding: string) => {
+    const encodingsToTry = [encoding, "UTF-8", "ISO-8859-1", "Windows-1252"].filter(
+      (e, i, arr) => arr.indexOf(e) === i // Remover duplicados
+    );
+
+    let successfulParse = null;
+
+    // Intentar con la codificación seleccionada primero, luego las demás
+    for (const enc of encodingsToTry) {
+      const result = await tryParseWithEncoding(file, enc);
+      if (result.success) {
+        successfulParse = result;
+        break;
+      }
+    }
+
+    if (!successfulParse) {
+      setErrors(["No se pudo leer el archivo con ninguna codificación. Verifica que sea un CSV válido."]);
+      return;
+    }
+
+    const { results, encoding: usedEncoding } = successfulParse;
+    const headers = results.meta.fields || [];
+    
+    setDetectedEncoding(usedEncoding || encoding);
+    setCsvHeaders(headers);
+    setCsvData(results.data);
+    
+    // Auto-mapping inteligente
+    const autoMapping: ColumnMapping = {};
+    REQUIRED_COLUMNS.forEach(col => {
+      const exactMatch = headers.find((h: string) => h.toLowerCase() === col.label.toLowerCase());
+      if (exactMatch) {
+        autoMapping[col.key] = exactMatch;
+      } else {
+        // Intentar coincidencias parciales
+        const partialMatch = headers.find((h: string) => 
+          h.toLowerCase().includes(col.key.toLowerCase()) ||
+          col.label.toLowerCase().includes(h.toLowerCase())
+        );
+        if (partialMatch) {
+          autoMapping[col.key] = partialMatch;
+        }
       }
     });
+    
+    setColumnMapping(autoMapping);
+    setShowMapping(true);
+
+    if (usedEncoding !== encoding) {
+      toast({
+        title: "Codificación detectada automáticamente",
+        description: `El archivo se leyó correctamente usando ${usedEncoding}.`,
+      });
+    }
   };
 
   const handleGeneratePreview = () => {
@@ -410,6 +480,9 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
           setCsvHeaders([]);
           setColumnMapping({});
           setPreviewData([]);
+          setDetectedEncoding(null);
+          setCurrentFile(null);
+          setErrors([]);
         }
       }}>
         <Button
@@ -520,6 +593,27 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                 </AlertDescription>
               </Alert>
 
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="encoding-select" className="text-sm font-medium whitespace-nowrap">
+                    Codificación del archivo:
+                  </Label>
+                  <Select value={selectedEncoding} onValueChange={setSelectedEncoding}>
+                    <SelectTrigger id="encoding-select" className="w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTF-8">UTF-8 (Universal)</SelectItem>
+                      <SelectItem value="ISO-8859-1">ISO-8859-1 (Latin-1)</SelectItem>
+                      <SelectItem value="Windows-1252">Windows-1252</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  El sistema intentará detectar automáticamente la codificación correcta si la seleccionada no funciona.
+                </p>
+              </div>
+
               <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 space-y-4">
                 <Upload className="h-12 w-12 text-muted-foreground" />
                 <div className="text-center">
@@ -541,15 +635,58 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                   </label>
                 </div>
               </div>
+
+              {detectedEncoding && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Codificación detectada: <strong>{detectedEncoding}</strong>
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
+              {detectedEncoding && detectedEncoding !== selectedEncoding && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Se detectó y utilizó la codificación <strong>{detectedEncoding}</strong> para leer el archivo correctamente.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   Relaciona las columnas de tu archivo con los campos de la plataforma. Los campos marcados con * son obligatorios.
                 </AlertDescription>
               </Alert>
+
+              {currentFile && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">¿Los caracteres no se ven bien?</p>
+                    <p className="text-xs text-muted-foreground">Prueba cambiar la codificación:</p>
+                  </div>
+                  <Select 
+                    value={detectedEncoding || selectedEncoding} 
+                    onValueChange={async (newEncoding) => {
+                      setSelectedEncoding(newEncoding);
+                      await processFileWithEncoding(currentFile, newEncoding);
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTF-8">UTF-8</SelectItem>
+                      <SelectItem value="ISO-8859-1">ISO-8859-1</SelectItem>
+                      <SelectItem value="Windows-1252">Windows-1252</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-2">
                 {REQUIRED_COLUMNS.map((col) => (
