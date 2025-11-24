@@ -165,6 +165,25 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     }
   };
 
+  // Función para limpiar y normalizar encabezados
+  const cleanHeader = (header: string): string => {
+    return header
+      .trim() // Eliminar espacios al inicio y final
+      .replace(/\s+/g, ' ') // Reemplazar múltiples espacios por uno solo
+      .replace(/[^\w\s\-_()\/]/gi, '') // Eliminar caracteres especiales excepto guiones, guiones bajos, paréntesis y barras
+      .trim();
+  };
+
+  // Función para normalizar texto para matching (sin acentos, lowercase)
+  const normalizeForMatching = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+      .replace(/[^\w\s]/gi, '') // Eliminar caracteres especiales
+      .replace(/\s+/g, ''); // Eliminar espacios
+  };
+
   const processBillboard = (row: any, mapping: ColumnMapping) => {
     const getValue = (key: string) => {
       const mappedColumn = mapping[key];
@@ -239,44 +258,104 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
   const tryParseWithEncoding = (file: File, encoding: string): Promise<{ success: boolean; results?: any; encoding?: string }> => {
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        
-        // Detectar si hay caracteres corruptos comunes en codificaciones incorrectas
-        const hasCorruptedChars = /[�\uFFFD]/.test(text) || 
-                                  /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text);
-        
-        if (hasCorruptedChars && encoding !== "ISO-8859-1") {
-          resolve({ success: false });
-          return;
-        }
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
 
-        Papa.parse(text, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            const headers = results.meta.fields || [];
-            const hasValidHeaders = headers.length > 0 && headers.some(h => h && h.trim().length > 0);
+      if (isExcel) {
+        // Procesar archivos Excel
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
             
-            if (hasValidHeaders && !hasCorruptedChars) {
-              resolve({ success: true, results, encoding });
-            } else {
+            // Leer la primera hoja
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convertir a JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+            
+            if (jsonData.length < 2) {
               resolve({ success: false });
+              return;
             }
-          },
-          error: () => {
+            
+            // Primera fila como encabezados, limpiarlos automáticamente
+            const rawHeaders = jsonData[0].map(h => String(h || ''));
+            const cleanedHeaders = rawHeaders.map(h => cleanHeader(h));
+            
+            // Resto de filas como datos
+            const rows = jsonData.slice(1).map(row => {
+              const rowObj: any = {};
+              cleanedHeaders.forEach((header, index) => {
+                if (header) {
+                  rowObj[header] = row[index] !== undefined ? row[index] : '';
+                }
+              });
+              return rowObj;
+            });
+            
+            const results = {
+              data: rows.filter(row => Object.values(row).some(v => v !== '')), // Filtrar filas vacías
+              meta: { fields: cleanedHeaders }
+            };
+            
+            resolve({ success: true, results, encoding: 'Excel' });
+          } catch (error) {
+            console.error("Error parsing Excel:", error);
             resolve({ success: false });
           }
-        });
-      };
-      
-      reader.onerror = () => {
-        resolve({ success: false });
-      };
-      
-      reader.readAsText(file, encoding);
+        };
+        
+        reader.onerror = () => {
+          resolve({ success: false });
+        };
+        
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Procesar archivos CSV
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          
+          // Detectar si hay caracteres corruptos comunes en codificaciones incorrectas
+          const hasCorruptedChars = /[�\uFFFD]/.test(text) || 
+                                    /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text);
+          
+          if (hasCorruptedChars && encoding !== "ISO-8859-1") {
+            resolve({ success: false });
+            return;
+          }
+
+          Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: (header: string) => cleanHeader(header), // Limpiar encabezados automáticamente
+            complete: (results) => {
+              const headers = results.meta.fields || [];
+              const hasValidHeaders = headers.length > 0 && headers.some(h => h && h.trim().length > 0);
+              
+              if (hasValidHeaders && !hasCorruptedChars) {
+                resolve({ success: true, results, encoding });
+              } else {
+                resolve({ success: false });
+              }
+            },
+            error: () => {
+              resolve({ success: false });
+            }
+          });
+        };
+        
+        reader.onerror = () => {
+          resolve({ success: false });
+        };
+        
+        reader.readAsText(file, encoding);
+      }
     });
   };
 
@@ -317,21 +396,52 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     setCsvHeaders(headers);
     setCsvData(results.data);
     
-    // Auto-mapping inteligente
+    // Auto-mapping inteligente con normalización
     const autoMapping: ColumnMapping = {};
+    
     REQUIRED_COLUMNS.forEach(col => {
-      const exactMatch = headers.find((h: string) => h.toLowerCase() === col.label.toLowerCase());
+      // 1. Intentar coincidencia exacta
+      const exactMatch = headers.find((h: string) => 
+        normalizeForMatching(h) === normalizeForMatching(col.label)
+      );
+      
       if (exactMatch) {
         autoMapping[col.key] = exactMatch;
-      } else {
-        // Intentar coincidencias parciales
-        const partialMatch = headers.find((h: string) => 
-          h.toLowerCase().includes(col.key.toLowerCase()) ||
-          col.label.toLowerCase().includes(h.toLowerCase())
-        );
-        if (partialMatch) {
-          autoMapping[col.key] = partialMatch;
+        return;
+      }
+      
+      // 2. Intentar coincidencia con el key
+      const keyMatch = headers.find((h: string) => 
+        normalizeForMatching(h) === normalizeForMatching(col.key)
+      );
+      
+      if (keyMatch) {
+        autoMapping[col.key] = keyMatch;
+        return;
+      }
+      
+      // 3. Intentar coincidencias parciales por palabras clave
+      const normalizedLabel = normalizeForMatching(col.label);
+      const normalizedKey = normalizeForMatching(col.key);
+      
+      const partialMatch = headers.find((h: string) => {
+        const normalizedHeader = normalizeForMatching(h);
+        
+        // Si el header contiene el label o el key
+        if (normalizedHeader.includes(normalizedLabel) || normalizedHeader.includes(normalizedKey)) {
+          return true;
         }
+        
+        // Si el label o key contiene el header (para headers cortos)
+        if (normalizedLabel.includes(normalizedHeader) || normalizedKey.includes(normalizedHeader)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (partialMatch) {
+        autoMapping[col.key] = partialMatch;
       }
     });
     
@@ -661,6 +771,8 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                 <FileText className="h-4 w-4" />
                 <AlertDescription>
                   Sube un archivo CSV o Excel con tu inventario. El sistema te permitirá mapear las columnas de tu archivo con los campos requeridos.
+                  <br /><br />
+                  <strong>El sistema limpia automáticamente los encabezados</strong>, eliminando espacios y caracteres innecesarios para aceptar cualquier archivo sin problemas.
                 </AlertDescription>
               </Alert>
 
