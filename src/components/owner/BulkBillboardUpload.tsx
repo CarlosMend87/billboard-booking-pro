@@ -607,6 +607,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
           setDetectedEncoding(null);
           setCurrentFile(null);
           setErrors([]);
+          setDuplicateFrameIds([]);
         }
       }}>
         <Button
@@ -687,6 +688,28 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                   {csvData.length > 10 && ` Mostrando solo las primeras ${previewData.length} para vista previa.`}
                 </AlertDescription>
               </Alert>
+
+              {duplicateFrameIds.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-semibold">
+                        ⚠️ Se detectaron {duplicateFrameIds.length} Frame_IDs duplicados en tu inventario existente:
+                      </p>
+                      <div className="bg-background/50 p-2 rounded text-xs max-h-32 overflow-y-auto">
+                        {duplicateFrameIds.map((frameId, idx) => (
+                          <div key={idx} className="py-1">• {frameId}</div>
+                        ))}
+                      </div>
+                      <p className="text-xs mt-2">
+                        Si continúas, estos Frame_IDs se agregarán nuevamente a tu inventario, lo que puede causar duplicados. 
+                        Considera editar el archivo CSV/Excel para eliminar estas filas o usar Frame_IDs únicos.
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="flex justify-end gap-2">
                 <Button
