@@ -26,7 +26,7 @@ const REQUIRED_COLUMNS = [
   { key: "venue_type", label: "Venue type", required: true },
   { key: "address", label: "Address", required: true },
   { key: "floor", label: "Floor", required: false },
-  { key: "public_price", label: "Public price / Rate card", required: true },
+  { key: "public_price", label: "public price ó rate card", required: true, aliases: ["Public price / Rate card", "public price o rate card", "rate card", "precio"] },
   { key: "district", label: "District", required: false },
   { key: "city", label: "City", required: false },
   { key: "state", label: "State", required: false },
@@ -422,7 +422,21 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         return;
       }
       
-      // 2. Intentar coincidencia con el key
+      // 2. Intentar coincidencia con aliases si existen
+      if ('aliases' in col && Array.isArray((col as any).aliases)) {
+        const aliasMatch = headers.find((h: string) => 
+          (col as any).aliases.some((alias: string) => 
+            normalizeForMatching(h) === normalizeForMatching(alias)
+          )
+        );
+        
+        if (aliasMatch) {
+          autoMapping[col.key] = aliasMatch;
+          return;
+        }
+      }
+      
+      // 3. Intentar coincidencia con el key
       const keyMatch = headers.find((h: string) => 
         normalizeForMatching(h) === normalizeForMatching(col.key)
       );
@@ -432,7 +446,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         return;
       }
       
-      // 3. Intentar coincidencias parciales por palabras clave
+      // 4. Intentar coincidencias parciales por palabras clave
       const normalizedLabel = normalizeForMatching(col.label);
       const normalizedKey = normalizeForMatching(col.key);
       
