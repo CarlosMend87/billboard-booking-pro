@@ -289,23 +289,21 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             }
             
             // Primera fila como encabezados, limpiarlos automáticamente
-            const rawHeaders = jsonData[0]
-              .map(h => h !== undefined && h !== null ? String(h) : '')
-              .filter(h => h.trim().length > 0); // Filtrar headers vacíos
+            // Mantener mapeo de índices para manejar columnas vacías intermedias
+            const headerMapping = jsonData[0].map((h, idx) => ({
+              originalIndex: idx,
+              original: h !== undefined && h !== null ? String(h) : '',
+              cleaned: h !== undefined && h !== null ? cleanHeader(String(h)) : ''
+            })).filter(h => h.cleaned.trim().length > 0); // Solo filtrar para el mapeo final
             
-            const cleanedHeaders = rawHeaders.map(h => cleanHeader(h));
+            const cleanedHeaders = headerMapping.map(h => h.cleaned);
             
             // Resto de filas como datos
             const rows = jsonData.slice(1).map(row => {
               const rowObj: any = {};
-              cleanedHeaders.forEach((header, index) => {
-                if (header) {
-                  // Buscar el índice correcto en la fila original
-                  const originalIndex = jsonData[0].findIndex((h: any) => {
-                    const cleanH = h !== undefined && h !== null ? cleanHeader(String(h)) : '';
-                    return cleanH === header;
-                  });
-                  rowObj[header] = originalIndex >= 0 && row[originalIndex] !== undefined ? row[originalIndex] : '';
+              headerMapping.forEach(({ originalIndex, cleaned }) => {
+                if (cleaned) {
+                  rowObj[cleaned] = row[originalIndex] !== undefined ? row[originalIndex] : '';
                 }
               });
               return rowObj;
