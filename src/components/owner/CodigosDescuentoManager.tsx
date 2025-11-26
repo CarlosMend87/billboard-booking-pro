@@ -85,7 +85,7 @@ export function CodigosDescuentoManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["codigos-descuento"] });
+      queryClient.invalidateQueries({ queryKey: ["codigos-descuento", user?.id] });
       toast({ title: "Código creado exitosamente" });
       resetForm();
       setIsDialogOpen(false);
@@ -128,7 +128,7 @@ export function CodigosDescuentoManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["codigos-descuento"] });
+      queryClient.invalidateQueries({ queryKey: ["codigos-descuento", user?.id] });
       toast({ title: "Código actualizado exitosamente" });
       resetForm();
       setIsDialogOpen(false);
@@ -151,7 +151,7 @@ export function CodigosDescuentoManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["codigos-descuento"] });
+      queryClient.invalidateQueries({ queryKey: ["codigos-descuento", user?.id] });
       toast({ title: "Código eliminado exitosamente" });
     },
     onError: (error: any) => {
