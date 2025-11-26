@@ -1008,16 +1008,27 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
           )}
 
           {errors.length > 0 && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+            <Alert variant="destructive" className="border-2">
+              <AlertCircle className="h-5 w-5" />
               <AlertDescription>
-                <div className="space-y-1">
-                  <p className="font-semibold">Errores encontrados:</p>
-                  <ul className="list-disc list-inside text-sm max-h-40 overflow-y-auto">
-                    {errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
+                <div className="space-y-2">
+                  <p className="font-bold text-base">⚠️ Reporte Detallado de Errores ({errors.length})</p>
+                  <p className="text-sm">
+                    Los siguientes problemas impidieron la carga de algunas pantallas. 
+                    Corrígelos en tu archivo y vuelve a intentar:
+                  </p>
+                  <div className="bg-destructive/10 rounded-md p-3 max-h-64 overflow-y-auto">
+                    <ul className="space-y-1 text-sm font-mono">
+                      {errors.map((error, index) => (
+                        <li key={index} className="border-b border-destructive/20 last:border-0 pb-1 mb-1">
+                          {error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Tip: Los números de fila corresponden a las filas en tu archivo Excel/CSV (incluyendo el encabezado)
+                  </p>
                 </div>
               </AlertDescription>
             </Alert>

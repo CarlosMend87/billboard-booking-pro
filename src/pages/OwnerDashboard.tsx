@@ -26,7 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 
 export default function OwnerDashboard() {
-  const { billboards, loading, deleteBillboard, updateBillboard } = useBillboards();
+  const { billboards, loading, deleteBillboard, updateBillboard, fetchBillboards } = useBillboards();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -93,7 +93,7 @@ export default function OwnerDashboard() {
               
               <BulkBillboardUpload 
                 ownerId={user?.id || ""} 
-                onSuccess={() => window.location.reload()} 
+                onSuccess={fetchBillboards} 
               />
               
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
