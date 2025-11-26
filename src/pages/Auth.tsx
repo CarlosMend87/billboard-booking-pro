@@ -68,7 +68,7 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.user) {
-        window.location.href = '/';
+        navigate('/');
       }
     } catch (error: any) {
       toast({

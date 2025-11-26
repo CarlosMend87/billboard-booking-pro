@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut({ scope: 'global' });
-      window.location.href = '/auth';
+      // No redirect needed - ProtectedRoute in App.tsx handles automatic redirect to /auth
     } catch (error) {
       console.error('Error signing out:', error);
     }
