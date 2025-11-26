@@ -88,10 +88,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   }, []);
 
   const getMarkerColor = (billboard: MapBillboard) => {
-    // Verde = disponible
+    // Azul = digital (siempre)
+    if (billboard.tipo === 'digital') return '#3b82f6'; 
+    // Verde = disponible (no digital)
     if (billboard.status === 'disponible') return '#10b981';
-    // Azul = no disponible (para evitar confusión, sin rojo)
-    return '#3b82f6';
+    // Rojo = no disponible (no digital)
+    return '#ef4444';
   };
 
   const getMarkerIcon = (billboard: MapBillboard) => {
@@ -544,8 +546,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                   <span>Disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                   <span>No disponible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                  <span>Digital</span>
                 </div>
                 {isDrawingMode && (
                   <div className="mt-2 pt-2 border-t">
