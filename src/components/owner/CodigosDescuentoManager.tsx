@@ -52,13 +52,20 @@ export function CodigosDescuentoManager() {
   const { data: codigos, isLoading } = useQuery({
     queryKey: ["codigos-descuento", user?.id],
     queryFn: async () => {
+      console.log("🔍 Buscando códigos para user:", user?.id);
+      
       const { data, error } = await supabase
         .from("codigos_descuento")
         .select("*")
         .eq("owner_id", user!.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      console.log("📊 Resultado query:", { data, error, count: data?.length });
+      
+      if (error) {
+        console.error("❌ Error en query:", error);
+        throw error;
+      }
       return data as CodigoDescuento[];
     },
     enabled: !!user,
@@ -66,6 +73,8 @@ export function CodigosDescuentoManager() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      console.log("💾 Creando código con owner_id:", user!.id);
+      
       const { error } = await supabase.from("codigos_descuento").insert({
         owner_id: user!.id,
         codigo: data.codigo,
@@ -82,7 +91,12 @@ export function CodigosDescuentoManager() {
           : null,
         notas: data.notas || null,
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("❌ Error creando código:", error);
+        throw error;
+      }
+      console.log("✅ Código creado exitosamente");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["codigos-descuento", user?.id] });
