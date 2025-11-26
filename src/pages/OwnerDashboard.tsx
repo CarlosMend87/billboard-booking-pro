@@ -26,7 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 
 export default function OwnerDashboard() {
-  const { billboards, loading, deleteBillboard, updateBillboard, fetchBillboards } = useBillboards();
+  const { billboards, loading, deleteBillboard, deleteAllBillboards, updateBillboard, fetchBillboards } = useBillboards();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -57,6 +57,10 @@ export default function OwnerDashboard() {
 
   const handleDelete = async (id: string) => {
     await deleteBillboard(id);
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllBillboards();
   };
 
   const formatPrice = (precio: any) => {
@@ -179,9 +183,42 @@ export default function OwnerDashboard() {
               </Card>
             </div>
 
-            {/* Filters */}
+            {/* Filters and Actions */}
             <Card className="mb-6">
               <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        disabled={billboards.length === 0}
+                        className="w-full md:w-auto"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar Todo el Inventario
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar todo el inventario?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminarán permanentemente todas las {billboards.length} pantallas de tu inventario.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteAll}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Sí, eliminar todo
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1">
                     <div className="relative">

@@ -146,6 +146,34 @@ export function useBillboards() {
     }
   };
 
+  const deleteAllBillboards = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('billboards')
+        .delete()
+        .eq('owner_id', user.id);
+
+      if (error) throw error;
+
+      setBillboards([]);
+      toast({
+        title: "Éxito",
+        description: "Todo el inventario ha sido eliminado correctamente",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const uploadBillboardImage = async (file: File, billboardId: string) => {
     if (!user) return null;
 
@@ -185,6 +213,7 @@ export function useBillboards() {
     createBillboard,
     updateBillboard,
     deleteBillboard,
+    deleteAllBillboards,
     uploadBillboardImage
   };
 }
