@@ -104,6 +104,43 @@ export default function UserManagement() {
 
   const createUser = async () => {
     try {
+      // Validate required fields
+      if (!newUser.name.trim()) {
+        toast({
+          title: "Error de validación",
+          description: "El nombre es requerido",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!newUser.email.trim()) {
+        toast({
+          title: "Error de validación",
+          description: "El correo electrónico es requerido",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!newUser.password || newUser.password.length < 8) {
+        toast({
+          title: "Error de validación",
+          description: "La contraseña debe tener al menos 8 caracteres",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!newUser.empresa.trim()) {
+        toast({
+          title: "Error de validación",
+          description: "El nombre de la empresa es requerido",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No authenticated session');
@@ -116,12 +153,12 @@ export default function UserManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: newUser.name,
-          email: newUser.email,
+          name: newUser.name.trim(),
+          email: newUser.email.trim().toLowerCase(),
           password: newUser.password,
           role: newUser.role,
-          phone: newUser.phone,
-          empresa: newUser.empresa
+          phone: newUser.phone.trim(),
+          empresa: newUser.empresa.trim()
         })
       });
 
@@ -143,7 +180,7 @@ export default function UserManagement() {
     } catch (error: any) {
       console.error('Error creating user:', error);
       toast({
-        title: "Error",
+        title: "Error al crear usuario",
         description: error.message || "No se pudo crear el usuario",
         variant: "destructive",
       });
