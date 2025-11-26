@@ -144,10 +144,29 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error creating user')
+    console.error('Error creating user:', error)
+    
+    // Handle specific error cases
+    let errorMessage = 'Failed to create user. Please try again.'
+    let statusCode = 500
+    
+    if (error instanceof Error) {
+      // Check for duplicate email error
+      if (error.message.includes('already been registered') || error.message.includes('email_exists')) {
+        errorMessage = 'A user with this email already exists.'
+        statusCode = 422
+      } else if (error.message.includes('Invalid email')) {
+        errorMessage = 'Invalid email format.'
+        statusCode = 400
+      } else {
+        // For other errors, include the actual error message
+        errorMessage = error.message || errorMessage
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to create user. Please try again.' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: errorMessage }),
+      { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
