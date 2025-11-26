@@ -200,10 +200,13 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
     const frameId = getValue("frame_id");
     
+    // Normalizar el tipo a minúsculas para que coincida con la restricción de la BD
+    const venueType = getValue("venue_type")?.toLowerCase() || "espectacular";
+    
     return {
       nombre: frameId ? `${frameId} - ${getValue("venue_type")}` : `${getValue("venue_type")} - ${getValue("address")}`,
       direccion: getValue("address"),
-      tipo: getValue("venue_type") || "espectacular",
+      tipo: venueType,
       lat: parseFloat(getValue("latitude")),
       lng: parseFloat(getValue("longitude")),
       medidas: {
