@@ -153,6 +153,7 @@ export type Database = {
           lat: number
           lng: number
           medidas: Json
+          metadata: Json | null
           nombre: string
           owner_id: string
           precio: Json
@@ -174,6 +175,7 @@ export type Database = {
           lat: number
           lng: number
           medidas?: Json
+          metadata?: Json | null
           nombre: string
           owner_id: string
           precio?: Json
@@ -195,6 +197,7 @@ export type Database = {
           lat?: number
           lng?: number
           medidas?: Json
+          metadata?: Json | null
           nombre?: string
           owner_id?: string
           precio?: Json
