@@ -27,6 +27,7 @@ interface MapBillboard {
   lat: number;
   lng: number;
   tipo: string;
+  status: string;
   owner_id: string;
   precio: any;
   medidas: any;
@@ -56,8 +57,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
       try {
         const { data, error } = await supabase
           .from('billboards')
-          .select('*')
-          .eq('status', 'disponible');
+          .select('*');
 
         if (error) throw error;
 
@@ -68,6 +68,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           lat: Number(billboard.lat),
           lng: Number(billboard.lng),
           tipo: billboard.tipo,
+          status: billboard.status,
           owner_id: billboard.owner_id,
           precio: billboard.precio,
           medidas: billboard.medidas,
@@ -87,8 +88,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   }, []);
 
   const getMarkerColor = (billboard: MapBillboard) => {
-    if (billboard.tipo === 'digital') return '#3b82f6';
-    return '#10b981';
+    // Azul = digital (siempre)
+    if (billboard.tipo === 'digital') return '#3b82f6'; 
+    // Verde = disponible (no digital)
+    if (billboard.status === 'disponible') return '#10b981';
+    // Rojo = no disponible (no digital)
+    return '#ef4444';
   };
 
   const getMarkerIcon = (billboard: MapBillboard) => {
@@ -537,12 +542,16 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               <h4 className="font-medium mb-2">Leyenda</h4>
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                  <span>Digital</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
+                  <span>Disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
-                  <span>Fija</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                  <span>No disponible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                  <span>Digital</span>
                 </div>
                 {isDrawingMode && (
                   <div className="mt-2 pt-2 border-t">
