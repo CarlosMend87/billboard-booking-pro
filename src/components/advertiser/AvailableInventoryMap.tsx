@@ -88,10 +88,8 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   }, []);
 
   const getMarkerColor = (billboard: MapBillboard) => {
-    // Azul = pantalla digital
-    if (billboard.tipo === 'digital') return '#3b82f6';
-    // Verde = disponible (no digital)
-    if (billboard.status === 'disponible') return '#10b981';
+    // Azul = disponible
+    if (billboard.status === 'disponible') return '#3b82f6';
     // Rojo = no disponible
     return '#ef4444';
   };
@@ -542,16 +540,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               <h4 className="font-medium mb-2">Leyenda</h4>
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
                   <span>Disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                   <span>No disponible</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                  <span>Pantalla Digital</span>
                 </div>
                 {isDrawingMode && (
                   <div className="mt-2 pt-2 border-t">
