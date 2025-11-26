@@ -77,6 +77,15 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           last_detection_date: billboard.last_detection_date
         })) || [];
 
+        // Debug: contar status
+        const statusCounts = realBillboards.reduce((acc: Record<string, number>, b) => {
+          acc[b.status] = (acc[b.status] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('📊 Status de pantallas:', statusCounts);
+        console.log(`✅ Disponibles: ${statusCounts['disponible'] || 0}`);
+        console.log(`❌ No disponibles: ${(statusCounts['ocupada'] || 0) + (statusCounts['mantenimiento'] || 0)}`);
+
         setBillboards(realBillboards);
       } catch (error) {
         console.error('Error fetching billboards:', error);
