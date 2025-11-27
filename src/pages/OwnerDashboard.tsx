@@ -221,17 +221,26 @@ export default function OwnerDashboard() {
                         const digital = billboard.digital as any || {};
                         const precio = billboard.precio as any || {};
                         
+                        // Mapear status a DISPO
+                        const statusMap: { [key: string]: string } = {
+                          'disponible': 'Disponible',
+                          'ocupada': 'Ocupada',
+                          'mantenimiento': 'Mantenimiento',
+                          'reservada': 'Reservada'
+                        };
+                        
                         return {
                           "Frame_ID": metadata.frame_id || billboard.nombre.split(' - ')[0] || '',
                           "Venue type": capitalizeFirstLetter(billboard.tipo),
                           "Address": billboard.direccion,
+                          "Number": metadata.numero || '',
                           "Floor": metadata.piso || '',
-                          "Public price / Rate card": precio.mensual || 0,
                           "District": metadata.distrito || '',
                           "City": metadata.ciudad || '',
                           "State": metadata.estado || '',
                           "Country": metadata.pais || '',
                           "Zipcode": metadata.codigo_postal || '',
+                          "": '', // Columna vacía entre Zipcode y Latitude
                           "Latitude": billboard.lat,
                           "Longitude": billboard.lng,
                           "Frame_Category": isDigital ? 'digital' : 'static',
@@ -246,7 +255,9 @@ export default function OwnerDashboard() {
                           "allow_video": digital.permite_video ? 'yes' : '',
                           "Slots quantity": digital.cantidad_slots || '',
                           "dimension_pixel": digital.dimension_pixel || '',
-                          "Backlighted?": metadata.retroiluminado ? 'yes' : ''
+                          "Backlighted?": metadata.retroiluminado ? 'yes' : '',
+                          "public price ó rate card": precio.mensual || 0,
+                          "DISPO": statusMap[billboard.status] || capitalizeFirstLetter(billboard.status)
                         };
                       });
                       

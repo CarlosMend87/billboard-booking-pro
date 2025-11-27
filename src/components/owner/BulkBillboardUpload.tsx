@@ -25,6 +25,7 @@ const REQUIRED_COLUMNS = [
   { key: "frame_id", label: "Frame_ID", required: false },
   { key: "venue_type", label: "Venue type", required: true },
   { key: "address", label: "Address", required: true },
+  { key: "number", label: "Number", required: false },
   { key: "floor", label: "Floor", required: false },
   { key: "public_price", label: "public price ó rate card", required: true, aliases: ["Public price / Rate card", "public price o rate card", "rate card", "precio"] },
   { key: "district", label: "District", required: false },
@@ -73,13 +74,14 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         "Frame_ID": "FRAME-001",
         "Venue type": "espectacular",
         "Address": "Av. Reforma 123, Col. Centro",
+        "Number": "123",
         "Floor": "0",
-        "Public price / Rate card": "100000",
         "District": "Centro",
         "City": "Ciudad de México",
         "State": "CDMX",
         "Country": "México",
         "Zipcode": "06000",
+        "": "",
         "Latitude": "19.432608",
         "Longitude": "-99.133209",
         "Frame_Category": "static",
@@ -94,19 +96,22 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         "allow_video": "",
         "Slots quantity": "",
         "dimension_pixel": "",
-        "Backlighted?": "yes"
+        "Backlighted?": "yes",
+        "public price ó rate card": "100000",
+        "DISPO": "Disponible"
       },
       {
         "Frame_ID": "FRAME-002",
         "Venue type": "digital",
         "Address": "Av. Insurgentes 456, Col. Roma",
+        "Number": "456",
         "Floor": "1",
-        "Public price / Rate card": "50000",
         "District": "Roma Norte",
         "City": "Ciudad de México",
         "State": "CDMX",
         "Country": "México",
         "Zipcode": "06700",
+        "": "",
         "Latitude": "19.421234",
         "Longitude": "-99.162345",
         "Frame_Category": "digital",
@@ -121,7 +126,9 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         "allow_video": "yes",
         "Slots quantity": "12",
         "dimension_pixel": "1920x1080",
-        "Backlighted?": "yes"
+        "Backlighted?": "yes",
+        "public price ó rate card": "50000",
+        "DISPO": "Disponible"
       }
     ];
 
@@ -266,6 +273,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       // Campos adicionales
       metadata: {
         frame_id: getValue("frame_id"),
+        numero: getValue("number"),
         piso: getValue("floor"),
         distrito: getValue("district"),
         ciudad: getValue("city"),
