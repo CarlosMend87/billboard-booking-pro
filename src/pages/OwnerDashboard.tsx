@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Edit2, Trash2, Camera, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Filter, Edit2, Trash2, Camera, MapPin, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useBillboards, Billboard } from "@/hooks/useBillboards";
 import { BillboardForm } from "@/components/owner/BillboardForm";
 import { FinancialSummary } from "@/components/owner/FinancialSummary";
@@ -36,11 +36,18 @@ export default function OwnerDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
 
+  // Obtener tipos únicos de los billboards
+  const uniqueTypes = Array.from(new Set(billboards.map(b => b.tipo.toLowerCase()))).sort();
+  
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   const filteredBillboards = billboards.filter(billboard => {
     const matchesSearch = billboard.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          billboard.direccion.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || billboard.status === statusFilter;
-    const matchesType = typeFilter === "all" || billboard.tipo === typeFilter;
+    const matchesType = typeFilter === "all" || billboard.tipo.toLowerCase() === typeFilter.toLowerCase();
     
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -200,6 +207,40 @@ export default function OwnerDashboard() {
             <Card className="mb-6">
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-4 mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={billboards.length === 0}
+                    className="w-full md:w-auto"
+                    onClick={() => {
+                      const headers = ['Nombre', 'Dirección', 'Tipo', 'Estado', 'Precio Mensual', 'Latitud', 'Longitud', 'Ancho', 'Alto'];
+                      const rows = billboards.map(billboard => [
+                        billboard.nombre,
+                        billboard.direccion,
+                        capitalizeFirstLetter(billboard.tipo),
+                        billboard.status,
+                        (billboard.precio as any)?.mensual || 'N/A',
+                        billboard.lat,
+                        billboard.lng,
+                        (billboard.medidas as any)?.ancho || 'N/A',
+                        (billboard.medidas as any)?.alto || 'N/A'
+                      ]);
+                      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `inventario-completo-${new Date().getTime()}.csv`);
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Descargar Inventario Completo
+                  </Button>
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
@@ -272,11 +313,11 @@ export default function OwnerDashboard() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos los tipos</SelectItem>
-                      <SelectItem value="espectacular">Espectacular</SelectItem>
-                      <SelectItem value="muro">Muro</SelectItem>
-                      <SelectItem value="valla">Valla</SelectItem>
-                      <SelectItem value="parabus">Parabús</SelectItem>
-                      <SelectItem value="digital">Digital</SelectItem>
+                      {uniqueTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {capitalizeFirstLetter(type)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
