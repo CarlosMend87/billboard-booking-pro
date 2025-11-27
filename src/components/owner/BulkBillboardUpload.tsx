@@ -191,12 +191,27 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       return mappedColumn ? row[mappedColumn] : "";
     };
 
+    // Función para limpiar valores numéricos
+    const cleanNumericValue = (value: string | number): number => {
+      if (typeof value === 'number') return value;
+      if (!value) return 0;
+      
+      // Convertir a string y limpiar
+      const cleaned = String(value)
+        .replace(/[$,\s]/g, '') // Eliminar $, comas y espacios
+        .replace(/[^\d.-]/g, '') // Mantener solo dígitos, punto y signo menos
+        .trim();
+      
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
     const isDigital = getValue("frame_category")?.toLowerCase() === "digital";
-    const publicPrice = parseFloat(getValue("public_price") || "0");
+    const publicPrice = cleanNumericValue(getValue("public_price"));
     const calculatedPrices = calculatePrices(publicPrice, isDigital);
 
-    const width = parseFloat(getValue("width") || "0");
-    const height = parseFloat(getValue("height") || "0");
+    const width = cleanNumericValue(getValue("width"));
+    const height = cleanNumericValue(getValue("height"));
 
     const frameId = getValue("frame_id");
     
@@ -207,13 +222,13 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       nombre: frameId ? `${frameId} - ${getValue("venue_type")}` : `${getValue("venue_type")} - ${getValue("address")}`,
       direccion: getValue("address"),
       tipo: venueType,
-      lat: parseFloat(getValue("latitude")),
-      lng: parseFloat(getValue("longitude")),
+      lat: cleanNumericValue(getValue("latitude")),
+      lng: cleanNumericValue(getValue("longitude")),
       medidas: {
         ancho: width,
         alto: height,
         unidad: "metros",
-        area_visual: parseFloat(getValue("visual_area") || (width * height).toString())
+        area_visual: cleanNumericValue(getValue("visual_area") || (width * height).toString())
       },
       digital: isDigital ? {
         pulgadas_monitor: getValue("monitor_inches") || "",
