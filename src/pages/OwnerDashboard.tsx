@@ -24,6 +24,7 @@ import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
 import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
 import { useAuth } from "@/hooks/useAuth";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
+import Papa from "papaparse";
 
 export default function OwnerDashboard() {
   const { billboards, loading, deleteBillboard, deleteAllBillboards, updateBillboard, fetchBillboards } = useBillboards();
@@ -208,36 +209,61 @@ export default function OwnerDashboard() {
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-4 mb-4">
                   <Button 
-                    variant="outline" 
-                    size="sm"
+                    variant="outline"
                     disabled={billboards.length === 0}
-                    className="w-full md:w-auto"
+                    className="gap-2"
                     onClick={() => {
-                      const headers = ['Nombre', 'Dirección', 'Tipo', 'Estado', 'Precio Mensual', 'Latitud', 'Longitud', 'Ancho', 'Alto'];
-                      const rows = billboards.map(billboard => [
-                        billboard.nombre,
-                        billboard.direccion,
-                        capitalizeFirstLetter(billboard.tipo),
-                        billboard.status,
-                        (billboard.precio as any)?.mensual || 'N/A',
-                        billboard.lat,
-                        billboard.lng,
-                        (billboard.medidas as any)?.ancho || 'N/A',
-                        (billboard.medidas as any)?.alto || 'N/A'
-                      ]);
-                      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      // Generar CSV con el mismo formato de la plantilla
+                      const rows = billboards.map(billboard => {
+                        const isDigital = billboard.tipo.toLowerCase().includes('digital');
+                        const metadata = billboard.metadata as any || {};
+                        const medidas = billboard.medidas as any || {};
+                        const digital = billboard.digital as any || {};
+                        const precio = billboard.precio as any || {};
+                        
+                        return {
+                          "Frame_ID": metadata.frame_id || billboard.nombre.split(' - ')[0] || '',
+                          "Venue type": capitalizeFirstLetter(billboard.tipo),
+                          "Address": billboard.direccion,
+                          "Floor": metadata.piso || '',
+                          "Public price / Rate card": precio.mensual || 0,
+                          "District": metadata.distrito || '',
+                          "City": metadata.ciudad || '',
+                          "State": metadata.estado || '',
+                          "Country": metadata.pais || '',
+                          "Zipcode": metadata.codigo_postal || '',
+                          "Latitude": billboard.lat,
+                          "Longitude": billboard.lng,
+                          "Frame_Category": isDigital ? 'digital' : 'static',
+                          "Indoor_Outdoor": metadata.interior_exterior || '',
+                          "Frame_Format": metadata.formato_marco || '',
+                          "Width (m)": medidas.ancho || '',
+                          "Height (m)": medidas.alto || '',
+                          "Visual Area (m²)": medidas.area_visual || '',
+                          "Monitor (inches)": digital.pulgadas_monitor || '',
+                          "max_time_secs": digital.tiempo_max_seg || '',
+                          "min_time_secs": digital.tiempo_min_seg || '',
+                          "allow_video": digital.permite_video ? 'yes' : '',
+                          "Slots quantity": digital.cantidad_slots || '',
+                          "dimension_pixel": digital.dimension_pixel || '',
+                          "Backlighted?": metadata.retroiluminado ? 'yes' : ''
+                        };
+                      });
+                      
+                      // Usar Papa.unparse para generar el CSV correctamente
+                      const csv = Papa.unparse(rows);
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                       const link = document.createElement('a');
                       const url = URL.createObjectURL(blob);
                       link.setAttribute('href', url);
-                      link.setAttribute('download', `inventario-completo-${new Date().getTime()}.csv`);
+                      link.setAttribute('download', `inventario-completo-${new Date().toISOString().split('T')[0]}.csv`);
                       link.style.visibility = 'hidden';
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
                     }}
                   >
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="h-4 w-4" />
                     Descargar Inventario Completo
                   </Button>
                   
