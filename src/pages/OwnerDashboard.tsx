@@ -36,11 +36,14 @@ export default function OwnerDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
 
+  // Obtener tipos únicos dinámicamente de los billboards
+  const uniqueTypes = Array.from(new Set(billboards.map(b => b.tipo))).sort();
+
   const filteredBillboards = billboards.filter(billboard => {
     const matchesSearch = billboard.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          billboard.direccion.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || billboard.status === statusFilter;
-    const matchesType = typeFilter === "all" || billboard.tipo === typeFilter;
+    const matchesType = typeFilter === "all" || billboard.tipo.toUpperCase() === typeFilter.toUpperCase();
     
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -272,11 +275,11 @@ export default function OwnerDashboard() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos los tipos</SelectItem>
-                      <SelectItem value="espectacular">Espectacular</SelectItem>
-                      <SelectItem value="muro">Muro</SelectItem>
-                      <SelectItem value="valla">Valla</SelectItem>
-                      <SelectItem value="parabus">Parabús</SelectItem>
-                      <SelectItem value="digital">Digital</SelectItem>
+                      {uniqueTypes.map((tipo) => (
+                        <SelectItem key={tipo} value={tipo}>
+                          {tipo}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
