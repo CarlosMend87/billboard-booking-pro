@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Edit2, Trash2, Camera, MapPin } from "lucide-react";
+import { Plus, Search, Filter, Edit2, Trash2, Camera, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBillboards, Billboard } from "@/hooks/useBillboards";
 import { BillboardForm } from "@/components/owner/BillboardForm";
 import { FinancialSummary } from "@/components/owner/FinancialSummary";
@@ -33,6 +33,8 @@ export default function OwnerDashboard() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   const filteredBillboards = billboards.filter(billboard => {
     const matchesSearch = billboard.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -42,6 +44,17 @@ export default function OwnerDashboard() {
     
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  // Paginación
+  const totalPages = Math.ceil(filteredBillboards.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBillboards = filteredBillboards.slice(startIndex, endIndex);
+
+  // Reset a página 1 cuando cambien los filtros
+  const handleFilterChange = () => {
+    setCurrentPage(1);
+  };
 
   const statusStats = {
     total: billboards.length,
@@ -226,13 +239,19 @@ export default function OwnerDashboard() {
                       <Input
                         placeholder="Buscar por nombre o dirección..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          handleFilterChange();
+                        }}
                         className="pl-10"
                       />
                     </div>
                   </div>
                   
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter} onValueChange={(value) => {
+                    setStatusFilter(value);
+                    handleFilterChange();
+                  }}>
                     <SelectTrigger className="w-full md:w-48">
                       <SelectValue placeholder="Filtrar por estado" />
                     </SelectTrigger>
@@ -244,7 +263,10 @@ export default function OwnerDashboard() {
                     </SelectContent>
                   </Select>
                   
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <Select value={typeFilter} onValueChange={(value) => {
+                    setTypeFilter(value);
+                    handleFilterChange();
+                  }}>
                     <SelectTrigger className="w-full md:w-48">
                       <SelectValue placeholder="Filtrar por tipo" />
                     </SelectTrigger>
@@ -261,6 +283,68 @@ export default function OwnerDashboard() {
               </CardContent>
             </Card>
 
+            {/* Controles de paginación */}
+            {filteredBillboards.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Mostrando {startIndex + 1} - {Math.min(endIndex, filteredBillboards.length)} de {filteredBillboards.length} pantallas
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Por página:</span>
+                        <Select 
+                          value={itemsPerPage.toString()} 
+                          onValueChange={(value) => {
+                            setItemsPerPage(Number(value));
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        
+                        <span className="text-sm">
+                          Página {currentPage} de {totalPages}
+                        </span>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Billboards Grid con edición rápida */}
             {loading ? (
               <div className="flex justify-center items-center py-12">
@@ -268,7 +352,7 @@ export default function OwnerDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredBillboards.map((billboard) => (
+                {paginatedBillboards.map((billboard) => (
                   <Card key={billboard.id} className="overflow-hidden">
                     <div className="aspect-video bg-muted relative">
                       {billboard.fotos && billboard.fotos.length > 0 ? (
@@ -365,6 +449,39 @@ export default function OwnerDashboard() {
                   </Card>
                 ))}
               </div>
+            )}
+
+            {/* Controles de paginación inferior */}
+            {filteredBillboards.length > 0 && totalPages > 1 && (
+              <Card className="mt-6">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </Button>
+                    
+                    <span className="text-sm px-4">
+                      Página {currentPage} de {totalPages}
+                    </span>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {filteredBillboards.length === 0 && !loading && (
