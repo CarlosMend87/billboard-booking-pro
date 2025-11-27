@@ -5,16 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCartContext } from "@/context/CartContext";
 import { CartItem, CartItemConfig } from "@/types/cart";
 import { catorcenas2024 } from "@/lib/mockInventory";
 import { formatPrice } from "@/lib/pricing";
-import { formatShortId } from "@/lib/utils";
+import { formatShortId, cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, Clock, Target, Zap } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CreativosUpload, CreativosConfig } from "./CreativosUpload";
 
 interface UnifiedBookingConfigProps {
   item: CartItem;
-  onUpdate: (itemId: string, config: CartItemConfig) => void;
+  onUpdate: (itemId: string, config: CartItemConfig & { creativos?: CreativosConfig }) => void;
 }
 
 export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigProps) {
@@ -25,8 +29,14 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     periodo?: string;
     catorcenasSeleccionadas?: string[];
   }>({});
+  const [creativosConfig, setCreativosConfig] = useState<CreativosConfig>({});
   
   const { updateItem } = useCartContext();
+
+  const handleCreativosChange = (itemId: string, creativos: CreativosConfig) => {
+    setCreativosConfig(creativos);
+    onUpdate(itemId, { ...config, creativos });
+  };
 
   // Auto-update end dates when config changes
   useEffect(() => {
@@ -370,32 +380,56 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Fecha de inicio</Label>
-            <Calendar
-              mode="single"
-              selected={selectedDates.inicio}
-              onSelect={(date) => handleDateChange('inicio', date)}
-              className="rounded-md border mt-2 pointer-events-auto"
-              disabled={(date) => date < new Date()}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal mt-2",
+                    !selectedDates.inicio && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDates.inicio ? (
+                    format(selectedDates.inicio, "PPP", { locale: es })
+                  ) : (
+                    <span>Selecciona una fecha</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDates.inicio}
+                  onSelect={(date) => handleDateChange('inicio', date)}
+                  className="rounded-md pointer-events-auto"
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label>Fecha de fin (calculada automáticamente)</Label>
-            <div className="mt-2 p-3 border rounded-md bg-muted">
-              {selectedDates.fin ? (
-                <p className="text-sm">
-                  {selectedDates.fin.toLocaleDateString('es-MX', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Selecciona fecha de inicio
-                </p>
-              )}
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled
+                  className={cn(
+                    "w-full justify-start text-left font-normal mt-2",
+                    !selectedDates.fin && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDates.fin ? (
+                    format(selectedDates.fin, "PPP", { locale: es })
+                  ) : (
+                    <span>Selecciona fecha de inicio</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+            </Popover>
           </div>
         </div>
       )}
@@ -431,6 +465,13 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         
         <div className="border-t pt-4">
           {renderProgramacion()}
+        </div>
+        
+        <div className="border-t pt-4">
+          <CreativosUpload 
+            item={item} 
+            onCreativosChange={handleCreativosChange}
+          />
         </div>
         
         <div className="border-t pt-4">

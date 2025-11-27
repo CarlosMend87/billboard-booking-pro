@@ -149,22 +149,166 @@ export default function BookingWizard() {
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Desglose de Reserva</CardTitle>
+            <CardTitle>Desglose Detallado de Campaña</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {cart.items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center py-2 border-b">
-                <div>
-                  <p className="font-medium">{item.asset.nombre}</p>
-                  <p className="text-sm text-muted-foreground">
-                    ID: {formatShortId(item.asset.id)} • {item.modalidad} • Cantidad: {item.quantity}
-                  </p>
+          <CardContent className="space-y-6">
+            {cart.items.map((item) => {
+              const config = itemConfigs[item.id] || item.config;
+              const creativos = (config as any)?.creativos;
+              const isDigital = item.asset.tipo.toLowerCase() === 'digital';
+              const medidas = item.asset.medidas as any;
+              
+              return (
+                <div key={item.id} className="space-y-3 pb-6 border-b last:border-b-0 last:pb-0">
+                  {/* Encabezado */}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-lg">{item.asset.nombre}</p>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline">{item.asset.tipo}</Badge>
+                        <Badge variant="secondary">{item.modalidad}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          ID: {formatShortId(item.asset.id)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="font-semibold text-lg">{formatPrice(item.subtotal)}</p>
+                  </div>
+
+                  {/* Detalles de configuración */}
+                  <div className="grid grid-cols-2 gap-4 text-sm bg-muted/50 p-3 rounded-lg">
+                    <div>
+                      <span className="font-medium">Modalidad:</span>
+                      <p className="text-muted-foreground capitalize">{item.modalidad}</p>
+                    </div>
+                    
+                    {config.meses && (
+                      <div>
+                        <span className="font-medium">Meses:</span>
+                        <p className="text-muted-foreground">{config.meses}</p>
+                      </div>
+                    )}
+                    
+                    {config.catorcenas && (
+                      <div>
+                        <span className="font-medium">Catorcenas:</span>
+                        <p className="text-muted-foreground">{config.catorcenas}</p>
+                      </div>
+                    )}
+                    
+                    {config.spotsDia && (
+                      <div>
+                        <span className="font-medium">Spots por día:</span>
+                        <p className="text-muted-foreground">{config.spotsDia}</p>
+                      </div>
+                    )}
+                    
+                    {config.horas && (
+                      <div>
+                        <span className="font-medium">Horas por día:</span>
+                        <p className="text-muted-foreground">{config.horas}</p>
+                      </div>
+                    )}
+                    
+                    {config.dias && (
+                      <div>
+                        <span className="font-medium">Días:</span>
+                        <p className="text-muted-foreground">{config.dias}</p>
+                      </div>
+                    )}
+                    
+                    {config.impresiones && (
+                      <div>
+                        <span className="font-medium">Impresiones:</span>
+                        <p className="text-muted-foreground">{config.impresiones.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fechas */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Fecha de inicio:</span>
+                      <p className="text-muted-foreground">
+                        {config.fechaInicio ? new Date(config.fechaInicio).toLocaleDateString('es-MX', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'No seleccionada'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Fecha de fin:</span>
+                      <p className="text-muted-foreground">
+                        {config.fechaFin ? new Date(config.fechaFin).toLocaleDateString('es-MX', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }) : 'No seleccionada'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Resolución/Medidas */}
+                  <div className="text-sm">
+                    <span className="font-medium">Medidas de la pantalla:</span>
+                    <p className="text-muted-foreground">
+                      {medidas?.ancho || 0}m × {medidas?.alto || 0}m
+                      {isDigital && (item.asset.digital as any)?.dimension_pixel && (
+                        <span className="ml-2">
+                          • Resolución: <Badge variant="outline" className="ml-1">
+                            {(item.asset.digital as any).dimension_pixel}
+                          </Badge>
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Información de creativos */}
+                  {creativos && (
+                    <div className="space-y-2 bg-primary/5 p-3 rounded-lg">
+                      <p className="font-medium text-sm">Material creativo:</p>
+                      {isDigital ? (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">
+                            Archivos digitales cargados para resolución requerida
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1 text-sm">
+                          <div>
+                            <span className="font-medium">Quién imprime: </span>
+                            <span className="text-muted-foreground capitalize">
+                              {creativos.quienImprime === 'cliente' ? 'El cliente' : 'El propietario'}
+                            </span>
+                          </div>
+                          {creativos.quienImprime === 'cliente' && creativos.fechaEnvioMaterial && (
+                            <div>
+                              <span className="font-medium">Fecha de envío: </span>
+                              <span className="text-muted-foreground">
+                                {new Date(creativos.fechaEnvioMaterial).toLocaleDateString('es-MX', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="text-sm text-muted-foreground">
+                    Cantidad: {item.quantity} unidad{item.quantity > 1 ? 'es' : ''}
+                  </div>
                 </div>
-                <p className="font-semibold">{formatPrice(item.subtotal)}</p>
-              </div>
-            ))}
+              );
+            })}
             
-            <div className="flex justify-between items-center text-lg font-bold pt-4">
+            <div className="flex justify-between items-center text-lg font-bold pt-4 border-t">
               <span>Total Final:</span>
               <span className="text-primary">{formatPrice(cart.total)}</span>
             </div>
