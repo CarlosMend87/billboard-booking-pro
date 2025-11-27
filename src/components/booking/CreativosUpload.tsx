@@ -150,7 +150,7 @@ export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProp
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="cliente" id="cliente" />
                   <Label htmlFor="cliente" className="cursor-pointer">
-                    El cliente imprimirá el material
+                    Yo imprimo material
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
