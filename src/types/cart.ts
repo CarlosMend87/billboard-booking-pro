@@ -24,6 +24,13 @@ export interface CartItemConfig {
   fechaInicio?: string;
   fechaFin?: string;
   periodo?: string; // For catorcenas like "C01-2024,C02-2024"
+  
+  // Creativos
+  creativos?: {
+    archivos?: { [resolucion: string]: File | null };
+    quienImprime?: 'cliente' | 'propietario';
+    fechaEnvioMaterial?: string;
+  };
 }
 
 export interface CartItem {
