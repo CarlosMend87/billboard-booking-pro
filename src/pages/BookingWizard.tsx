@@ -4,23 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle, ShoppingCart } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, ShoppingCart, Trash2, X } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
 import { UnifiedBookingConfig } from "@/components/booking/UnifiedBookingConfig";
 import { formatPrice } from "@/lib/pricing";
 import { formatShortId } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
-import { CartItemConfig } from "@/types/cart";
+import { CartItemConfig, CartItemModalidad } from "@/types/cart";
 import { useReservations } from "@/hooks/useReservations";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type WizardStep = 1 | 2 | 3;
 
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-  const { cart, updateQuantity, removeItem, clearCart } = useCartContext();
+  const { cart, addItem, updateQuantity, removeItem, clearCart } = useCartContext();
   const { createReservationsFromCart, loading } = useReservations();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -72,10 +73,69 @@ export default function BookingWizard() {
 
   const progress = (currentStep / 3) * 100;
 
+  const getAvailableModalidades = (item: any): CartItemModalidad[] => {
+    const modalidades: CartItemModalidad[] = [];
+    if (item.asset.contratacion.mensual) modalidades.push('mensual');
+    if (item.asset.contratacion.catorcenal) modalidades.push('catorcenal');
+    if (item.asset.contratacion.semanal) modalidades.push('semanal');
+    if (item.asset.contratacion.spot) modalidades.push('spot');
+    if (item.asset.contratacion.hora) modalidades.push('hora');
+    if (item.asset.contratacion.dia) modalidades.push('dia');
+    if (item.asset.contratacion.cpm) modalidades.push('cpm');
+    return modalidades;
+  };
+
+  const handleChangeModalidad = (itemId: string, newModalidad: CartItemModalidad) => {
+    const item = cart.items.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Remove old item and add new one with updated modalidad
+    removeItem(itemId);
+    addItem(item.asset, newModalidad, item.config);
+    
+    toast({
+      title: "Modalidad actualizada",
+      description: "La modalidad de compra ha sido cambiada exitosamente",
+    });
+  };
+
+  const getModalidadLabel = (modalidad: CartItemModalidad): string => {
+    const labels: Record<CartItemModalidad, string> = {
+      mensual: 'Mensual',
+      catorcenal: 'Catorcenal',
+      semanal: 'Semanal',
+      spot: 'Spot',
+      hora: 'Por Hora',
+      dia: 'Por Día',
+      cpm: 'CPM',
+    };
+    return labels[modalidad];
+  };
+
   const renderStep1 = () => (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Inventario Seleccionado</h2>
-      <p className="text-muted-foreground">Revisa los anuncios que agregaste a tu carrito</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">Inventario Seleccionado</h2>
+          <p className="text-muted-foreground">Revisa los anuncios que agregaste a tu carrito</p>
+        </div>
+        {cart.items.length > 0 && (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => {
+              clearCart();
+              toast({
+                title: "Carrito vaciado",
+                description: "Todos los anuncios han sido eliminados del carrito",
+              });
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Limpiar Carrito
+          </Button>
+        )}
+      </div>
       
       {cart.items.length === 0 ? (
         <Card>
@@ -88,30 +148,82 @@ export default function BookingWizard() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {cart.items.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">{item.asset.nombre}</h3>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">{item.asset.tipo}</Badge>
-                      <Badge variant="secondary">{item.modalidad}</Badge>
-                      <Badge variant="outline" className="text-xs">
-                        ID: {formatShortId(item.asset.id)}
-                      </Badge>
+          {cart.items.map((item) => {
+            const availableModalidades = getAvailableModalidades(item);
+            const hasMultipleModalidades = availableModalidades.length > 1;
+            
+            return (
+              <Card key={item.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{item.asset.nombre}</h3>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="outline">{item.asset.tipo}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              ID: {formatShortId(item.asset.id)}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            removeItem(item.id);
+                            toast({
+                              title: "Anuncio eliminado",
+                              description: "El anuncio ha sido eliminado del carrito",
+                            });
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {hasMultipleModalidades && (
+                        <div className="mt-3 space-y-1">
+                          <label className="text-sm text-muted-foreground">
+                            Tipo de compra:
+                          </label>
+                          <Select
+                            value={item.modalidad}
+                            onValueChange={(value) => handleChangeModalidad(item.id, value as CartItemModalidad)}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableModalidades.map((modalidad) => (
+                                <SelectItem key={modalidad} value={modalidad}>
+                                  {getModalidadLabel(modalidad)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
+                      {!hasMultipleModalidades && (
+                        <div className="mt-2">
+                          <Badge variant="secondary">{getModalidadLabel(item.modalidad)}</Badge>
+                        </div>
+                      )}
+                      
+                      <div className="mt-3 text-right">
+                        <p className="font-semibold text-lg">{formatPrice(item.subtotal)}</p>
+                        <p className="text-sm text-muted-foreground">Cantidad: {item.quantity}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatPrice(item.subtotal)}</p>
-                    <p className="text-sm text-muted-foreground">Cantidad: {item.quantity}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
           
-          <Card>
+          <Card className="border-primary">
             <CardContent className="p-4">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total:</span>
