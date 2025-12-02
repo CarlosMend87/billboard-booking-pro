@@ -1,4 +1,5 @@
 import { InventoryAsset } from "@/lib/mockInventory";
+import { CampaignInfo } from "@/context/CampaignContext";
 
 export type CartItemModalidad = 
   | 'mensual' 
@@ -47,4 +48,5 @@ export interface Cart {
   items: CartItem[];
   total: number;
   itemCount: number;
+  campaignInfo?: CampaignInfo | null;
 }

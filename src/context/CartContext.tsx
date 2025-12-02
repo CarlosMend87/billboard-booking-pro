@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { InventoryAsset } from '@/lib/mockInventory';
 import { CartItem, CartItemModalidad, CartItemConfig, Cart } from '@/types/cart';
+import { CampaignInfo } from '@/context/CampaignContext';
 import { 
   totalTradicional, 
   totalDigitalSpot, 
@@ -11,6 +12,7 @@ import {
 
 interface CartState {
   items: CartItem[];
+  campaignInfo: CampaignInfo | null;
 }
 
 type CartAction = 
@@ -19,7 +21,8 @@ type CartAction =
   | { type: 'UPDATE_ITEM'; payload: CartItem }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
   | { type: 'CLEAR_CART' }
-  | { type: 'LOAD_CART'; payload: Cart };
+  | { type: 'LOAD_CART'; payload: Cart }
+  | { type: 'SET_CAMPAIGN_INFO'; payload: CampaignInfo | null };
 
 interface CartContextType {
   cart: Cart;
@@ -100,21 +103,23 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         // Replace existing item with new configuration
         const updatedItems = [...state.items];
         updatedItems[existingItemIndex] = action.payload;
-        return { items: updatedItems };
+        return { ...state, items: updatedItems };
       } else {
         // Add new item
-        return { items: [...state.items, action.payload] };
+        return { ...state, items: [...state.items, action.payload] };
       }
     }
     
     case 'REMOVE_ITEM': {
       return {
+        ...state,
         items: state.items.filter(item => item.id !== action.payload)
       };
     }
     
     case 'UPDATE_ITEM': {
       return {
+        ...state,
         items: state.items.map(item => 
           item.id === action.payload.id ? action.payload : item
         )
@@ -123,6 +128,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     
     case 'UPDATE_QUANTITY': {
       return {
+        ...state,
         items: state.items.map(item => {
           if (item.id === action.payload.id) {
             const newQuantity = action.payload.quantity;
@@ -138,10 +144,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     }
     
     case 'CLEAR_CART':
-      return { items: [] };
+      return { items: [], campaignInfo: state.campaignInfo };
     
     case 'LOAD_CART':
-      return { items: action.payload.items };
+      return { items: action.payload.items, campaignInfo: action.payload.campaignInfo || null };
+    
+    case 'SET_CAMPAIGN_INFO':
+      return { ...state, campaignInfo: action.payload };
     
     default:
       return state;
@@ -149,18 +158,21 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const [state, dispatch] = useReducer(cartReducer, { items: [], campaignInfo: null });
 
   // Calculate cart totals
   const cart: Cart = {
     items: state.items,
     total: state.items.reduce((sum, item) => sum + item.subtotal, 0),
-    itemCount: state.items.reduce((sum, item) => sum + item.quantity, 0)
+    itemCount: state.items.reduce((sum, item) => sum + item.quantity, 0),
+    campaignInfo: state.campaignInfo
   };
 
-  // Load cart from localStorage on mount
+  // Load cart and campaign info from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
+    const savedCampaign = localStorage.getItem('campaign_info');
+    
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
@@ -169,12 +181,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading cart from localStorage:', error);
       }
     }
+    
+    if (savedCampaign) {
+      try {
+        const parsedCampaign = JSON.parse(savedCampaign);
+        dispatch({ type: 'SET_CAMPAIGN_INFO', payload: parsedCampaign });
+      } catch (error) {
+        console.error('Error loading campaign from localStorage:', error);
+      }
+    }
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
+
+  // Sync campaign info from CampaignContext
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedCampaign = localStorage.getItem('campaign_info');
+      if (savedCampaign) {
+        try {
+          const parsedCampaign = JSON.parse(savedCampaign);
+          dispatch({ type: 'SET_CAMPAIGN_INFO', payload: parsedCampaign });
+        } catch (error) {
+          console.error('Error syncing campaign:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const addItem = (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig) => {
     const itemId = `${asset.id}-${modalidad}-${JSON.stringify(config)}`;

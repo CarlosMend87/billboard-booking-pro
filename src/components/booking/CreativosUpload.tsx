@@ -24,9 +24,12 @@ export interface CreativosConfig {
 
 export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProps) {
   const [config, setConfig] = useState<CreativosConfig>({});
+  const [showPriceConfirmation, setShowPriceConfirmation] = useState(false);
+  const [calculatedPrintPrice, setCalculatedPrintPrice] = useState(0);
   
   const isDigital = item.asset.tipo.toLowerCase().includes('digital');
   const medidas = item.asset.medidas as any;
+  const precioM2 = (item.asset as any).precio_impresion_m2 || 65;
   
   // Obtener resoluciones requeridas para pantallas digitales
   const getRequiredResolutions = (): string[] => {
@@ -39,6 +42,13 @@ export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProp
 
   const requiredResolutions = isDigital ? getRequiredResolutions() : [];
 
+  // Calcular precio de impresión para lonas
+  const calculatePrintPrice = () => {
+    if (!medidas?.ancho || !medidas?.alto) return 0;
+    const area = medidas.ancho * medidas.alto;
+    return area * precioM2;
+  };
+
   const handleFileChange = (resolucion: string, file: File | null) => {
     const newArchivos = { ...config.archivos, [resolucion]: file };
     const newConfig = { ...config, archivos: newArchivos };
@@ -49,6 +59,16 @@ export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProp
   const handleQuienImprimeChange = (value: 'cliente' | 'propietario') => {
     const newConfig = { ...config, quienImprime: value };
     setConfig(newConfig);
+    
+    // Si el dueño imprime, calcular precio y mostrar confirmación
+    if (value === 'propietario') {
+      const printPrice = calculatePrintPrice();
+      setCalculatedPrintPrice(printPrice);
+      setShowPriceConfirmation(true);
+    } else {
+      setShowPriceConfirmation(false);
+    }
+    
     onCreativosChange(item.id, newConfig);
   };
 
@@ -186,31 +206,49 @@ export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProp
             )}
 
             {config.quienImprime === 'propietario' && (
-              <div>
-                <Label htmlFor="creativo">Subir archivo de diseño</Label>
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    id="creativo"
-                    type="file"
-                    accept="image/*,.pdf,.ai,.psd"
-                    onChange={(e) => handleFileChange('design', e.target.files?.[0] || null)}
-                    className="flex-1"
-                  />
+              <div className="space-y-4">
+                {showPriceConfirmation && (
+                  <Alert>
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="font-semibold">Costo total calculado:</p>
+                        <p className="text-lg">${calculatedPrintPrice.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN</p>
+                        <p className="text-sm text-muted-foreground">
+                          Área: {medidas?.ancho}m × {medidas?.alto}m = {(medidas?.ancho * medidas?.alto).toFixed(2)}m²
+                          <br />
+                          Precio por m²: ${precioM2} MXN
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                <div>
+                  <Label htmlFor="creativo">Subir archivo de diseño</Label>
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      id="creativo"
+                      type="file"
+                      accept="image/*,.pdf,.ai,.psd"
+                      onChange={(e) => handleFileChange('design', e.target.files?.[0] || null)}
+                      className="flex-1"
+                    />
+                    {config.archivos?.['design'] && (
+                      <Badge variant="default" className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Cargado
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Formatos aceptados: JPG, PNG, PDF, AI, PSD
+                  </p>
                   {config.archivos?.['design'] && (
-                    <Badge variant="default" className="flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Cargado
-                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Archivo: {config.archivos['design']?.name}
+                    </p>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Formatos aceptados: JPG, PNG, PDF, AI, PSD
-                </p>
-                {config.archivos?.['design'] && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Archivo: {config.archivos['design']?.name}
-                  </p>
-                )}
               </div>
             )}
           </div>
