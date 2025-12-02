@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
 import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
+import { InventoryAsset } from "@/lib/mockInventory";
+import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 import { LocationKeywordFilter } from "@/components/advertiser/LocationKeywordFilter";
 import { DateAvailabilityFilter } from "@/components/advertiser/DateAvailabilityFilter";
@@ -127,6 +129,16 @@ export default function DisponibilidadAnuncios() {
     (filters.advancedFilters.modalidades.length > 0 ? 1 : 0) +
     (filters.advancedFilters.proximityFilters.length > 0 ? 1 : 0) +
     (filters.advancedFilters.hasComputerVision !== null ? 1 : 0);
+
+  // Handler para agregar al carrito - requiere campaña activa
+  const handleAddToCart = (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig) => {
+    if (!campaignInfo) {
+      toast.error("Primero debes crear o seleccionar una campaña");
+      setShowOptionsModal(true);
+      return;
+    }
+    addItem(asset, modalidad, config);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -264,9 +276,9 @@ export default function DisponibilidadAnuncios() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2">
             {viewMode === 'map' ? (
-              <AvailableInventoryMap filters={filters} onAddToCart={addItem} />
+              <AvailableInventoryMap filters={filters} onAddToCart={handleAddToCart} />
             ) : (
-              <AvailableInventoryList filters={filters} onAddToCart={addItem} />
+              <AvailableInventoryList filters={filters} onAddToCart={handleAddToCart} />
             )}
           </div>
           
