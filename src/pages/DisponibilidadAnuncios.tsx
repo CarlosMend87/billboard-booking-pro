@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
 import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
@@ -12,12 +12,23 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, List } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
+import { useCampaign } from "@/context/CampaignContext";
 import { InventoryFilters, AdvancedFiltersState } from "@/types/inventory";
+import { CampaignOptionsModal } from "@/components/advertiser/CampaignOptionsModal";
+import { CampaignCreationModal } from "@/components/advertiser/CampaignCreationModal";
+import { CampaignSelectionModal } from "@/components/advertiser/CampaignSelectionModal";
+import { CampaignInfo } from "@/context/CampaignContext";
+import { toast } from "sonner";
 
 export type { InventoryFilters, AdvancedFiltersState };
 
 export default function DisponibilidadAnuncios() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showCreationModal, setShowCreationModal] = useState(false);
+  const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [hasShownModal, setHasShownModal] = useState(false);
+  
   const [filters, setFilters] = useState<InventoryFilters>({
     location: '',
     startDate: null,
@@ -33,6 +44,15 @@ export default function DisponibilidadAnuncios() {
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
+  const { campaignInfo, setCampaignInfo } = useCampaign();
+
+  // Mostrar modal solo la primera vez que entra a disponibilidad
+  useEffect(() => {
+    if (!hasShownModal && !campaignInfo) {
+      setShowOptionsModal(true);
+      setHasShownModal(true);
+    }
+  }, [hasShownModal, campaignInfo]);
 
   const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -58,6 +78,18 @@ export default function DisponibilidadAnuncios() {
     }));
   };
 
+  const handleCreateCampaign = (campaign: CampaignInfo) => {
+    setCampaignInfo(campaign);
+    setShowCreationModal(false);
+    
+    // Aplicar filtro de método si es necesario
+    if (campaign.metodo !== 'full') {
+      handleAdvancedFiltersChange({ modalidades: [campaign.metodo] });
+    }
+    
+    toast.success(`Campaña "${campaign.nombre}" creada. Busca tu inventario disponible.`);
+  };
+
   const activeFiltersCount = 
     (filters.location ? 1 : 0) +
     (filters.startDate || filters.endDate ? 1 : 0) +
@@ -70,7 +102,52 @@ export default function DisponibilidadAnuncios() {
     <div className="min-h-screen bg-background">
       <Header />
       
+      <CampaignOptionsModal
+        open={showOptionsModal}
+        onClose={() => setShowOptionsModal(false)}
+        onCreateFirst={() => {
+          setShowOptionsModal(false);
+          setShowCreationModal(true);
+        }}
+        onTrackExisting={() => {
+          setShowOptionsModal(false);
+          setShowSelectionModal(true);
+        }}
+        onCreateAdditional={() => {
+          setShowOptionsModal(false);
+          setShowCreationModal(true);
+        }}
+      />
+
+      <CampaignCreationModal
+        open={showCreationModal}
+        onClose={() => setShowCreationModal(false)}
+        onSubmit={handleCreateCampaign}
+      />
+
+      <CampaignSelectionModal
+        open={showSelectionModal}
+        onClose={() => setShowSelectionModal(false)}
+      />
+      
       <div className="container mx-auto px-4 py-6 space-y-6">
+        {campaignInfo && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <span className="text-primary">Campaña activa:</span> {campaignInfo.nombre}
+                  </div>
+                  <div className="text-sm font-normal text-muted-foreground">
+                    Presupuesto: ${campaignInfo.presupuesto.toLocaleString('es-MX')} MXN
+                  </div>
+                </div>
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        )}
+        
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between flex-wrap gap-4">

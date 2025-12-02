@@ -465,7 +465,7 @@ export default function BookingWizard() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-            Wizard de Reserva
+            Continuar Compra
           </h1>
           
           {/* Progress Bar */}

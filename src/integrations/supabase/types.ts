@@ -157,6 +157,7 @@ export type Database = {
           nombre: string
           owner_id: string
           precio: Json
+          precio_impresion_m2: number | null
           status: string
           tipo: string
           updated_at: string
@@ -179,6 +180,7 @@ export type Database = {
           nombre: string
           owner_id: string
           precio?: Json
+          precio_impresion_m2?: number | null
           status?: string
           tipo: string
           updated_at?: string
@@ -201,6 +203,7 @@ export type Database = {
           nombre?: string
           owner_id?: string
           precio?: Json
+          precio_impresion_m2?: number | null
           status?: string
           tipo?: string
           updated_at?: string
