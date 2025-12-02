@@ -60,6 +60,9 @@ const REQUIRED_COLUMNS = [
   { key: "slots_quantity", label: "Slots quantity", required: false },
   { key: "dimension_pixel", label: "dimension_pixel", required: false },
   { key: "backlighted", label: "Backlighted?", required: false },
+  { key: "foto_link_1", label: "Foto_Link_1", required: false, aliases: ["foto link 1", "foto1", "link1", "imagen1"] },
+  { key: "foto_link_2", label: "Foto_Link_2", required: false, aliases: ["foto link 2", "foto2", "link2", "imagen2"] },
+  { key: "foto_link_3", label: "Foto_Link_3", required: false, aliases: ["foto link 3", "foto3", "link3", "imagen3"] },
 ];
 
 export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: BulkBillboardUploadProps) {
@@ -96,7 +99,6 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
         "State": "CDMX",
         "Country": "México",
         "Zipcode": "06000",
-        "": "",
         "Latitude": "19.432608",
         "Longitude": "-99.133209",
         "Frame_Category": "static",
@@ -113,7 +115,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
         "dimension_pixel": "",
         "Backlighted?": "yes",
         "public price ó rate card": "100000",
-        "DISPO": "Disponible"
+        "DISPO": "Disponible",
+        "Foto_Link_1": "https://drive.google.com/uc?id=XXXXX",
+        "Foto_Link_2": "https://drive.google.com/uc?id=YYYYY",
+        "Foto_Link_3": ""
       },
       {
         "Frame_ID": "FRAME-002",
@@ -126,7 +131,6 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
         "State": "CDMX",
         "Country": "México",
         "Zipcode": "06700",
-        "": "",
         "Latitude": "19.421234",
         "Longitude": "-99.162345",
         "Frame_Category": "digital",
@@ -143,7 +147,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
         "dimension_pixel": "1920x1080",
         "Backlighted?": "yes",
         "public price ó rate card": "50000",
-        "DISPO": "Disponible"
+        "DISPO": "Disponible",
+        "Foto_Link_1": "https://drive.google.com/uc?id=ZZZZZ",
+        "Foto_Link_2": "",
+        "Foto_Link_3": ""
       }
     ];
 
@@ -207,6 +214,37 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
       .replace(/\s+/g, ''); // Eliminar espacios
   };
 
+  // Función para convertir links de Google Drive a formato directo
+  const convertDriveLink = (link: string): string => {
+    if (!link || typeof link !== 'string') return '';
+    const trimmed = link.trim();
+    if (!trimmed) return '';
+    
+    // Si ya es un link directo de uc?id=, devolverlo tal cual
+    if (trimmed.includes('drive.google.com/uc?id=')) {
+      return trimmed;
+    }
+    
+    // Convertir formato /file/d/ID/view a formato directo
+    const fileIdMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch) {
+      return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
+    }
+    
+    // Convertir formato open?id=ID
+    const openIdMatch = trimmed.match(/open\?id=([a-zA-Z0-9_-]+)/);
+    if (openIdMatch) {
+      return `https://drive.google.com/uc?id=${openIdMatch[1]}`;
+    }
+    
+    // Si no es un link de Drive pero es una URL válida, devolverla tal cual
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    
+    return '';
+  };
+
   const processBillboard = (row: any, mapping: ColumnMapping, spotsDisponibles: number = 1) => {
     const getValue = (key: string) => {
       const mappedColumn = mapping[key];
@@ -241,6 +279,16 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
     
     // Venue_Type es el tipo visual/categoría de la pantalla (digital, espectacular, vallas, etc.)
     const venueType = getValue("venue_type")?.toLowerCase() || "espectacular";
+
+    // Procesar links de fotos
+    const fotoLinks: string[] = [];
+    const foto1 = convertDriveLink(getValue("foto_link_1"));
+    const foto2 = convertDriveLink(getValue("foto_link_2"));
+    const foto3 = convertDriveLink(getValue("foto_link_3"));
+    
+    if (foto1) fotoLinks.push(foto1);
+    if (foto2) fotoLinks.push(foto2);
+    if (foto3) fotoLinks.push(foto3);
     
     return {
       nombre: frameId ? `${frameId} - ${getValue("venue_type")}` : `${getValue("venue_type")} - ${getValue("address")}`,
@@ -248,6 +296,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: Bulk
       tipo: venueType, // Esto es lo que aparece en el filtro del propietario
       lat: cleanNumericValue(getValue("latitude")),
       lng: cleanNumericValue(getValue("longitude")),
+      fotos: fotoLinks.length > 0 ? fotoLinks : null,
       medidas: {
         ancho: width,
         alto: height,
