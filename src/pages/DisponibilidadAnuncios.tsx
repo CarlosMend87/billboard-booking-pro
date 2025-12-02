@@ -157,11 +157,27 @@ export default function DisponibilidadAnuncios() {
             <CardHeader>
               <CardTitle className="text-lg">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
+                  <div className="flex items-center gap-2">
                     <span className="text-primary">Campaña activa:</span> {campaignInfo.nombre}
                   </div>
-                  <div className="text-sm font-normal text-muted-foreground">
-                    Presupuesto: ${campaignInfo.presupuesto.toLocaleString('es-MX')} MXN
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-normal text-muted-foreground">
+                      Presupuesto: ${campaignInfo.presupuesto.toLocaleString('es-MX')} MXN
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => clearCampaign()}
+                    >
+                      Cerrar
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowOptionsModal(true)}
+                    >
+                      Cambiar Campaña
+                    </Button>
                   </div>
                 </div>
               </CardTitle>
