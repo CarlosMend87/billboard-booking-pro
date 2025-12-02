@@ -8,9 +8,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Eye, Play, Pause, Trash2, Edit } from "lucide-react";
+import { Loader2, Eye, Play, Pause, Trash2, Edit, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,8 @@ export function CampaignSelectionModal({
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -149,6 +152,13 @@ export function CampaignSelectionModal({
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  // Filtrar campañas por búsqueda y estado
+  const filteredCampaigns = campaigns.filter(campaign => {
+    const matchesSearch = campaign.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !statusFilter || campaign.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const draftCampaigns = campaigns.filter(c => c.status === 'draft').length;
   const inactiveCampaigns = campaigns.filter(c => c.status === 'inactive').length;
@@ -161,14 +171,54 @@ export function CampaignSelectionModal({
           <DialogDescription>
             Gestiona tus campañas, continúa borradores o consulta el progreso
           </DialogDescription>
-          {campaigns.length > 0 && (
-            <div className="flex gap-2 pt-2">
-              <Badge variant="default">Activas: {activeCampaigns}</Badge>
-              <Badge variant="outline">Borradores: {draftCampaigns}</Badge>
-              <Badge variant="secondary">Pausadas: {inactiveCampaigns}</Badge>
-            </div>
-          )}
         </DialogHeader>
+
+        {campaigns.length > 0 && (
+          <div className="space-y-4 pt-2">
+            {/* Búsqueda */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar campaña por nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Filtros de estado */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant={statusFilter === null ? "default" : "outline"}
+                onClick={() => setStatusFilter(null)}
+              >
+                Todas ({campaigns.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'active' ? "default" : "outline"}
+                onClick={() => setStatusFilter('active')}
+              >
+                Activas ({activeCampaigns})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'draft' ? "default" : "outline"}
+                onClick={() => setStatusFilter('draft')}
+              >
+                Borradores ({draftCampaigns})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'inactive' ? "default" : "outline"}
+                onClick={() => setStatusFilter('inactive')}
+              >
+                Pausadas ({inactiveCampaigns})
+              </Button>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-8">
@@ -178,9 +228,13 @@ export function CampaignSelectionModal({
           <div className="text-center py-8 text-muted-foreground">
             No tienes campañas creadas aún
           </div>
+        ) : filteredCampaigns.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No se encontraron campañas con los filtros aplicados
+          </div>
         ) : (
           <div className="space-y-3">
-            {campaigns.map((campaign) => (
+            {filteredCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
                 className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
