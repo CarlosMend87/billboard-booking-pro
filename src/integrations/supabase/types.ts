@@ -261,45 +261,51 @@ export type Database = {
         Row: {
           advertiser_id: string
           created_at: string
-          dias_totales: number
+          dias_totales: number | null
           dias_transcurridos: number | null
-          fecha_fin: string
-          fecha_inicio: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
           id: string
+          metodo_busqueda: string | null
           nombre: string
           presupuesto_total: number
           presupuesto_usado: number | null
-          reserva_id: string
+          propuesta: string | null
+          reserva_id: string | null
           status: string | null
           updated_at: string
         }
         Insert: {
           advertiser_id: string
           created_at?: string
-          dias_totales: number
+          dias_totales?: number | null
           dias_transcurridos?: number | null
-          fecha_fin: string
-          fecha_inicio: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           id?: string
+          metodo_busqueda?: string | null
           nombre: string
           presupuesto_total: number
           presupuesto_usado?: number | null
-          reserva_id: string
+          propuesta?: string | null
+          reserva_id?: string | null
           status?: string | null
           updated_at?: string
         }
         Update: {
           advertiser_id?: string
           created_at?: string
-          dias_totales?: number
+          dias_totales?: number | null
           dias_transcurridos?: number | null
-          fecha_fin?: string
-          fecha_inicio?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           id?: string
+          metodo_busqueda?: string | null
           nombre?: string
           presupuesto_total?: number
           presupuesto_usado?: number | null
-          reserva_id?: string
+          propuesta?: string | null
+          reserva_id?: string | null
           status?: string | null
           updated_at?: string
         }
