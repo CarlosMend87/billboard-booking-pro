@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/select";
 import { CampaignInfo, CampaignSearchMethod } from "@/context/CampaignContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 interface CampaignCreationModalProps {
   open: boolean;
@@ -32,12 +35,14 @@ export function CampaignCreationModal({
   onClose,
   onSubmit,
 }: CampaignCreationModalProps) {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [nombre, setNombre] = useState("");
   const [propuesta, setPropuesta] = useState("");
   const [presupuesto, setPresupuesto] = useState("");
   const [metodo, setMetodo] = useState<CampaignSearchMethod | "">("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!nombre.trim()) {
       toast.error("Por favor ingresa el nombre de la campaña");
       return;
@@ -55,20 +60,50 @@ export function CampaignCreationModal({
       return;
     }
 
-    const campaignInfo: CampaignInfo = {
-      nombre,
-      propuesta,
-      presupuesto: parseFloat(presupuesto),
-      metodo: metodo as CampaignSearchMethod,
-    };
+    if (!user) {
+      toast.error("Debes iniciar sesión");
+      return;
+    }
 
-    onSubmit(campaignInfo);
-    
-    // Reset form
-    setNombre("");
-    setPropuesta("");
-    setPresupuesto("");
-    setMetodo("");
+    setLoading(true);
+    try {
+      // Guardar campaña como borrador en la DB
+      const { data, error } = await supabase
+        .from("campañas")
+        .insert({
+          advertiser_id: user.id,
+          nombre: nombre.trim(),
+          propuesta: propuesta.trim(),
+          presupuesto_total: parseFloat(presupuesto),
+          metodo_busqueda: metodo,
+          status: "draft", // Guardar como borrador
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const campaignInfo: CampaignInfo = {
+        id: data.id,
+        nombre: nombre.trim(),
+        propuesta: propuesta.trim(),
+        presupuesto: parseFloat(presupuesto),
+        metodo: metodo as CampaignSearchMethod,
+      };
+
+      onSubmit(campaignInfo);
+      
+      // Reset form
+      setNombre("");
+      setPropuesta("");
+      setPresupuesto("");
+      setMetodo("");
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      toast.error("Error al crear la campaña");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,8 +172,15 @@ export function CampaignCreationModal({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit}>
-            Buscar Disponibilidad
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creando...
+              </>
+            ) : (
+              "Buscar Disponibilidad"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
