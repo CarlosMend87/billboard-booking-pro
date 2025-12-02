@@ -126,31 +126,29 @@ export default function OwnerDashboard() {
               
               <BulkBillboardUpload 
                 ownerId={user?.id || ""} 
-                onSuccess={fetchBillboards} 
+                onSuccess={fetchBillboards}
+                onNewBillboard={() => {
+                  setSelectedBillboard(null);
+                  setIsFormOpen(true);
+                }}
               />
               
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2" onClick={() => setSelectedBillboard(null)}>
-                  <Plus className="h-4 w-4" />
-                  Nueva Pantalla
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {selectedBillboard ? 'Editar Pantalla' : 'Nueva Pantalla'}
-                  </DialogTitle>
-                </DialogHeader>
-                <BillboardForm 
-                  billboard={selectedBillboard} 
-                  onClose={() => {
-                    setIsFormOpen(false);
-                    setSelectedBillboard(null);
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {selectedBillboard ? 'Editar Pantalla' : 'Nueva Pantalla'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <BillboardForm 
+                    billboard={selectedBillboard} 
+                    onClose={() => {
+                      setIsFormOpen(false);
+                      setSelectedBillboard(null);
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -489,9 +487,17 @@ export default function OwnerDashboard() {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-semibold text-lg line-clamp-1">{billboard.nombre}</h3>
-                        <Badge variant="outline" className="ml-2">
-                          {billboard.tipo}
-                        </Badge>
+                        <div className="flex gap-1 ml-2">
+                          <Badge 
+                            variant={getFrameCategory(billboard) === 'digital' ? 'default' : 'secondary'}
+                            className={getFrameCategory(billboard) === 'digital' ? 'bg-blue-600 text-white' : 'bg-amber-100 text-amber-800'}
+                          >
+                            {getFrameCategory(billboard) === 'digital' ? 'Digital' : 'Estática'}
+                          </Badge>
+                          <Badge variant="outline">
+                            {billboard.tipo}
+                          </Badge>
+                        </div>
                       </div>
                       
                       <div className="flex items-center text-sm text-muted-foreground mb-3">
