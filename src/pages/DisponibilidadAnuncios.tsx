@@ -44,7 +44,7 @@ export default function DisponibilidadAnuncios() {
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
-  const { campaignInfo, setCampaignInfo } = useCampaign();
+  const { campaignInfo, setCampaignInfo, clearCampaign } = useCampaign();
 
   // Mostrar modal solo la primera vez que entra a disponibilidad
   useEffect(() => {
@@ -90,6 +90,13 @@ export default function DisponibilidadAnuncios() {
     toast.success(`Campaña "${campaign.nombre}" creada como borrador. Busca tu inventario disponible.`);
   };
 
+  const handleCloseCampaign = () => {
+    clearCampaign();
+    // Limpiar filtros de modalidad cuando se cierra la campaña
+    handleAdvancedFiltersChange({ modalidades: [] });
+    toast.success("Campaña cerrada");
+  };
+
   const handleSelectCampaign = (campaign: any) => {
     // Convertir campaña de DB a CampaignInfo
     const campaignInfo: CampaignInfo = {
@@ -101,10 +108,13 @@ export default function DisponibilidadAnuncios() {
     };
     
     setCampaignInfo(campaignInfo);
+    setShowSelectionModal(false);
     
-    // Aplicar filtro de método si es necesario
+    // Limpiar filtros previos y aplicar nuevo filtro de método si es necesario
     if (campaignInfo.metodo !== 'full') {
       handleAdvancedFiltersChange({ modalidades: [campaignInfo.metodo] });
+    } else {
+      handleAdvancedFiltersChange({ modalidades: [] });
     }
     
     toast.success(`Continuando con "${campaign.nombre}"`);
@@ -167,7 +177,7 @@ export default function DisponibilidadAnuncios() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => clearCampaign()}
+                      onClick={handleCloseCampaign}
                     >
                       Cerrar
                     </Button>
