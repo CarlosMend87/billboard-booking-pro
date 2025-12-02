@@ -1,7 +1,7 @@
 // Mock inventory data exactly as specified in the requirements
 export interface InventoryAsset {
   id: string;
-  tipo: "espectacular" | "muro" | "valla" | "parabus" | "digital";
+  tipo: "espectacular" | "muro" | "valla" | "parabus" | "digital" | string;
   nombre: string;
   lat: number;
   lng: number;
@@ -12,10 +12,19 @@ export interface InventoryAsset {
     base_m?: number;
     caras: number;
     modulos?: number;
+    ancho?: number;
+    alto?: number;
+    area_visual?: number;
   };
   digital?: {
-    loop_seg: number;
-    slot_seg: number;
+    loop_seg?: number;
+    slot_seg?: number;
+    pulgadas_monitor?: string;
+    tiempo_max_seg?: number;
+    tiempo_min_seg?: number;
+    permite_video?: boolean;
+    cantidad_slots?: number;
+    dimension_pixel?: string;
   };
   contratacion: {
     mensual?: boolean;
@@ -25,6 +34,10 @@ export interface InventoryAsset {
     hora?: boolean;
     dia?: boolean;
     cpm?: boolean;
+    fijo?: boolean;
+    programatico?: boolean;
+    spots?: boolean;
+    requiere_impresion?: boolean;
   };
   precio: {
     mensual?: number;
@@ -34,6 +47,9 @@ export interface InventoryAsset {
     cpm?: number;
     descuento_volumen?: number;
     precio_original?: number;
+    catorcenal?: number;
+    semanal?: number;
+    diario?: number;
   };
   estado: "disponible" | "reservado" | "ocupado" | "en_revision" | "aceptado";
   propietario?: string;
@@ -44,6 +60,23 @@ export interface InventoryAsset {
     fecha_ultima_reserva?: string;
     cliente_actual?: string;
   };
+  // Nuevos campos para soportar la base de datos
+  metadata?: {
+    frame_id?: string;
+    frame_category?: string;
+    categoria_marco?: string;
+    numero?: string;
+    piso?: string;
+    distrito?: string;
+    ciudad?: string;
+    estado?: string;
+    pais?: string;
+    codigo_postal?: string;
+    interior_exterior?: string;
+    formato_marco?: string;
+    retroiluminado?: boolean;
+  };
+  precio_impresion_m2?: number | null;
 }
 
 export const mockInventoryAssets: InventoryAsset[] = [

@@ -32,6 +32,7 @@ export default function OwnerDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [frameCategoryFilter, setFrameCategoryFilter] = useState<string>("all");
   const [selectedBillboard, setSelectedBillboard] = useState<Billboard | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,6 +40,12 @@ export default function OwnerDashboard() {
 
   // Obtener tipos únicos de los billboards
   const uniqueTypes = Array.from(new Set(billboards.map(b => b.tipo.toLowerCase()))).sort();
+  
+  // Obtener frame categories únicas de los billboards
+  const getFrameCategory = (billboard: Billboard): string => {
+    const metadata = billboard.metadata as any;
+    return metadata?.frame_category || (billboard.digital ? 'digital' : 'static');
+  };
   
   const capitalizeFirstLetter = (str: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -49,8 +56,9 @@ export default function OwnerDashboard() {
                          billboard.direccion.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || billboard.status === statusFilter;
     const matchesType = typeFilter === "all" || billboard.tipo.toLowerCase() === typeFilter.toLowerCase();
+    const matchesFrameCategory = frameCategoryFilter === "all" || getFrameCategory(billboard) === frameCategoryFilter;
     
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus && matchesType && matchesFrameCategory;
   });
 
   // Paginación
@@ -355,6 +363,20 @@ export default function OwnerDashboard() {
                           {capitalizeFirstLetter(type)}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={frameCategoryFilter} onValueChange={(value) => {
+                    setFrameCategoryFilter(value);
+                    handleFilterChange();
+                  }}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      <SelectItem value="digital">Digital (Spots)</SelectItem>
+                      <SelectItem value="static">Tradicional (Estática)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
