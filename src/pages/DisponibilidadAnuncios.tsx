@@ -130,7 +130,7 @@ export default function DisponibilidadAnuncios() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onOpenCampaigns={() => setShowSelectionModal(true)} />
       
       <CampaignOptionsModal
         open={showOptionsModal}
