@@ -883,15 +883,6 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
   return (
     <>
-      <Button
-        variant="outline"
-        onClick={downloadTemplate}
-        className="gap-2"
-      >
-        <Download className="h-4 w-4" />
-        Descargar Plantilla
-      </Button>
-
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
@@ -1031,6 +1022,21 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             </div>
           ) : !showMapping ? (
             <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="font-medium text-sm">¿Primera vez cargando inventario?</p>
+                  <p className="text-xs text-muted-foreground">Descarga la plantilla con el formato correcto</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={downloadTemplate}
+                  className="gap-2 shrink-0"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar Plantilla
+                </Button>
+              </div>
+              
               <Alert>
                 <FileText className="h-4 w-4" />
                 <AlertDescription>

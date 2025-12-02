@@ -6,15 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCartContext } from "@/context/CartContext";
 import { CartItem, CartItemConfig } from "@/types/cart";
 import { catorcenas2024 } from "@/lib/mockInventory";
 import { formatPrice } from "@/lib/pricing";
 import { formatShortId, cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, Clock, Target, Zap } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Target, Zap, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CreativosUpload, CreativosConfig } from "./CreativosUpload";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UnifiedBookingConfigProps {
   item: CartItem;
@@ -30,6 +32,26 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     catorcenasSeleccionadas?: string[];
   }>({});
   const [creativosConfig, setCreativosConfig] = useState<CreativosConfig>({});
+  const [quienImprime, setQuienImprime] = useState<'cliente' | 'propietario'>('cliente');
+  
+  // Determinar si es pantalla estática (necesita impresión)
+  const isStaticScreen = (): boolean => {
+    const metadata = item.asset.metadata as any;
+    const frameCategory = metadata?.frame_category || metadata?.categoria_marco;
+    const contratacion = item.asset.contratacion as any;
+    return frameCategory === 'static' || contratacion?.requiere_impresion === true || !item.asset.digital;
+  };
+  
+  // Calcular costo de impresión
+  const calcularCostoImpresion = (): number => {
+    if (quienImprime !== 'propietario') return 0;
+    const medidas = item.asset.medidas as any;
+    const ancho = medidas?.ancho || 0;
+    const alto = medidas?.alto || 0;
+    const area = ancho * alto;
+    const precioM2 = item.asset.precio_impresion_m2 || 65;
+    return area * precioM2;
+  };
   
   const { updateItem } = useCartContext();
 
@@ -467,6 +489,71 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
           {renderProgramacion()}
         </div>
         
+        {/* Sección de impresión para pantallas estáticas */}
+        {isStaticScreen() && (
+          <div className="border-t pt-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Printer className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-medium">¿Quién imprime la lona?</h4>
+              </div>
+              
+              <RadioGroup
+                value={quienImprime}
+                onValueChange={(value: 'cliente' | 'propietario') => {
+                  setQuienImprime(value);
+                  handleConfigChange({
+                    creativos: {
+                      ...config.creativos,
+                      quienImprime: value === 'propietario' ? 'propietario' : 'cliente'
+                    }
+                  });
+                }}
+                className="space-y-3"
+              >
+                <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="cliente" id="cliente" />
+                  <Label htmlFor="cliente" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Yo imprimo</span>
+                    <p className="text-sm text-muted-foreground">El cliente se encarga de la impresión y envío del material</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer">
+                  <RadioGroupItem value="propietario" id="propietario" />
+                  <Label htmlFor="propietario" className="flex-1 cursor-pointer">
+                    <span className="font-medium">El dueño imprime</span>
+                    <p className="text-sm text-muted-foreground">El propietario de la pantalla se encarga de la impresión</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+              
+              {quienImprime === 'propietario' && (
+                <Alert className="bg-muted/50">
+                  <Printer className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span>Medidas de la lona:</span>
+                        <span className="font-medium">
+                          {(item.asset.medidas as any)?.ancho || (item.asset.medidas as any)?.ancho_m || 0}m × {(item.asset.medidas as any)?.alto || (item.asset.medidas as any)?.alto_m || 0}m
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Precio por m²:</span>
+                        <span className="font-medium">{formatPrice(item.asset.precio_impresion_m2 || 65)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-primary font-semibold">
+                        <span>Costo total de impresión:</span>
+                        <span>{formatPrice(calcularCostoImpresion())}</span>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="border-t pt-4">
           <CreativosUpload 
             item={item} 
@@ -475,9 +562,23 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         </div>
         
         <div className="border-t pt-4">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Subtotal ({item.quantity} unidades):</span>
-            <span className="text-lg font-bold text-primary">{formatPrice(item.subtotal)}</span>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Subtotal ({item.quantity} unidades):</span>
+              <span className="font-medium">{formatPrice(item.subtotal)}</span>
+            </div>
+            {isStaticScreen() && quienImprime === 'propietario' && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Costo de impresión:</span>
+                <span className="font-medium">{formatPrice(calcularCostoImpresion())}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="font-medium">Total:</span>
+              <span className="text-lg font-bold text-primary">
+                {formatPrice(item.subtotal + (isStaticScreen() && quienImprime === 'propietario' ? calcularCostoImpresion() : 0))}
+              </span>
+            </div>
           </div>
         </div>
       </CardContent>
