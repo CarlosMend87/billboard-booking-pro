@@ -23,6 +23,24 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+const campaignSchema = z.object({
+  nombre: z.string()
+    .trim()
+    .min(1, { message: "El nombre es requerido" })
+    .max(100, { message: "El nombre debe tener menos de 100 caracteres" }),
+  propuesta: z.string()
+    .trim()
+    .min(1, { message: "La propuesta es requerida" })
+    .max(1000, { message: "La propuesta debe tener menos de 1000 caracteres" }),
+  presupuesto: z.number()
+    .positive({ message: "El presupuesto debe ser mayor a 0" })
+    .max(10000000, { message: "El presupuesto debe ser menor a 10 millones" }),
+  metodo: z.enum(['mensual', 'dia', 'spot', 'catorcenal', 'full'], {
+    errorMap: () => ({ message: "Selecciona un método válido" })
+  })
+});
 
 interface CampaignCreationModalProps {
   open: boolean;
@@ -43,27 +61,26 @@ export function CampaignCreationModal({
   const [metodo, setMetodo] = useState<CampaignSearchMethod | "">("");
 
   const handleSubmit = async () => {
-    if (!nombre.trim()) {
-      toast.error("Por favor ingresa el nombre de la campaña");
-      return;
-    }
-    if (!propuesta.trim()) {
-      toast.error("Por favor describe la propuesta");
-      return;
-    }
-    if (!presupuesto || parseFloat(presupuesto) <= 0) {
-      toast.error("Por favor ingresa un presupuesto válido");
-      return;
-    }
-    if (!metodo) {
-      toast.error("Por favor selecciona un método de búsqueda");
-      return;
-    }
-
     if (!user) {
       toast.error("Debes iniciar sesión");
       return;
     }
+
+    // Validar datos con zod
+    const validation = campaignSchema.safeParse({
+      nombre: nombre.trim(),
+      propuesta: propuesta.trim(),
+      presupuesto: parseFloat(presupuesto),
+      metodo: metodo
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
+    const validatedData = validation.data;
 
     setLoading(true);
     try {
@@ -72,11 +89,11 @@ export function CampaignCreationModal({
         .from("campañas")
         .insert({
           advertiser_id: user.id,
-          nombre: nombre.trim(),
-          propuesta: propuesta.trim(),
-          presupuesto_total: parseFloat(presupuesto),
-          metodo_busqueda: metodo,
-          status: "draft", // Guardar como borrador
+          nombre: validatedData.nombre,
+          propuesta: validatedData.propuesta,
+          presupuesto_total: validatedData.presupuesto,
+          metodo_busqueda: validatedData.metodo,
+          status: "draft",
         })
         .select()
         .single();
@@ -85,10 +102,10 @@ export function CampaignCreationModal({
 
       const campaignInfo: CampaignInfo = {
         id: data.id,
-        nombre: nombre.trim(),
-        propuesta: propuesta.trim(),
-        presupuesto: parseFloat(presupuesto),
-        metodo: metodo as CampaignSearchMethod,
+        nombre: validatedData.nombre,
+        propuesta: validatedData.propuesta,
+        presupuesto: validatedData.presupuesto,
+        metodo: validatedData.metodo as CampaignSearchMethod,
       };
 
       onSubmit(campaignInfo);
@@ -98,9 +115,9 @@ export function CampaignCreationModal({
       setPropuesta("");
       setPresupuesto("");
       setMetodo("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating campaign:", error);
-      toast.error("Error al crear la campaña");
+      toast.error(error?.message || "Error al crear la campaña");
     } finally {
       setLoading(false);
     }
@@ -124,6 +141,7 @@ export function CampaignCreationModal({
               placeholder="Ej: Campaña Verano 2024"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              maxLength={100}
             />
           </div>
 
@@ -135,6 +153,7 @@ export function CampaignCreationModal({
               value={propuesta}
               onChange={(e) => setPropuesta(e.target.value)}
               rows={3}
+              maxLength={1000}
             />
           </div>
 
@@ -147,6 +166,7 @@ export function CampaignCreationModal({
               value={presupuesto}
               onChange={(e) => setPresupuesto(e.target.value)}
               min="0"
+              max="10000000"
               step="100"
             />
           </div>
