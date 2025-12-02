@@ -87,7 +87,27 @@ export default function DisponibilidadAnuncios() {
       handleAdvancedFiltersChange({ modalidades: [campaign.metodo] });
     }
     
-    toast.success(`Campaña "${campaign.nombre}" creada. Busca tu inventario disponible.`);
+    toast.success(`Campaña "${campaign.nombre}" creada como borrador. Busca tu inventario disponible.`);
+  };
+
+  const handleSelectCampaign = (campaign: any) => {
+    // Convertir campaña de DB a CampaignInfo
+    const campaignInfo: CampaignInfo = {
+      id: campaign.id,
+      nombre: campaign.nombre,
+      propuesta: campaign.propuesta || "",
+      presupuesto: campaign.presupuesto_total,
+      metodo: campaign.metodo_busqueda || "mensual",
+    };
+    
+    setCampaignInfo(campaignInfo);
+    
+    // Aplicar filtro de método si es necesario
+    if (campaignInfo.metodo !== 'full') {
+      handleAdvancedFiltersChange({ modalidades: [campaignInfo.metodo] });
+    }
+    
+    toast.success(`Continuando con "${campaign.nombre}"`);
   };
 
   const activeFiltersCount = 
@@ -128,6 +148,7 @@ export default function DisponibilidadAnuncios() {
       <CampaignSelectionModal
         open={showSelectionModal}
         onClose={() => setShowSelectionModal(false)}
+        onSelectCampaign={handleSelectCampaign}
       />
       
       <div className="container mx-auto px-4 py-6 space-y-6">

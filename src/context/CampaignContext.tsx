@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export type CampaignSearchMethod = 'mensual' | 'dia' | 'spot' | 'full' | 'catorcenal';
 
 export interface CampaignInfo {
+  id?: string;
   nombre: string;
   propuesta: string;
   presupuesto: number;
