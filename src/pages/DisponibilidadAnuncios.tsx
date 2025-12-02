@@ -44,15 +44,15 @@ export default function DisponibilidadAnuncios() {
   });
   
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCartContext();
-  const { currentCampaign, createDraftCampaign, setCurrentCampaign } = useCampaign();
+  const { campaignInfo, setCampaignInfo } = useCampaign();
 
   // Mostrar modal solo la primera vez que entra a disponibilidad
   useEffect(() => {
-    if (!hasShownModal && !currentCampaign) {
+    if (!hasShownModal && !campaignInfo) {
       setShowOptionsModal(true);
       setHasShownModal(true);
     }
-  }, [hasShownModal, currentCampaign]);
+  }, [hasShownModal, campaignInfo]);
 
   const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -78,20 +78,16 @@ export default function DisponibilidadAnuncios() {
     }));
   };
 
-  const handleCreateCampaign = async (campaign: CampaignInfo) => {
-    const campaignId = await createDraftCampaign(campaign);
+  const handleCreateCampaign = (campaign: CampaignInfo) => {
+    setCampaignInfo(campaign);
     setShowCreationModal(false);
     
-    if (campaignId) {
-      // Aplicar filtro de método si es necesario
-      if (campaign.metodo !== 'full') {
-        handleAdvancedFiltersChange({ modalidades: [campaign.metodo] });
-      }
-      
-      toast.success(`Campaña "${campaign.nombre}" guardada como borrador. Busca tu inventario disponible.`);
-    } else {
-      toast.error("Error al crear la campaña");
+    // Aplicar filtro de método si es necesario
+    if (campaign.metodo !== 'full') {
+      handleAdvancedFiltersChange({ modalidades: [campaign.metodo] });
     }
+    
+    toast.success(`Campaña "${campaign.nombre}" creada. Busca tu inventario disponible.`);
   };
 
   const activeFiltersCount = 
@@ -135,34 +131,16 @@ export default function DisponibilidadAnuncios() {
       />
       
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {currentCampaign && (
+        {campaignInfo && (
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
               <CardTitle className="text-lg">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary">
-                      {currentCampaign.status === 'draft' ? 'Borrador:' : 'Campaña activa:'}
-                    </span> 
-                    {currentCampaign.nombre}
-                    <Badge variant={currentCampaign.status === 'draft' ? 'secondary' : 'default'}>
-                      {currentCampaign.status === 'draft' ? 'Borrador' : 'Activa'}
-                    </Badge>
+                  <div>
+                    <span className="text-primary">Campaña activa:</span> {campaignInfo.nombre}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm font-normal text-muted-foreground">
-                      Presupuesto: ${currentCampaign.presupuesto.toLocaleString('es-MX')} MXN
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setCurrentCampaign(null);
-                        toast.info("Puedes seleccionar otra campaña o crear una nueva");
-                      }}
-                    >
-                      Cambiar campaña
-                    </Button>
+                  <div className="text-sm font-normal text-muted-foreground">
+                    Presupuesto: ${campaignInfo.presupuesto.toLocaleString('es-MX')} MXN
                   </div>
                 </div>
               </CardTitle>

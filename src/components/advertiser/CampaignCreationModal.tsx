@@ -37,7 +37,7 @@ export function CampaignCreationModal({
   const [presupuesto, setPresupuesto] = useState("");
   const [metodo, setMetodo] = useState<CampaignSearchMethod | "">("");
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!nombre.trim()) {
       toast.error("Por favor ingresa el nombre de la campaña");
       return;
