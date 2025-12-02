@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Logo } from "@/components/ui/logo"
-import { Settings, User, LogOut, ShoppingCart } from "lucide-react"
+import { Settings, User, LogOut, ShoppingCart, FolderKanban } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { useUserRole } from "@/hooks/useUserRole"
@@ -20,9 +20,10 @@ import {
 
 interface HeaderProps {
   onNuevaVenta?: () => void;
+  onOpenCampaigns?: () => void;
 }
 
-export function Header({ onNuevaVenta }: HeaderProps = {}) {
+export function Header({ onNuevaVenta, onOpenCampaigns }: HeaderProps = {}) {
   const { user, signOut } = useAuth();
   const { role } = useUserRole();
   const { cart } = useCartContext();
@@ -62,20 +63,33 @@ export function Header({ onNuevaVenta }: HeaderProps = {}) {
               <AgenteNav onNuevaVenta={onNuevaVenta} />
             )}
             
-            {role === 'advertiser' && cart && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/booking-wizard" className="relative">
-                  <ShoppingCart className="h-4 w-4" />
-                  {cart.items.length > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
-                    >
-                      {cart.items.length}
-                    </Badge>
-                  )}
-                </Link>
-              </Button>
+            {role === 'advertiser' && (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={onOpenCampaigns}
+                  title="Ver mis campañas y borradores"
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  <span className="ml-2 hidden md:inline">Mis Campañas</span>
+                </Button>
+                {cart && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/booking-wizard" className="relative">
+                      <ShoppingCart className="h-4 w-4" />
+                      {cart.items.length > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                        >
+                          {cart.items.length}
+                        </Badge>
+                      )}
+                    </Link>
+                  </Button>
+                )}
+              </>
             )}
             
             <NotificationsDropdown />
