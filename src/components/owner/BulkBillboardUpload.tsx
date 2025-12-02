@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle, FileDown } from "lucide-react";
+import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle, FileDown, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 interface BulkBillboardUploadProps {
   onSuccess: () => void;
   ownerId: string;
+  onNewBillboard?: () => void;
 }
 
 interface ColumnMapping {
@@ -60,7 +62,7 @@ const REQUIRED_COLUMNS = [
   { key: "backlighted", label: "Backlighted?", required: false },
 ];
 
-export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadProps) {
+export function BulkBillboardUpload({ onSuccess, ownerId, onNewBillboard }: BulkBillboardUploadProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -77,6 +79,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [detectedEncoding, setDetectedEncoding] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [duplicateFrameIds, setDuplicateFrameIds] = useState<string[]>([]);
+  const [defaultPrecioImpresion, setDefaultPrecioImpresion] = useState<number>(65);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -284,8 +287,8 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         catorcenal: calculatedPrices.catorcenal,
         semanal: calculatedPrices.semanal
       },
-      // Precio de impresión por m² (solo para estáticas, valor por defecto)
-      precio_impresion_m2: !isDigital ? 65.00 : null,
+      // Precio de impresión por m² (solo para estáticas, usar valor configurado)
+      precio_impresion_m2: !isDigital ? defaultPrecioImpresion : null,
       status: "disponible",
       owner_id: ownerId,
       // Campos adicionales
@@ -1022,6 +1025,26 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             </div>
           ) : !showMapping ? (
             <div className="space-y-4">
+              {/* Nueva Pantalla - Individual */}
+              {onNewBillboard && (
+                <div className="flex items-center justify-between gap-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">¿Solo una pantalla?</p>
+                    <p className="text-xs text-muted-foreground">Agrégala manualmente con el formulario</p>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setIsOpen(false);
+                      onNewBillboard();
+                    }}
+                    className="gap-2 shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nueva Pantalla
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <p className="font-medium text-sm">¿Primera vez cargando inventario?</p>
@@ -1035,6 +1058,26 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                   <Download className="h-4 w-4" />
                   Descargar Plantilla
                 </Button>
+              </div>
+
+              {/* Precio por m² por defecto */}
+              <div className="flex items-center justify-between gap-4 p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium text-sm">Precio de impresión por m² (pantallas estáticas)</p>
+                  <p className="text-xs text-muted-foreground">Este valor se aplicará a todas las pantallas estáticas</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={defaultPrecioImpresion}
+                    onChange={(e) => setDefaultPrecioImpresion(Number(e.target.value) || 0)}
+                    className="w-24"
+                    min={0}
+                    step={0.01}
+                  />
+                  <span className="text-sm text-muted-foreground">/m²</span>
+                </div>
               </div>
               
               <Alert>
