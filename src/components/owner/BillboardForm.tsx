@@ -51,6 +51,8 @@ const billboardSchema = z.object({
   precio_dia: z.number().optional(),
   precio_cpm: z.number().optional(),
   descuento_volumen: z.number().optional(),
+  // Precio de impresión para pantallas estáticas
+  precio_impresion_m2: z.number().optional(),
 });
 
 type BillboardFormData = z.infer<typeof billboardSchema>;
@@ -103,6 +105,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
       precio_dia: (billboard?.precio as any)?.dia,
       precio_cpm: (billboard?.precio as any)?.cpm,
       descuento_volumen: (billboard?.precio as any)?.descuento_volumen,
+      precio_impresion_m2: (billboard as any)?.precio_impresion_m2 || 65,
     }
   });
 
@@ -142,6 +145,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
         precio_dia: (billboard.precio as any)?.dia,
         precio_cpm: (billboard.precio as any)?.cpm,
         descuento_volumen: (billboard.precio as any)?.descuento_volumen,
+        precio_impresion_m2: (billboard as any)?.precio_impresion_m2 || 65,
       });
       setUploadedImages(billboard.fotos || []);
     } else {
@@ -161,6 +165,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
         hora: true,
         dia: true,
         cpm: true,
+        precio_impresion_m2: 65,
       });
       setUploadedImages([]);
     }
@@ -267,7 +272,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           duracion_spot_seg: data.duracion_spot_seg,
           total_spots_pantalla: data.total_spots_pantalla,
           spots_disponibles: data.spots_disponibles,
-          rotativo: undefined, // Eliminar propiedad antigua
+          rotativo: undefined,
         },
         precio: {
           mensual: data.precio_mensual,
@@ -279,6 +284,7 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
           cpm: data.precio_cpm,
           descuento_volumen: data.descuento_volumen,
         },
+        precio_impresion_m2: data.tipo !== 'digital' ? (data.precio_impresion_m2 || 65) : null,
         fotos: uploadedImages,
       };
 
@@ -937,6 +943,55 @@ export function BillboardForm({ billboard, onClose }: BillboardFormProps) {
                     />
                   </div>
                 </div>
+
+                {/* Sección de Impresión para Pantallas Estáticas */}
+                {selectedTipo !== 'digital' && (
+                  <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        🖨️ Configuración de Impresión (Pantallas Estáticas)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Configura el precio de impresión por metro cuadrado. Este costo se calculará automáticamente según las medidas de la lona cuando un cliente solicite que tú realices la impresión.
+                      </p>
+                      <FormField
+                        control={form.control}
+                        name="precio_impresion_m2"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Precio de Impresión por m² ($MXN)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="65"
+                                {...field}
+                                value={field.value ?? 65}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 65)}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                              Precio por defecto: $65 MXN/m². Este valor se utilizará para calcular el costo total de impresión.
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {form.watch("ancho_m") && form.watch("alto_m") && (
+                        <div className="p-3 bg-background rounded-lg border">
+                          <p className="text-sm">
+                            <strong>Cálculo estimado:</strong>{' '}
+                            {(form.watch("ancho_m") || 0) * (form.watch("alto_m") || 0)} m² × ${form.watch("precio_impresion_m2") || 65} = {' '}
+                            <span className="font-bold text-primary">
+                              ${((form.watch("ancho_m") || 0) * (form.watch("alto_m") || 0) * (form.watch("precio_impresion_m2") || 65)).toLocaleString()} MXN
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

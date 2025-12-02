@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle } from "lucide-react";
+import { Upload, Download, FileText, AlertCircle, ArrowRight, AlertTriangle, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { precioCatorcenal, precioSemanal } from "@/lib/pricing";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface BulkBillboardUploadProps {
   onSuccess: () => void;
@@ -19,6 +21,14 @@ interface BulkBillboardUploadProps {
 
 interface ColumnMapping {
   [key: string]: string;
+}
+
+interface UploadError {
+  row: number;
+  frameId: string;
+  field: string;
+  message: string;
+  value: string;
 }
 
 const REQUIRED_COLUMNS = [
@@ -55,8 +65,10 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
+  const [detailedErrors, setDetailedErrors] = useState<UploadError[]>([]);
   const [showMapping, setShowMapping] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showErrorReport, setShowErrorReport] = useState(false);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -213,7 +225,9 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    const isDigital = getValue("frame_category")?.toLowerCase() === "digital";
+    // Frame_Category determina el comportamiento: digital = spots, static = tradicional
+    const frameCategory = getValue("frame_category")?.toLowerCase() || "static";
+    const isDigital = frameCategory === "digital";
     const publicPrice = cleanNumericValue(getValue("public_price"));
     const calculatedPrices = calculatePrices(publicPrice, isDigital);
 
@@ -222,13 +236,13 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
 
     const frameId = getValue("frame_id");
     
-    // Normalizar el tipo a minúsculas para que coincida con la restricción de la BD
+    // Venue_Type es el tipo visual/categoría de la pantalla (digital, espectacular, vallas, etc.)
     const venueType = getValue("venue_type")?.toLowerCase() || "espectacular";
     
     return {
       nombre: frameId ? `${frameId} - ${getValue("venue_type")}` : `${getValue("venue_type")} - ${getValue("address")}`,
       direccion: getValue("address"),
-      tipo: venueType,
+      tipo: venueType, // Esto es lo que aparece en el filtro del propietario
       lat: cleanNumericValue(getValue("latitude")),
       lng: cleanNumericValue(getValue("longitude")),
       medidas: {
@@ -243,7 +257,7 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         tiempo_min_seg: parseInt(getValue("min_time_secs") || "5"),
         permite_video: getValue("allow_video")?.toLowerCase() === "yes",
         cantidad_slots: parseInt(getValue("slots_quantity") || "12"),
-        dimension_pixel: getValue("dimension_pixel") || "",
+        dimension_pixel: getValue("dimension_pixel") || "1920x1080",
         resolucion: "HD",
         slots_por_hora: parseInt(getValue("slots_quantity") || "12"),
         duracion_spot: parseInt(getValue("min_time_secs") || "10")
@@ -253,10 +267,12 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         programatico: isDigital,
         spots: isDigital,
         spot: isDigital,
-        // Campos de spots (para todas las pantallas, pero especialmente digitales)
-        duracion_spot_seg: 20, // Duración fija de 20 segundos
-        total_spots_pantalla: 12, // Máximo de 12 spots
-        spots_disponibles: spotsDisponibles // Contado desde el Excel
+        // Campos de spots (solo para digitales)
+        duracion_spot_seg: isDigital ? 20 : null,
+        total_spots_pantalla: isDigital ? 12 : null,
+        spots_disponibles: isDigital ? spotsDisponibles : null,
+        // Para pantallas estáticas: indicar que necesita impresión
+        requiere_impresion: !isDigital
       },
       precio: isDigital ? {
         mensual: calculatedPrices.mensual,
@@ -268,11 +284,14 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
         catorcenal: calculatedPrices.catorcenal,
         semanal: calculatedPrices.semanal
       },
+      // Precio de impresión por m² (solo para estáticas, valor por defecto)
+      precio_impresion_m2: !isDigital ? 65.00 : null,
       status: "disponible",
       owner_id: ownerId,
       // Campos adicionales
       metadata: {
         frame_id: getValue("frame_id"),
+        frame_category: frameCategory, // Guardamos frame_category en metadata
         numero: getValue("number"),
         piso: getValue("floor"),
         distrito: getValue("district"),
@@ -614,12 +633,42 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     setErrors([]);
   };
 
+  // Download error report as CSV
+  const downloadErrorReport = () => {
+    if (detailedErrors.length === 0) return;
+    
+    const reportData = detailedErrors.map(err => ({
+      "Fila": err.row,
+      "Frame_ID": err.frameId,
+      "Campo": err.field,
+      "Valor": err.value,
+      "Error": err.message
+    }));
+    
+    const csv = Papa.unparse(reportData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `reporte-errores-carga-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Reporte descargado",
+      description: "El reporte de errores ha sido descargado.",
+    });
+  };
+
   const handleProcessUpload = async () => {
     setUploading(true);
     setErrors([]);
+    setDetailedErrors([]);
     setProgress(0);
 
-    const validationErrors: string[] = [];
+    const validationErrors: UploadError[] = [];
     const validBillboards: any[] = [];
 
     // Agrupar filas por Frame_ID
@@ -634,51 +683,175 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
           frameIdGroups.set(frameId, []);
         }
         frameIdGroups.get(frameId)!.push({ row, originalIndex: index });
+      } else {
+        // Row without Frame_ID
+        validationErrors.push({
+          row: index + 2, // +2 because: +1 for header, +1 for 0-based index
+          frameId: "N/A",
+          field: "Frame_ID",
+          message: "Fila sin identificador Frame_ID",
+          value: ""
+        });
       }
     });
 
     // Procesar cada grupo (una pantalla por Frame_ID)
     frameIdGroups.forEach((rows, frameId) => {
-      try {
-        // Usar la primera fila del grupo para los datos base
-        const firstRowData = rows[0].row;
-        // El número de filas en el grupo = spots disponibles
-        const spotsDisponibles = rows.length;
-        
-        const billboard = processBillboard(firstRowData, columnMapping, spotsDisponibles);
-        
-        // Validaciones básicas
-        if (!billboard.lat || !billboard.lng) {
-          validationErrors.push(`Frame_ID ${frameId}: Coordenadas inválidas`);
-          return;
+      const firstRowData = rows[0].row;
+      const rowNumber = rows[0].originalIndex + 2;
+      const spotsDisponibles = rows.length;
+      
+      const getValue = (key: string) => {
+        const mappedColumn = columnMapping[key];
+        return mappedColumn ? String(firstRowData[mappedColumn] || "").trim() : "";
+      };
+      
+      // Validate required fields
+      const lat = parseFloat(getValue("latitude"));
+      const lng = parseFloat(getValue("longitude"));
+      const venueType = getValue("venue_type");
+      const frameCategory = getValue("frame_category");
+      const address = getValue("address");
+      const price = getValue("public_price");
+      const width = getValue("width");
+      const height = getValue("height");
+      
+      if (!lat || isNaN(lat)) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Latitude",
+          message: "Latitud inválida o vacía",
+          value: getValue("latitude")
+        });
+      }
+      
+      if (!lng || isNaN(lng)) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Longitude",
+          message: "Longitud inválida o vacía",
+          value: getValue("longitude")
+        });
+      }
+      
+      if (!venueType) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Venue_Type",
+          message: "Tipo de venue requerido",
+          value: ""
+        });
+      }
+      
+      if (!frameCategory || !["digital", "static"].includes(frameCategory.toLowerCase())) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Frame_Category",
+          message: "Frame_Category debe ser 'digital' o 'static'",
+          value: frameCategory
+        });
+      }
+      
+      if (!address) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Address",
+          message: "Dirección requerida",
+          value: ""
+        });
+      }
+      
+      if (!price || parseFloat(price.replace(/[$,\s]/g, '')) <= 0) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Public Price",
+          message: "Precio inválido o vacío",
+          value: price
+        });
+      }
+      
+      if (!width || parseFloat(width) <= 0) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Width",
+          message: "Ancho inválido o vacío",
+          value: width
+        });
+      }
+      
+      if (!height || parseFloat(height) <= 0) {
+        validationErrors.push({
+          row: rowNumber,
+          frameId,
+          field: "Height",
+          message: "Alto inválido o vacío",
+          value: height
+        });
+      }
+      
+      // If no validation errors for this row, add to valid billboards
+      const hasErrorsForThisFrame = validationErrors.some(e => e.frameId === frameId);
+      if (!hasErrorsForThisFrame) {
+        try {
+          const billboard = processBillboard(firstRowData, columnMapping, spotsDisponibles);
+          validBillboards.push({ ...billboard, _rowNumber: rowNumber, _frameId: frameId });
+        } catch (err: any) {
+          validationErrors.push({
+            row: rowNumber,
+            frameId,
+            field: "General",
+            message: err.message,
+            value: ""
+          });
         }
-        
-        validBillboards.push(billboard);
-      } catch (err: any) {
-        validationErrors.push(`Frame_ID ${frameId}: ${err.message}`);
       }
     });
 
     if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+      setDetailedErrors(validationErrors);
+      setShowErrorReport(true);
       setUploading(false);
       return;
     }
 
     // Insertar en la base de datos
     let successCount = 0;
-    const insertErrors: string[] = [];
+    const insertErrors: UploadError[] = [];
 
     for (let i = 0; i < validBillboards.length; i++) {
+      const { _rowNumber, _frameId, ...billboardData } = validBillboards[i];
+      
       try {
         const { error } = await supabase
           .from("billboards")
-          .insert(validBillboards[i]);
+          .insert(billboardData);
 
-        if (error) throw error;
-        successCount++;
+        if (error) {
+          insertErrors.push({
+            row: _rowNumber,
+            frameId: _frameId,
+            field: "Database",
+            message: error.message,
+            value: ""
+          });
+        } else {
+          successCount++;
+        }
       } catch (err: any) {
-        insertErrors.push(`${validBillboards[i].nombre}: ${err.message}`);
+        insertErrors.push({
+          row: _rowNumber,
+          frameId: _frameId,
+          field: "Database",
+          message: err.message,
+          value: ""
+        });
       }
       setProgress(((i + 1) / validBillboards.length) * 100);
     }
@@ -686,7 +859,8 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
     setUploading(false);
 
     if (insertErrors.length > 0) {
-      setErrors(insertErrors);
+      setDetailedErrors(insertErrors);
+      setShowErrorReport(true);
       toast({
         title: "Carga parcial",
         description: `${successCount} pantallas creadas. ${insertErrors.length} con errores.`,
@@ -1033,16 +1207,104 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
             </div>
           )}
 
-          {errors.length > 0 && (
+          {/* Detailed Error Report View */}
+          {showErrorReport && detailedErrors.length > 0 && (
+            <div className="space-y-4">
+              <Alert variant="destructive" className="border-2">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-base">⚠️ Reporte de Errores ({detailedErrors.length} errores encontrados)</p>
+                      <p className="text-sm mt-1">
+                        Los siguientes problemas impidieron la carga. Corrige tu archivo y vuelve a intentar.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadErrorReport}
+                      className="gap-2 shrink-0"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      Descargar Reporte
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-80 overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background">
+                      <TableRow>
+                        <TableHead className="w-16">Fila</TableHead>
+                        <TableHead className="w-32">Frame_ID</TableHead>
+                        <TableHead className="w-32">Campo</TableHead>
+                        <TableHead className="w-32">Valor</TableHead>
+                        <TableHead>Error</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailedErrors.map((error, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-mono text-sm">
+                            <Badge variant="outline">{error.row}</Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{error.frameId}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{error.field}</Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm text-muted-foreground max-w-32 truncate">
+                            {error.value || "-"}
+                          </TableCell>
+                          <TableCell className="text-destructive text-sm">{error.message}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                💡 Tip: Los números de fila corresponden a las filas en tu archivo Excel/CSV (incluyendo el encabezado en fila 1)
+              </p>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowErrorReport(false);
+                    setDetailedErrors([]);
+                    setShowMapping(true);
+                  }}
+                >
+                  Volver al Mapeo
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowErrorReport(false);
+                    setDetailedErrors([]);
+                    setCsvData([]);
+                    setCsvHeaders([]);
+                    setShowMapping(false);
+                    setShowPreview(false);
+                  }}
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {errors.length > 0 && !showErrorReport && (
             <Alert variant="destructive" className="border-2">
               <AlertCircle className="h-5 w-5" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p className="font-bold text-base">⚠️ Reporte Detallado de Errores ({errors.length})</p>
-                  <p className="text-sm">
-                    Los siguientes problemas impidieron la carga de algunas pantallas. 
-                    Corrígelos en tu archivo y vuelve a intentar:
-                  </p>
+                  <p className="font-bold text-base">⚠️ Errores ({errors.length})</p>
                   <div className="bg-destructive/10 rounded-md p-3 max-h-64 overflow-y-auto">
                     <ul className="space-y-1 text-sm font-mono">
                       {errors.map((error, index) => (
@@ -1052,9 +1314,6 @@ export function BulkBillboardUpload({ onSuccess, ownerId }: BulkBillboardUploadP
                       ))}
                     </ul>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    💡 Tip: Los números de fila corresponden a las filas en tu archivo Excel/CSV (incluyendo el encabezado)
-                  </p>
                 </div>
               </AlertDescription>
             </Alert>
