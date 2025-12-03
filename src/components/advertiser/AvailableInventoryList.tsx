@@ -64,6 +64,7 @@ const convertBillboardToAsset = (billboard: any): InventoryAsset & {
   has_computer_vision?: boolean; 
   last_detection_count?: number;
   last_detection_date?: string;
+  digital?: { ancho_px?: number; alto_px?: number };
 } => {
   return {
     id: billboard.id,
@@ -98,7 +99,8 @@ const convertBillboardToAsset = (billboard: any): InventoryAsset & {
     foto: billboard.fotos?.[0] || `https://picsum.photos/seed/${billboard.id}/800/450`,
     has_computer_vision: billboard.has_computer_vision || false,
     last_detection_count: billboard.last_detection_count || 0,
-    last_detection_date: billboard.last_detection_date
+    last_detection_date: billboard.last_detection_date,
+    digital: billboard.digital || null
   };
 };
 
@@ -458,10 +460,18 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                           <MapPin className="h-3 w-3 text-muted-foreground" />
                           <span className="font-medium">Dimensiones:</span>
                         </div>
-                        <p className="text-muted-foreground ml-4">
-                          {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
-                          {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
-                        </p>
+                        <div className="text-muted-foreground ml-4">
+                          <p>
+                            {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
+                            {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
+                          </p>
+                          {asset.tipo === 'digital' && (asset as any).digital?.dimension_pixel && (
+                            <p className="text-xs text-primary font-medium">
+                              <Monitor className="h-3 w-3 inline mr-1" />
+                              {(asset as any).digital.dimension_pixel} px
+                            </p>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="space-y-2">
