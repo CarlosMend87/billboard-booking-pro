@@ -110,14 +110,13 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
   const [currentPage, setCurrentPage] = useState(1);
   const { createLock, isLocked, loading: lockLoading } = useBillboardLock();
 
-  // Fetch available billboards from owners
+  // Fetch all billboards from owners (including occupied ones)
   useEffect(() => {
     const fetchOwnerBillboards = async () => {
       try {
         const { data: billboards, error } = await supabase
           .from('billboards')
-          .select('*')
-          .eq('status', 'disponible'); // Only available billboards
+          .select('*'); // Fetch all billboards
 
         if (error) {
           console.error('Error fetching billboards:', error);
@@ -148,8 +147,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
       
       // Apply synchronous filters first
       let filtered = allAssets.filter(asset => {
-        // Only show available assets
-        if (asset.estado !== "disponible") return false;
+        // Show both available and occupied assets (ocupado shown as not reservable)
 
         // Filter by location search
         if (searchTerm && !asset.nombre.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -259,6 +257,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     if (asset.contratacion.catorcenal) options.push('catorcenal');
     if (asset.contratacion.semanal) options.push('semanal');
     if (asset.contratacion.dia) options.push('dia');
+    if (asset.contratacion.hora) options.push('hora');
+    if (asset.contratacion.spot) options.push('spot');
     if (asset.contratacion.cpm) options.push('cpm');
     
     return options.length > 0 ? options : ['mensual']; // Default to mensual if no options
@@ -351,9 +351,14 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                 <Download className="h-4 w-4 mr-2" />
                 Descargar PDF
               </Button>
-              <Badge variant="secondary">
-                {filteredAssets.length} anuncio{filteredAssets.length !== 1 ? 's' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}
-              </Badge>
+              <div className="flex gap-2">
+                <Badge variant="secondary" className="bg-status-confirmed/20 text-status-confirmed">
+                  {filteredAssets.filter(a => a.estado === 'disponible').length} disponibles
+                </Badge>
+                <Badge variant="secondary" className="bg-destructive/20 text-destructive">
+                  {filteredAssets.filter(a => a.estado !== 'disponible').length} ocupados
+                </Badge>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -431,8 +436,8 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                       </div>
                     )}
                   </div>
-                  <Badge className="bg-status-confirmed text-white">
-                    Disponible
+                  <Badge className={asset.estado === 'disponible' ? "bg-status-confirmed text-white" : "bg-destructive text-destructive-foreground"}>
+                    {asset.estado === 'disponible' ? 'Disponible' : 'Ocupado'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -548,10 +553,11 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                     size="sm" 
                     className="flex-1" 
                     onClick={() => handleAddToCart(asset)}
-                    disabled={lockLoading}
+                    disabled={lockLoading || asset.estado !== 'disponible'}
+                    variant={asset.estado !== 'disponible' ? 'secondary' : 'default'}
                   >
                     <ShoppingCart className="h-4 w-4 mr-1" />
-                    {lockLoading ? 'Verificando...' : 'Agregar'}
+                    {asset.estado !== 'disponible' ? 'No disponible' : lockLoading ? 'Verificando...' : 'Agregar'}
                   </Button>
                 </div>
               </CardContent>
