@@ -31,6 +31,7 @@ interface MapBillboard {
   owner_id: string;
   precio: any;
   medidas: any;
+  contratacion: any;
   has_computer_vision?: boolean;
   last_detection_count?: number;
   last_detection_date?: string;
@@ -72,6 +73,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           owner_id: billboard.owner_id,
           precio: billboard.precio,
           medidas: billboard.medidas,
+          contratacion: billboard.contratacion || {},
           has_computer_vision: billboard.has_computer_vision || false,
           last_detection_count: billboard.last_detection_count || 0,
           last_detection_date: billboard.last_detection_date
@@ -105,10 +107,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
   }, []);
 
   const getMarkerColor = (billboard: MapBillboard) => {
-    // Azul = disponible
-    if (billboard.status === 'disponible') return '#3b82f6';
-    // Rojo = no disponible
-    return '#ef4444';
+    // Rojo = no disponible (ocupado)
+    if (billboard.status !== 'disponible') return '#ef4444';
+    // Azul = pantalla digital disponible
+    if (billboard.tipo === 'digital') return '#3b82f6';
+    // Verde = tradicional/lona disponible
+    return '#22c55e';
   };
 
   const getMarkerIcon = (billboard: MapBillboard) => {
@@ -126,12 +130,24 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
 
       let filtered = [...billboards];
 
+      // Filter by billboard types
       if (filters.advancedFilters.billboardTypes.length > 0) {
         filtered = filtered.filter(b => 
           filters.advancedFilters.billboardTypes.includes(b.tipo)
         );
       }
 
+      // Filter by modalidades (same logic as list)
+      if (filters.advancedFilters.modalidades.length > 0) {
+        filtered = filtered.filter(b => {
+          const hasModalidad = filters.advancedFilters.modalidades.some(modalidad => {
+            return b.contratacion && b.contratacion[modalidad as keyof typeof b.contratacion];
+          });
+          return hasModalidad;
+        });
+      }
+
+      // Filter by price range
       if (filters.advancedFilters.priceRange[0] > 0 || filters.advancedFilters.priceRange[1] < 100000) {
         filtered = filtered.filter(b => {
           const price = b.precio?.mensual || 0;
@@ -140,16 +156,12 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
         });
       }
 
+      // Filter by computer vision
       if (filters.advancedFilters.hasComputerVision !== null) {
         filtered = filtered.filter(b => 
           b.has_computer_vision === filters.advancedFilters.hasComputerVision
         );
       }
-
-      // Proximity filters temporarily disabled - will be re-implemented after fixing circular dependencies
-      // if (filters.advancedFilters.proximityFilters.length > 0) {
-      //   filtered = filtered; // Placeholder
-      // }
 
       setFilteredBillboards(filtered);
       setIsFilteringProximity(false);
@@ -258,12 +270,41 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
           markers.push(marker);
         });
 
+        // Custom cluster renderer with blue color
+        const clusterRenderer = {
+          render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
+            const clusterMarker = document.createElement('div');
+            clusterMarker.style.cssText = `
+              background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+              border-radius: 50%;
+              width: ${Math.min(40 + Math.log(count) * 8, 60)}px;
+              height: ${Math.min(40 + Math.log(count) * 8, 60)}px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: ${Math.min(12 + Math.log(count) * 2, 18)}px;
+              border: 3px solid white;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+              cursor: pointer;
+            `;
+            clusterMarker.textContent = String(count);
+            
+            return new google.maps.marker.AdvancedMarkerElement({
+              position,
+              content: clusterMarker,
+            });
+          }
+        };
+
         new MarkerClusterer({
           map,
           markers,
           algorithmOptions: {
             maxZoom: 14,
           },
+          renderer: clusterRenderer
         });
 
         // Create heatmap
@@ -558,7 +599,11 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                  <span>Disponible</span>
+                  <span>Digital disponible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                  <span>Tradicional disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
