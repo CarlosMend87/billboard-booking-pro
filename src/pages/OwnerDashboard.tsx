@@ -22,6 +22,7 @@ import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
 import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
+import { AnunciantesManager } from "@/components/owner/AnunciantesManager";
 import { useAuth } from "@/hooks/useAuth";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 import Papa from "papaparse";
@@ -610,7 +611,12 @@ export default function OwnerDashboard() {
           </TabsContent>
 
           <TabsContent value="descuentos" className="space-y-6">
-            {user && <CodigosDescuentoManager />}
+            {user && (
+              <>
+                <AnunciantesManager />
+                <CodigosDescuentoManager />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="mapa" className="space-y-6">

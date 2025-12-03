@@ -56,6 +56,48 @@ export type Database = {
         }
         Relationships: []
       }
+      anunciantes: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          email: string | null
+          empresa: string | null
+          id: string
+          nombre: string
+          notas: string | null
+          owner_id: string
+          telefono: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          empresa?: string | null
+          id?: string
+          nombre: string
+          notas?: string | null
+          owner_id: string
+          telefono?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          empresa?: string | null
+          id?: string
+          nombre?: string
+          notas?: string | null
+          owner_id?: string
+          telefono?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -329,6 +371,7 @@ export type Database = {
       codigos_descuento: {
         Row: {
           activo: boolean
+          anunciante_id: string | null
           clientes_permitidos: string[] | null
           codigo: string
           created_at: string | null
@@ -345,6 +388,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          anunciante_id?: string | null
           clientes_permitidos?: string[] | null
           codigo: string
           created_at?: string | null
@@ -361,6 +405,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          anunciante_id?: string | null
           clientes_permitidos?: string[] | null
           codigo?: string
           created_at?: string | null
@@ -375,7 +420,50 @@ export type Database = {
           uso_maximo?: number | null
           valor_descuento?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "codigos_descuento_anunciante_id_fkey"
+            columns: ["anunciante_id"]
+            isOneToOne: false
+            referencedRelation: "anunciantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marcas: {
+        Row: {
+          activa: boolean | null
+          anunciante_id: string
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activa?: boolean | null
+          anunciante_id: string
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activa?: boolean | null
+          anunciante_id?: string
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marcas_anunciante_id_fkey"
+            columns: ["anunciante_id"]
+            isOneToOne: false
+            referencedRelation: "anunciantes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       materiales_campana: {
         Row: {
