@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Edit, Percent } from "lucide-react";
+import { Plus, Trash2, Edit, Percent, X, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface CodigoDescuento {
@@ -53,7 +53,9 @@ export function CodigosDescuentoManager() {
     uso_maximo: "",
     notas: "",
     anunciante_id: "" as string,
+    clientes_permitidos: [] as string[],
   });
+  const [emailInput, setEmailInput] = useState("");
 
   // Fetch anunciantes para el selector
   const { data: anunciantes } = useQuery({
@@ -100,6 +102,7 @@ export function CodigosDescuentoManager() {
         uso_maximo: data.uso_maximo ? parseInt(data.uso_maximo) : null,
         notas: data.notas || null,
         anunciante_id: data.anunciante_id || null,
+        clientes_permitidos: data.clientes_permitidos.length > 0 ? data.clientes_permitidos : null,
       });
 
       if (error) throw error;
@@ -133,6 +136,7 @@ export function CodigosDescuentoManager() {
           uso_maximo: data.uso_maximo ? parseInt(data.uso_maximo) : null,
           notas: data.notas || null,
           anunciante_id: data.anunciante_id || null,
+          clientes_permitidos: data.clientes_permitidos.length > 0 ? data.clientes_permitidos : null,
         })
         .eq("id", id);
       if (error) throw error;
@@ -181,8 +185,30 @@ export function CodigosDescuentoManager() {
       uso_maximo: "",
       notas: "",
       anunciante_id: "",
+      clientes_permitidos: [],
     });
+    setEmailInput("");
     setEditingCodigo(null);
+  };
+
+  const agregarEmail = () => {
+    const email = emailInput.trim().toLowerCase();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!formData.clientes_permitidos.includes(email)) {
+        setFormData({
+          ...formData,
+          clientes_permitidos: [...formData.clientes_permitidos, email],
+        });
+      }
+      setEmailInput("");
+    }
+  };
+
+  const removerEmail = (email: string) => {
+    setFormData({
+      ...formData,
+      clientes_permitidos: formData.clientes_permitidos.filter((e) => e !== email),
+    });
   };
 
   const handleEdit = (codigo: CodigoDescuento) => {
@@ -197,7 +223,9 @@ export function CodigosDescuentoManager() {
       uso_maximo: codigo.uso_maximo?.toString() || "",
       notas: codigo.notas || "",
       anunciante_id: codigo.anunciante_id || "",
+      clientes_permitidos: codigo.clientes_permitidos || [],
     });
+    setEmailInput("");
     setIsDialogOpen(true);
   };
 
@@ -329,6 +357,50 @@ export function CodigosDescuentoManager() {
                     onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
                   />
                 </div>
+              </div>
+
+              {/* Clientes permitidos por email */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Label>Correos de clientes permitidos (opcional)</Label>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Agrega correos específicos para mostrarles este descuento automáticamente
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="cliente@ejemplo.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        agregarEmail();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="secondary" onClick={agregarEmail}>
+                    Agregar
+                  </Button>
+                </div>
+                {formData.clientes_permitidos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {formData.clientes_permitidos.map((email) => (
+                      <Badge key={email} variant="secondary" className="flex items-center gap-1 py-1">
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => removerEmail(email)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

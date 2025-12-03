@@ -8,17 +8,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCartContext } from "@/context/CartContext";
+import { useAuth } from "@/hooks/useAuth";
 import { CartItem, CartItemConfig } from "@/types/cart";
 import { catorcenas2024 } from "@/lib/mockInventory";
 import { formatPrice } from "@/lib/pricing";
 import { formatShortId, cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, Clock, Target, Zap, Printer, Tag, Check, X, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Target, Zap, Printer, Tag, Check, X, Loader2, Gift } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CreativosUpload, CreativosConfig } from "./CreativosUpload";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface CodigoDescuentoValidado {
   id: string;
@@ -34,6 +36,7 @@ interface UnifiedBookingConfigProps {
 
 export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [config, setConfig] = useState<CartItemConfig>(item.config);
   const [selectedDates, setSelectedDates] = useState<{ 
     inicio?: Date; 
@@ -49,6 +52,37 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
   const [validandoCodigo, setValidandoCodigo] = useState(false);
   const [codigoValidado, setCodigoValidado] = useState<CodigoDescuentoValidado | null>(null);
   const [errorCodigo, setErrorCodigo] = useState<string | null>(null);
+  const [showManualInput, setShowManualInput] = useState(false);
+  
+  // Fetch discounts available for this user
+  const { data: codigosDisponibles } = useQuery({
+    queryKey: ["codigos-disponibles", item.asset.owner_id, user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      
+      const hoy = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from("codigos_descuento")
+        .select("id, codigo, tipo_descuento, valor_descuento, clientes_permitidos, uso_maximo, uso_actual")
+        .eq("owner_id", item.asset.owner_id)
+        .eq("activo", true)
+        .or(`fecha_inicio.is.null,fecha_inicio.lte.${hoy}`)
+        .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`);
+      
+      if (error) throw error;
+      
+      // Filter codes that are available for this user (in clientes_permitidos or no restriction)
+      return (data || []).filter(codigo => {
+        // Check usage limit
+        if (codigo.uso_maximo && codigo.uso_actual >= codigo.uso_maximo) return false;
+        // Check if user email is in allowed list (or no restriction)
+        if (!codigo.clientes_permitidos || codigo.clientes_permitidos.length === 0) return false;
+        return codigo.clientes_permitidos.includes(user.email!.toLowerCase());
+      }) as CodigoDescuentoValidado[];
+    },
+    enabled: !!user?.email && !!item.asset.owner_id,
+  });
   
   // Determinar si es pantalla estática (necesita impresión)
   const isStaticScreen = (): boolean => {
@@ -151,7 +185,18 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     setCodigoValidado(null);
     setCodigoInput("");
     setErrorCodigo(null);
+    setShowManualInput(false);
     handleConfigChange({ codigoDescuentoId: undefined });
+  };
+  
+  const aplicarCodigoDisponible = (codigo: CodigoDescuentoValidado) => {
+    setCodigoValidado(codigo);
+    setShowManualInput(false);
+    handleConfigChange({ codigoDescuentoId: codigo.id });
+    toast({
+      title: "Código aplicado",
+      description: `Descuento de ${codigo.tipo_descuento === 'porcentaje' ? `${codigo.valor_descuento}%` : formatPrice(codigo.valor_descuento)}`,
+    });
   };
   
   const { updateItem } = useCartContext();
@@ -687,33 +732,75 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Ingresa tu código"
-                    value={codigoInput}
-                    onChange={(e) => {
-                      setCodigoInput(e.target.value.toUpperCase());
-                      setErrorCodigo(null);
-                    }}
-                    className={cn("flex-1 font-mono", errorCodigo && "border-destructive")}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        validarCodigo();
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={validarCodigo} 
-                    disabled={validandoCodigo || !codigoInput.trim()}
-                    variant="secondary"
-                  >
-                    {validandoCodigo ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Aplicar"
-                    )}
-                  </Button>
+                <div className="space-y-3">
+                  {/* Códigos disponibles para el usuario */}
+                  {codigosDisponibles && codigosDisponibles.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Gift className="h-4 w-4" />
+                        Descuentos disponibles para ti:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {codigosDisponibles.map((codigo) => (
+                          <Button
+                            key={codigo.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => aplicarCodigoDisponible(codigo)}
+                            className="flex items-center gap-2"
+                          >
+                            <span className="font-mono font-semibold">{codigo.codigo}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {codigo.tipo_descuento === 'porcentaje' 
+                                ? `${codigo.valor_descuento}%` 
+                                : formatPrice(codigo.valor_descuento)}
+                            </Badge>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Entrada manual de código */}
+                  {showManualInput || !codigosDisponibles || codigosDisponibles.length === 0 ? (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Ingresa tu código"
+                        value={codigoInput}
+                        onChange={(e) => {
+                          setCodigoInput(e.target.value.toUpperCase());
+                          setErrorCodigo(null);
+                        }}
+                        className={cn("flex-1 font-mono", errorCodigo && "border-destructive")}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            validarCodigo();
+                          }
+                        }}
+                      />
+                      <Button 
+                        onClick={validarCodigo} 
+                        disabled={validandoCodigo || !codigoInput.trim()}
+                        variant="secondary"
+                      >
+                        {validandoCodigo ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Aplicar"
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowManualInput(true)}
+                      className="text-muted-foreground"
+                    >
+                      ¿Tienes otro código? Ingrésalo manualmente
+                    </Button>
+                  )}
                 </div>
               )}
               
