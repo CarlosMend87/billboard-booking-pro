@@ -243,7 +243,7 @@ async function sendEmailToAdvertiser(reserva: any, campaign: any, action: string
 
   await sendEmail({
     to: [{ email: advertiserEmail, name: reserva.advertiser?.name }],
-    from: { email: 'noreply@adavailable.com', name: 'AdAvailable' },
+    from: { email: 'carlos@adavailable.com', name: 'AdAvailable' },
     subject: subject,
     content: [{ type: 'text/html', value: html }],
   });
@@ -328,7 +328,7 @@ async function sendEmailToOwner(reserva: any, action: string): Promise<void> {
 
   await sendEmail({
     to: [{ email: ownerEmail, name: reserva.owner?.name }],
-    from: { email: 'noreply@adavailable.com', name: 'AdAvailable' },
+    from: { email: 'carlos@adavailable.com', name: 'AdAvailable' },
     subject: `Confirmación: ${isAccepted ? 'Aceptaste' : 'Rechazaste'} una Reserva - ${reserva.asset_name}`,
     content: [{ type: 'text/html', value: html }],
   });
