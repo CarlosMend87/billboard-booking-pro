@@ -693,12 +693,45 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Tipo</p>
-                    <p className="font-medium">{selectedBillboard.tipo}</p>
+                    <p className="font-medium capitalize">{selectedBillboard.tipo}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Precio Mensual</p>
                     <p className="font-medium">{formatPrice(selectedBillboard.precio?.mensual || 0)}</p>
                   </div>
+                  
+                  {/* Dimensiones */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dimensiones</p>
+                    {selectedBillboard.tipo === 'digital' && selectedBillboard.medidas?.dimension_pixel ? (
+                      <p className="font-medium text-blue-600">{selectedBillboard.medidas.dimension_pixel} px</p>
+                    ) : (
+                      <p className="font-medium">
+                        {selectedBillboard.medidas?.ancho_m || selectedBillboard.medidas?.base_m || 0}m × {selectedBillboard.medidas?.alto_m || 0}m
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Caras */}
+                  {selectedBillboard.medidas?.caras && selectedBillboard.medidas.caras > 1 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Caras</p>
+                      <p className="font-medium">{selectedBillboard.medidas.caras}</p>
+                    </div>
+                  )}
+                  
+                  {/* Coordenadas */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Coordenadas</p>
+                    <p className="font-medium text-xs">{selectedBillboard.lat.toFixed(6)}, {selectedBillboard.lng.toFixed(6)}</p>
+                  </div>
+                  
+                  {/* Propietario */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Propietario</p>
+                    <p className="font-medium text-xs">{selectedBillboard.owner_id.slice(0, 8)}...</p>
+                  </div>
+                  
                   <div className="col-span-2">
                     <p className="text-sm text-muted-foreground">Dirección</p>
                     <p className="font-medium text-sm">{selectedBillboard.direccion}</p>
@@ -711,13 +744,13 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     className="flex-1"
                     onClick={() => {
                       window.open(
-                        `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedBillboard.lat},${selectedBillboard.lng}`,
+                        `https://www.google.com/maps?q=${selectedBillboard.lat},${selectedBillboard.lng}`,
                         '_blank'
                       );
                     }}
                   >
                     <MapPin className="h-4 w-4 mr-2" />
-                    Ver en Street View
+                    Ver en el mapa
                   </Button>
                   <Button
                     className="flex-1"
