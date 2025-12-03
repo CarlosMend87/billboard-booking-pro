@@ -291,14 +291,14 @@ export function CodigosDescuentoManager() {
               <div>
                 <Label>Anunciante (opcional)</Label>
                 <Select
-                  value={formData.anunciante_id}
-                  onValueChange={(value) => setFormData({ ...formData, anunciante_id: value })}
+                  value={formData.anunciante_id || "all"}
+                  onValueChange={(value) => setFormData({ ...formData, anunciante_id: value === "all" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Aplicar a todos los anunciantes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los anunciantes</SelectItem>
+                    <SelectItem value="all">Todos los anunciantes</SelectItem>
                     {anunciantes?.map((anunciante) => (
                       <SelectItem key={anunciante.id} value={anunciante.id}>
                         {anunciante.nombre}
