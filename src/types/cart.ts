@@ -26,6 +26,9 @@ export interface CartItemConfig {
   fechaFin?: string;
   periodo?: string; // For catorcenas like "C01-2024,C02-2024"
   
+  // Descuento
+  codigoDescuentoId?: string;
+  
   // Creativos
   creativos?: {
     archivos?: { [resolucion: string]: File | null };

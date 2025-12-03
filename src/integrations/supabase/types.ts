@@ -1097,6 +1097,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_superadmin: { Args: { _user: string }; Returns: boolean }
+      is_agent_of_owner: { Args: { owner_uuid: string }; Returns: boolean }
       is_billboard_locked: {
         Args: { billboard_uuid: string }
         Returns: boolean
