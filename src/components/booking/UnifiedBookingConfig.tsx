@@ -12,11 +12,20 @@ import { CartItem, CartItemConfig } from "@/types/cart";
 import { catorcenas2024 } from "@/lib/mockInventory";
 import { formatPrice } from "@/lib/pricing";
 import { formatShortId, cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, Clock, Target, Zap, Printer } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Target, Zap, Printer, Tag, Check, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CreativosUpload, CreativosConfig } from "./CreativosUpload";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface CodigoDescuentoValidado {
+  id: string;
+  codigo: string;
+  tipo_descuento: string;
+  valor_descuento: number;
+}
 
 interface UnifiedBookingConfigProps {
   item: CartItem;
@@ -24,6 +33,7 @@ interface UnifiedBookingConfigProps {
 }
 
 export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigProps) {
+  const { toast } = useToast();
   const [config, setConfig] = useState<CartItemConfig>(item.config);
   const [selectedDates, setSelectedDates] = useState<{ 
     inicio?: Date; 
@@ -33,6 +43,12 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
   }>({});
   const [creativosConfig, setCreativosConfig] = useState<CreativosConfig>({});
   const [quienImprime, setQuienImprime] = useState<'cliente' | 'propietario'>('cliente');
+  
+  // Estado para código de descuento
+  const [codigoInput, setCodigoInput] = useState("");
+  const [validandoCodigo, setValidandoCodigo] = useState(false);
+  const [codigoValidado, setCodigoValidado] = useState<CodigoDescuentoValidado | null>(null);
+  const [errorCodigo, setErrorCodigo] = useState<string | null>(null);
   
   // Determinar si es pantalla estática (necesita impresión)
   const isStaticScreen = (): boolean => {
@@ -51,6 +67,91 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     const area = ancho * alto;
     const precioM2 = item.asset.precio_impresion_m2 || 65;
     return area * precioM2;
+  };
+  
+  // Calcular descuento aplicado
+  const calcularDescuento = (subtotal: number): number => {
+    if (!codigoValidado) return 0;
+    if (codigoValidado.tipo_descuento === 'porcentaje') {
+      return subtotal * (codigoValidado.valor_descuento / 100);
+    }
+    return codigoValidado.valor_descuento;
+  };
+  
+  // Validar código de descuento
+  const validarCodigo = async () => {
+    if (!codigoInput.trim()) return;
+    
+    setValidandoCodigo(true);
+    setErrorCodigo(null);
+    
+    try {
+      // Buscar el código en la base de datos
+      const { data, error } = await supabase
+        .from("codigos_descuento")
+        .select("id, codigo, tipo_descuento, valor_descuento, activo, fecha_inicio, fecha_fin, uso_maximo, uso_actual")
+        .eq("codigo", codigoInput.toUpperCase())
+        .eq("owner_id", item.asset.owner_id)
+        .eq("activo", true)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (!data) {
+        setErrorCodigo("Código no válido");
+        setCodigoValidado(null);
+        return;
+      }
+      
+      // Verificar fechas de vigencia
+      const hoy = new Date().toISOString().split('T')[0];
+      if (data.fecha_inicio && data.fecha_inicio > hoy) {
+        setErrorCodigo("Este código aún no está vigente");
+        setCodigoValidado(null);
+        return;
+      }
+      if (data.fecha_fin && data.fecha_fin < hoy) {
+        setErrorCodigo("Este código ha expirado");
+        setCodigoValidado(null);
+        return;
+      }
+      
+      // Verificar uso máximo
+      if (data.uso_maximo && data.uso_actual >= data.uso_maximo) {
+        setErrorCodigo("Este código ha alcanzado su límite de uso");
+        setCodigoValidado(null);
+        return;
+      }
+      
+      // Código válido
+      setCodigoValidado({
+        id: data.id,
+        codigo: data.codigo,
+        tipo_descuento: data.tipo_descuento,
+        valor_descuento: data.valor_descuento,
+      });
+      
+      toast({
+        title: "Código aplicado",
+        description: `Descuento de ${data.tipo_descuento === 'porcentaje' ? `${data.valor_descuento}%` : formatPrice(data.valor_descuento)}`,
+      });
+      
+      // Actualizar config con el código
+      handleConfigChange({ codigoDescuentoId: data.id });
+      
+    } catch (err: any) {
+      setErrorCodigo("Error al validar código");
+      console.error(err);
+    } finally {
+      setValidandoCodigo(false);
+    }
+  };
+  
+  const removerCodigo = () => {
+    setCodigoValidado(null);
+    setCodigoInput("");
+    setErrorCodigo(null);
+    handleConfigChange({ codigoDescuentoId: undefined });
   };
   
   const { updateItem } = useCartContext();
@@ -562,22 +663,93 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         </div>
         
         <div className="border-t pt-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Subtotal ({item.quantity} unidades):</span>
-              <span className="font-medium">{formatPrice(item.subtotal)}</span>
-            </div>
-            {isStaticScreen() && quienImprime === 'propietario' && (
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Costo de impresión:</span>
-                <span className="font-medium">{formatPrice(calcularCostoImpresion())}</span>
+          <div className="space-y-4">
+            {/* Código de descuento */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-medium">Código de descuento</Label>
               </div>
-            )}
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="font-medium">Total:</span>
-              <span className="text-lg font-bold text-primary">
-                {formatPrice(item.subtotal + (isStaticScreen() && quienImprime === 'propietario' ? calcularCostoImpresion() : 0))}
-              </span>
+              
+              {codigoValidado ? (
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <Check className="h-4 w-4 text-green-600" />
+                  <div className="flex-1">
+                    <span className="font-mono font-semibold">{codigoValidado.codigo}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({codigoValidado.tipo_descuento === 'porcentaje' 
+                        ? `${codigoValidado.valor_descuento}%` 
+                        : formatPrice(codigoValidado.valor_descuento)})
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={removerCodigo}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ingresa tu código"
+                    value={codigoInput}
+                    onChange={(e) => {
+                      setCodigoInput(e.target.value.toUpperCase());
+                      setErrorCodigo(null);
+                    }}
+                    className={cn("flex-1 font-mono", errorCodigo && "border-destructive")}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        validarCodigo();
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={validarCodigo} 
+                    disabled={validandoCodigo || !codigoInput.trim()}
+                    variant="secondary"
+                  >
+                    {validandoCodigo ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Aplicar"
+                    )}
+                  </Button>
+                </div>
+              )}
+              
+              {errorCodigo && (
+                <p className="text-sm text-destructive mt-1">{errorCodigo}</p>
+              )}
+            </div>
+            
+            {/* Totales */}
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Subtotal ({item.quantity} unidades):</span>
+                <span className="font-medium">{formatPrice(item.subtotal)}</span>
+              </div>
+              {isStaticScreen() && quienImprime === 'propietario' && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Costo de impresión:</span>
+                  <span className="font-medium">{formatPrice(calcularCostoImpresion())}</span>
+                </div>
+              )}
+              {codigoValidado && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span>Descuento ({codigoValidado.codigo}):</span>
+                  <span className="font-medium">-{formatPrice(calcularDescuento(item.subtotal))}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="font-medium">Total:</span>
+                <span className="text-lg font-bold text-primary">
+                  {formatPrice(
+                    item.subtotal 
+                    + (isStaticScreen() && quienImprime === 'propietario' ? calcularCostoImpresion() : 0)
+                    - calcularDescuento(item.subtotal)
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </div>

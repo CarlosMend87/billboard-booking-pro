@@ -23,6 +23,7 @@ import { Bell } from "lucide-react";
 import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
 import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
 import { AnunciantesManager } from "@/components/owner/AnunciantesManager";
+import { ReporteDescuentos } from "@/components/owner/ReporteDescuentos";
 import { useAuth } from "@/hooks/useAuth";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 import Papa from "papaparse";
@@ -615,6 +616,7 @@ export default function OwnerDashboard() {
               <>
                 <AnunciantesManager />
                 <CodigosDescuentoManager />
+                <ReporteDescuentos />
               </>
             )}
           </TabsContent>
