@@ -734,22 +734,22 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     {/* Para pantallas digitales: precios por día, hora, spot */}
                     {selectedBillboard.tipo === 'digital' && (
                       <>
-                        {selectedBillboard.precio?.tarifa_dia && (
+                        {selectedBillboard.precio?.dia && (
                           <div>
                             <p className="text-xs text-muted-foreground">Por Día</p>
-                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_dia)}</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.dia)}</p>
                           </div>
                         )}
-                        {selectedBillboard.precio?.tarifa_hora && (
+                        {selectedBillboard.precio?.hora && (
                           <div>
                             <p className="text-xs text-muted-foreground">Por Hora</p>
-                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_hora)}</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.hora)}</p>
                           </div>
                         )}
-                        {selectedBillboard.precio?.tarifa_spot && (
+                        {selectedBillboard.precio?.spot && (
                           <div>
                             <p className="text-xs text-muted-foreground">Por Spot</p>
-                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_spot)}</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.spot)}</p>
                           </div>
                         )}
                       </>
