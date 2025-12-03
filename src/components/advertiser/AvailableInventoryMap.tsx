@@ -610,7 +610,9 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                       IA Activa
                     </Badge>
                   )}
-                  <Badge className="bg-green-600 text-xs">Disponible</Badge>
+                  <Badge className={selectedBillboard.status === 'disponible' ? "bg-green-600 text-xs" : "bg-destructive text-xs"}>
+                    {selectedBillboard.status === 'disponible' ? 'Disponible' : 'Ocupado'}
+                  </Badge>
                 </div>
               </SheetHeader>
 
@@ -674,6 +676,8 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                   </Button>
                   <Button
                     className="flex-1"
+                    disabled={selectedBillboard.status !== 'disponible'}
+                    variant={selectedBillboard.status !== 'disponible' ? 'secondary' : 'default'}
                     onClick={() => {
                       // Convert MapBillboard to InventoryAsset format
                       const asset: InventoryAsset = {
@@ -694,7 +698,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                           dia: false,
                           cpm: false
                         },
-                        estado: 'disponible',
+                        estado: selectedBillboard.status === 'disponible' ? 'disponible' : 'ocupado',
                         propietario: selectedBillboard.owner_id,
                         foto: ''
                       };
@@ -706,7 +710,7 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Agregar al Carrito
+                    {selectedBillboard.status !== 'disponible' ? 'No disponible' : 'Agregar al Carrito'}
                   </Button>
                 </div>
               </div>
