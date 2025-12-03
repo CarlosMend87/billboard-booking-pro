@@ -461,14 +461,15 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                           <span className="font-medium">Dimensiones:</span>
                         </div>
                         <div className="text-muted-foreground ml-4">
-                          <p>
-                            {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
-                            {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
-                          </p>
-                          {asset.tipo === 'digital' && (asset as any).digital?.dimension_pixel && (
-                            <p className="text-xs text-primary font-medium">
+                          {asset.tipo === 'digital' && (asset as any).digital?.dimension_pixel ? (
+                            <p className="text-primary font-medium">
                               <Monitor className="h-3 w-3 inline mr-1" />
                               {(asset as any).digital.dimension_pixel} px
+                            </p>
+                          ) : (
+                            <p>
+                              {asset.medidas.ancho_m || asset.medidas.base_m}m × {asset.medidas.alto_m}m
+                              {asset.medidas.caras > 1 && ` (${asset.medidas.caras} caras)`}
                             </p>
                           )}
                         </div>
