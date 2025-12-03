@@ -744,8 +744,9 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     className="flex-1"
                     onClick={() => {
                       window.open(
-                        `https://www.google.com/maps?q=${selectedBillboard.lat},${selectedBillboard.lng}`,
-                        '_blank'
+                        `https://www.google.com/maps/search/?api=1&query=${selectedBillboard.lat},${selectedBillboard.lng}`,
+                        '_blank',
+                        'noopener,noreferrer'
                       );
                     }}
                   >
