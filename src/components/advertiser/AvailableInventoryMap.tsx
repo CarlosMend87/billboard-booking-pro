@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatTruncatedId } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { formatPrice as pricingFormatPrice } from "@/lib/pricing";
+import { formatPrice as pricingFormatPrice, precioCatorcenal, precioSemanal } from "@/lib/pricing";
 
 interface AvailableInventoryMapProps {
   filters: InventoryFilters;
@@ -695,10 +695,6 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                     <p className="text-sm text-muted-foreground">Tipo</p>
                     <p className="font-medium capitalize">{selectedBillboard.tipo}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Precio Mensual</p>
-                    <p className="font-medium">{formatPrice(selectedBillboard.precio?.mensual || 0)}</p>
-                  </div>
                   
                   {/* Dimensiones */}
                   <div>
@@ -711,7 +707,58 @@ export function AvailableInventoryMap({ filters, onAddToCart }: AvailableInvento
                       </p>
                     )}
                   </div>
-                  
+                </div>
+
+                {/* Precios */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-muted-foreground border-b pb-1">Precios</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Precio Mensual */}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mensual</p>
+                      <p className="font-semibold text-green-600">{formatPrice(selectedBillboard.precio?.mensual || 0)}</p>
+                    </div>
+                    
+                    {/* Precio Catorcenal (calculado) */}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Catorcenal</p>
+                      <p className="font-medium">{formatPrice(precioCatorcenal(selectedBillboard.precio?.mensual || 0))}</p>
+                    </div>
+                    
+                    {/* Precio Semanal (calculado) */}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Semanal</p>
+                      <p className="font-medium">{formatPrice(precioSemanal(selectedBillboard.precio?.mensual || 0))}</p>
+                    </div>
+
+                    {/* Para pantallas digitales: precios por día, hora, spot */}
+                    {selectedBillboard.tipo === 'digital' && (
+                      <>
+                        {selectedBillboard.precio?.tarifa_dia && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Por Día</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_dia)}</p>
+                          </div>
+                        )}
+                        {selectedBillboard.precio?.tarifa_hora && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Por Hora</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_hora)}</p>
+                          </div>
+                        )}
+                        {selectedBillboard.precio?.tarifa_spot && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Por Spot</p>
+                            <p className="font-medium text-blue-600">{formatPrice(selectedBillboard.precio.tarifa_spot)}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Información adicional */}
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   {/* Caras */}
                   {selectedBillboard.medidas?.caras && selectedBillboard.medidas.caras > 1 && (
                     <div>
