@@ -47,16 +47,48 @@ interface AvailableInventoryListProps {
   onAddToCart: (asset: InventoryAsset, modalidad: CartItemModalidad, config: CartItemConfig, quantity?: number) => void;
 }
 
-// Mock available dates for demonstration
-const getRandomAvailableDates = () => {
-  const dates = [];
+// Get available dates based on reservations
+const getAvailabilityInfo = (assetId: string, reservations: any[]): { availableDates: number[]; nextFreeDate: string | null } => {
   const currentDate = new Date();
-  for (let i = 1; i <= 28; i++) {
-    if (Math.random() > 0.3) { // 70% chance of being available
-      dates.push(i);
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  
+  // Get reservations for this asset
+  const assetReservations = reservations.filter(r => 
+    r.asset_name === assetId || r.billboard_id === assetId
+  );
+  
+  // Calculate available dates for current month
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const availableDates: number[] = [];
+  let nextFreeDate: string | null = null;
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isOccupied = assetReservations.some(r => {
+      const start = new Date(r.fecha_inicio);
+      const end = new Date(r.fecha_fin);
+      const checkDate = new Date(dateStr);
+      return checkDate >= start && checkDate <= end && r.status === 'accepted';
+    });
+    
+    if (!isOccupied && new Date(dateStr) >= currentDate) {
+      availableDates.push(day);
     }
   }
-  return dates;
+  
+  // Find next free date if asset is currently occupied
+  const latestReservation = assetReservations
+    .filter(r => r.status === 'accepted')
+    .sort((a, b) => new Date(b.fecha_fin).getTime() - new Date(a.fecha_fin).getTime())[0];
+  
+  if (latestReservation) {
+    const endDate = new Date(latestReservation.fecha_fin);
+    endDate.setDate(endDate.getDate() + 1);
+    nextFreeDate = endDate.toISOString().split('T')[0];
+  }
+  
+  return { availableDates, nextFreeDate };
 };
 
 // Convert Supabase billboard to InventoryAsset format
@@ -133,6 +165,19 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
     };
 
     fetchOwnerBillboards();
+  }, []);
+
+  // Fetch reservations for availability info
+  const [reservations, setReservations] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchReservations = async () => {
+      const { data } = await supabase
+        .from('reservas')
+        .select('*')
+        .in('status', ['accepted', 'pending']);
+      setReservations(data || []);
+    };
+    fetchReservations();
   }, []);
 
   // State for async filtered assets
@@ -390,7 +435,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedAssets.map((asset) => {
-          const availableDates = getRandomAvailableDates();
+          const { availableDates, nextFreeDate } = getAvailabilityInfo(asset.id, reservations);
           const typeLabel = getTipoLabel(asset.tipo);
           const modalidadOptions = getModalidadOptions(asset);
           const currentModalidad = selectedModalidad[asset.id] || modalidadOptions[0];
@@ -517,20 +562,37 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                 <div className="space-y-2">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium text-sm">Días disponibles este mes:</span>
+                    <span className="font-medium text-sm">Disponibilidad:</span>
                   </div>
-                  <div className="ml-4 flex flex-wrap gap-1">
-                    {availableDates.slice(0, 10).map(date => (
-                      <Badge key={date} variant="outline" className="text-xs">
-                        {date}
-                      </Badge>
-                    ))}
-                    {availableDates.length > 10 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{availableDates.length - 10} más
-                      </Badge>
+                  <div className="ml-4">
+                    {asset.estado !== 'disponible' && nextFreeDate ? (
+                      <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-md">
+                        <p className="text-sm text-amber-700 dark:text-amber-400">
+                          <span className="font-medium">Se libera:</span>{' '}
+                          {new Date(nextFreeDate).toLocaleDateString('es-MX', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {availableDates.slice(0, 10).map(date => (
+                          <Badge key={date} variant="outline" className="text-xs">
+                            {date}
+                          </Badge>
+                        ))}
+                        {availableDates.length > 10 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{availableDates.length - 10} más
+                          </Badge>
+                        )}
+                        {availableDates.length === 0 && (
+                          <span className="text-sm text-muted-foreground">Sin disponibilidad este mes</span>
+                        )}
+                      </div>
                     )}
-                  </div>
                 </div>
 
                 {/* Métricas de interés - Solo visible para compradores */}
