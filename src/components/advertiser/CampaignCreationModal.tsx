@@ -30,6 +30,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const campaignSchema = z.object({
   nombre: z.string()
@@ -48,10 +49,20 @@ const campaignSchema = z.object({
   })
 });
 
+type DateSelectionType = 'rango' | 'dias_salteados' | 'semana' | 'dia_unico';
+
+interface SpotConfig {
+  totalSpots: number;
+  spotsPerDay: number;
+  spotsPerHour: number;
+  dateSelectionType: DateSelectionType;
+  selectedDates: Date[];
+}
+
 interface CampaignCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (campaign: CampaignInfo & { fechaInicio?: string; fechaFin?: string }) => void;
+  onSubmit: (campaign: CampaignInfo & { fechaInicio?: string; fechaFin?: string; spotConfig?: SpotConfig }) => void;
 }
 
 export function CampaignCreationModal({
@@ -67,6 +78,45 @@ export function CampaignCreationModal({
   const [metodo, setMetodo] = useState<CampaignSearchMethod | "">("");
   const [fechaInicio, setFechaInicio] = useState<Date | undefined>();
   const [fechaFin, setFechaFin] = useState<Date | undefined>();
+  
+  // Configuración de spots
+  const [spotConfig, setSpotConfig] = useState<SpotConfig>({
+    totalSpots: 0,
+    spotsPerDay: 0,
+    spotsPerHour: 0,
+    dateSelectionType: 'rango',
+    selectedDates: [],
+  });
+
+  const isSpotMethod = metodo === 'spot';
+
+  const handleSpotConfigChange = (field: keyof SpotConfig, value: any) => {
+    setSpotConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleMultipleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    
+    setSpotConfig(prev => {
+      const exists = prev.selectedDates.some(d => 
+        d.toDateString() === date.toDateString()
+      );
+      
+      if (exists) {
+        return {
+          ...prev,
+          selectedDates: prev.selectedDates.filter(d => 
+            d.toDateString() !== date.toDateString()
+          )
+        };
+      } else {
+        return {
+          ...prev,
+          selectedDates: [...prev.selectedDates, date].sort((a, b) => a.getTime() - b.getTime())
+        };
+      }
+    });
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -86,6 +136,22 @@ export function CampaignCreationModal({
       const firstError = validation.error.errors[0];
       toast.error(firstError.message);
       return;
+    }
+
+    // Validaciones adicionales para spots
+    if (isSpotMethod) {
+      if (spotConfig.totalSpots <= 0) {
+        toast.error("Debes especificar el número total de spots");
+        return;
+      }
+      if (spotConfig.spotsPerDay <= 0) {
+        toast.error("Debes especificar los spots por día");
+        return;
+      }
+      if (spotConfig.dateSelectionType === 'dias_salteados' && spotConfig.selectedDates.length === 0) {
+        toast.error("Debes seleccionar al menos un día");
+        return;
+      }
     }
 
     const validatedData = validation.data;
@@ -110,7 +176,7 @@ export function CampaignCreationModal({
 
       if (error) throw error;
 
-      const campaignInfo: CampaignInfo & { fechaInicio?: string; fechaFin?: string } = {
+      const campaignInfo: CampaignInfo & { fechaInicio?: string; fechaFin?: string; spotConfig?: SpotConfig } = {
         id: data.id,
         nombre: validatedData.nombre,
         propuesta: validatedData.propuesta,
@@ -118,6 +184,7 @@ export function CampaignCreationModal({
         metodo: validatedData.metodo as CampaignSearchMethod,
         fechaInicio: fechaInicio?.toISOString().split('T')[0],
         fechaFin: fechaFin?.toISOString().split('T')[0],
+        ...(isSpotMethod && { spotConfig }),
       };
 
       onSubmit(campaignInfo);
@@ -129,6 +196,13 @@ export function CampaignCreationModal({
       setMetodo("");
       setFechaInicio(undefined);
       setFechaFin(undefined);
+      setSpotConfig({
+        totalSpots: 0,
+        spotsPerDay: 0,
+        spotsPerHour: 0,
+        dateSelectionType: 'rango',
+        selectedDates: [],
+      });
     } catch (error: any) {
       console.error("Error creating campaign:", error);
       toast.error(error?.message || "Error al crear la campaña");
@@ -201,98 +275,245 @@ export function CampaignCreationModal({
             </Select>
           </div>
 
-          {/* Fechas de la campaña */}
-          <div className="space-y-3 pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              <Label className="font-medium">Fechas de la Campaña</Label>
-            </div>
-            
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Define las fechas para filtrar pantallas disponibles. Las pantallas ocupadas durante este periodo se mostrarán con su fecha de liberación.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Fecha de inicio</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !fechaInicio && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {fechaInicio ? (
-                        format(fechaInicio, "PPP", { locale: es })
-                      ) : (
-                        <span>Seleccionar</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={fechaInicio}
-                      onSelect={(date) => {
-                        setFechaInicio(date);
-                        // Si la fecha fin es anterior, limpiarla
-                        if (date && fechaFin && fechaFin < date) {
-                          setFechaFin(undefined);
-                        }
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+          {/* Configuración de Spots */}
+          {isSpotMethod && (
+            <div className="space-y-4 pt-2 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <Label className="font-medium text-primary">Configuración de Spots</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="totalSpots">Total de Spots</Label>
+                  <Input
+                    id="totalSpots"
+                    type="number"
+                    placeholder="100"
+                    value={spotConfig.totalSpots || ''}
+                    onChange={(e) => handleSpotConfigChange('totalSpots', parseInt(e.target.value) || 0)}
+                    min="1"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="spotsPerDay">Spots por Día</Label>
+                  <Input
+                    id="spotsPerDay"
+                    type="number"
+                    placeholder="10"
+                    value={spotConfig.spotsPerDay || ''}
+                    onChange={(e) => handleSpotConfigChange('spotsPerDay', parseInt(e.target.value) || 0)}
+                    min="1"
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
-                <Label>Fecha de fin</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !fechaFin && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {fechaFin ? (
-                        format(fechaFin, "PPP", { locale: es })
-                      ) : (
-                        <span>Seleccionar</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                <Label htmlFor="spotsPerHour">Spots por Hora</Label>
+                <Input
+                  id="spotsPerHour"
+                  type="number"
+                  placeholder="2"
+                  value={spotConfig.spotsPerHour || ''}
+                  onChange={(e) => handleSpotConfigChange('spotsPerHour', parseInt(e.target.value) || 0)}
+                  min="1"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label>Tipo de Selección de Fechas</Label>
+                <RadioGroup
+                  value={spotConfig.dateSelectionType}
+                  onValueChange={(value) => handleSpotConfigChange('dateSelectionType', value as DateSelectionType)}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                    <RadioGroupItem value="rango" id="rango" />
+                    <Label htmlFor="rango" className="cursor-pointer text-sm">Rango de fechas</Label>
+                  </div>
+                  <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                    <RadioGroupItem value="dias_salteados" id="dias_salteados" />
+                    <Label htmlFor="dias_salteados" className="cursor-pointer text-sm">Días salteados</Label>
+                  </div>
+                  <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                    <RadioGroupItem value="semana" id="semana" />
+                    <Label htmlFor="semana" className="cursor-pointer text-sm">Por semana</Label>
+                  </div>
+                  <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                    <RadioGroupItem value="dia_unico" id="dia_unico" />
+                    <Label htmlFor="dia_unico" className="cursor-pointer text-sm">Día único</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Selector de días salteados */}
+              {spotConfig.dateSelectionType === 'dias_salteados' && (
+                <div className="space-y-2">
+                  <Label>Selecciona los días (clic para agregar/quitar)</Label>
+                  <div className="border rounded-md p-2">
                     <Calendar
                       mode="single"
-                      selected={fechaFin}
-                      onSelect={setFechaFin}
-                      disabled={(date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        if (date < today) return true;
-                        if (fechaInicio && date < fechaInicio) return true;
-                        return false;
+                      selected={undefined}
+                      onSelect={handleMultipleDateSelect}
+                      disabled={(date) => date < new Date()}
+                      modifiers={{
+                        selected: spotConfig.selectedDates,
                       }}
-                      initialFocus
+                      modifiersStyles={{
+                        selected: { 
+                          backgroundColor: 'hsl(var(--primary))',
+                          color: 'hsl(var(--primary-foreground))'
+                        }
+                      }}
                       className="pointer-events-auto"
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                  {spotConfig.selectedDates.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {spotConfig.selectedDates.length} día(s) seleccionado(s): {' '}
+                      {spotConfig.selectedDates.slice(0, 3).map(d => format(d, 'dd/MM')).join(', ')}
+                      {spotConfig.selectedDates.length > 3 && ` +${spotConfig.selectedDates.length - 3} más`}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Fechas de la campaña */}
+          {(!isSpotMethod || spotConfig.dateSelectionType === 'rango' || spotConfig.dateSelectionType === 'semana') && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <Label className="font-medium">Fechas de la Campaña</Label>
+              </div>
+              
+              {!isSpotMethod && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Define las fechas para filtrar pantallas disponibles. Las pantallas ocupadas durante este periodo se mostrarán con su fecha de liberación.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fecha de inicio</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !fechaInicio && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fechaInicio ? (
+                          format(fechaInicio, "PPP", { locale: es })
+                        ) : (
+                          <span>Seleccionar</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fechaInicio}
+                        onSelect={(date) => {
+                          setFechaInicio(date);
+                          if (date && fechaFin && fechaFin < date) {
+                            setFechaFin(undefined);
+                          }
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Fecha de fin</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !fechaFin && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fechaFin ? (
+                          format(fechaFin, "PPP", { locale: es })
+                        ) : (
+                          <span>Seleccionar</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fechaFin}
+                        onSelect={setFechaFin}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          if (date < today) return true;
+                          if (fechaInicio && date < fechaInicio) return true;
+                          return false;
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Día único para spots */}
+          {isSpotMethod && spotConfig.dateSelectionType === 'dia_unico' && (
+            <div className="space-y-2 pt-2 border-t">
+              <Label>Selecciona el día</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !fechaInicio && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fechaInicio ? (
+                      format(fechaInicio, "PPP", { locale: es })
+                    ) : (
+                      <span>Seleccionar día</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={fechaInicio}
+                    onSelect={(date) => {
+                      setFechaInicio(date);
+                      setFechaFin(date);
+                    }}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
