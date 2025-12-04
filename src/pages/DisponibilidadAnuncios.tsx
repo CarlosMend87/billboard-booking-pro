@@ -80,9 +80,17 @@ export default function DisponibilidadAnuncios() {
     }));
   };
 
-  const handleCreateCampaign = (campaign: CampaignInfo) => {
+  const handleCreateCampaign = (campaign: CampaignInfo & { fechaInicio?: string; fechaFin?: string }) => {
     setCampaignInfo(campaign);
     setShowCreationModal(false);
+    
+    // Aplicar filtros de fecha si se proporcionaron
+    if (campaign.fechaInicio || campaign.fechaFin) {
+      handleFilterChange({ 
+        startDate: campaign.fechaInicio ? new Date(campaign.fechaInicio) : null,
+        endDate: campaign.fechaFin ? new Date(campaign.fechaFin) : null
+      });
+    }
     
     // Aplicar filtro de método si es necesario
     if (campaign.metodo !== 'full') {

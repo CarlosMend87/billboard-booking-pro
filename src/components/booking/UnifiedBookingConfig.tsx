@@ -86,10 +86,19 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
   
   // Determinar si es pantalla estática (necesita impresión)
   const isStaticScreen = (): boolean => {
+    // Primero verificar si el tipo contiene "digital"
+    const tipoDigital = item.asset.tipo.toLowerCase().includes('digital');
+    if (tipoDigital) return false;
+    
+    // Luego verificar metadata y contratación
     const metadata = item.asset.metadata as any;
     const frameCategory = metadata?.frame_category || metadata?.categoria_marco;
     const contratacion = item.asset.contratacion as any;
-    return frameCategory === 'static' || contratacion?.requiere_impresion === true || !item.asset.digital;
+    
+    // Si tiene info de digital, no es estática
+    if (item.asset.digital) return false;
+    
+    return frameCategory === 'static' || contratacion?.requiere_impresion === true;
   };
   
   // Calcular costo de impresión
