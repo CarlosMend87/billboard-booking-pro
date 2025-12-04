@@ -593,6 +593,7 @@ export function AvailableInventoryList({ filters, onAddToCart }: AvailableInvent
                         )}
                       </div>
                     )}
+                  </div>
                 </div>
 
                 {/* Métricas de interés - Solo visible para compradores */}
