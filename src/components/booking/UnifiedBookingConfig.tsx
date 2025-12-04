@@ -85,20 +85,27 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
   });
   
   // Determinar si es pantalla estática (necesita impresión)
+  // IMPORTANTE: Todas las pantallas actuales son digitales, no deben mostrar opción de impresión
   const isStaticScreen = (): boolean => {
-    // Primero verificar si el tipo contiene "digital"
-    const tipoDigital = item.asset.tipo.toLowerCase().includes('digital');
-    if (tipoDigital) return false;
+    // Si el tipo contiene "digital" en cualquier forma, NO es estática
+    const tipo = item.asset.tipo?.toLowerCase() || '';
+    if (tipo.includes('digital') || tipo.includes('led') || tipo.includes('pantalla')) {
+      return false;
+    }
     
-    // Luego verificar metadata y contratación
-    const metadata = item.asset.metadata as any;
-    const frameCategory = metadata?.frame_category || metadata?.categoria_marco;
-    const contratacion = item.asset.contratacion as any;
-    
-    // Si tiene info de digital, no es estática
+    // Si tiene configuración digital, NO es estática
     if (item.asset.digital) return false;
     
-    return frameCategory === 'static' || contratacion?.requiere_impresion === true;
+    // Verificar metadata
+    const metadata = item.asset.metadata as any;
+    const frameCategory = metadata?.frame_category || metadata?.categoria_marco;
+    
+    // Si tiene categoría digital en metadata, NO es estática
+    if (frameCategory === 'digital' || frameCategory === 'led') return false;
+    
+    // Solo es estática si explícitamente lo indica la contratación
+    const contratacion = item.asset.contratacion as any;
+    return contratacion?.requiere_impresion === true && frameCategory === 'static';
   };
   
   // Calcular costo de impresión
