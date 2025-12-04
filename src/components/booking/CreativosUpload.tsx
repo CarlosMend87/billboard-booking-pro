@@ -22,7 +22,8 @@ export interface CreativosConfig {
 export function CreativosUpload({ item, onCreativosChange }: CreativosUploadProps) {
   const [config, setConfig] = useState<CreativosConfig>({});
   
-  const isDigital = item.asset.tipo.toLowerCase().includes('digital') || !!item.asset.digital;
+  const tipo = item.asset.tipo?.toLowerCase() || '';
+  const isDigital = tipo.includes('digital') || tipo.includes('led') || tipo.includes('pantalla') || !!item.asset.digital;
   const medidas = item.asset.medidas as any;
   
   // Obtener resoluciones requeridas para pantallas digitales

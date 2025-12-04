@@ -267,7 +267,8 @@ export default function BookingWizard() {
             {cart.items.map((item) => {
               const config = itemConfigs[item.id] || item.config;
               const creativos = (config as any)?.creativos;
-              const isDigital = item.asset.tipo.toLowerCase() === 'digital';
+              const tipo = item.asset.tipo?.toLowerCase() || '';
+              const isDigital = tipo.includes('digital') || tipo.includes('led') || tipo.includes('pantalla') || !!item.asset.digital;
               const medidas = item.asset.medidas as any;
               
               return (
