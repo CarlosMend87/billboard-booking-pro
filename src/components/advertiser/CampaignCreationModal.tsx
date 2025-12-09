@@ -24,12 +24,13 @@ import { CampaignInfo, CampaignSearchMethod } from "@/context/CampaignContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, CalendarIcon, Info } from "lucide-react";
+import { Loader2, CalendarIcon, Info, Calculator } from "lucide-react";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const campaignSchema = z.object({
@@ -89,6 +90,46 @@ export function CampaignCreationModal({
   });
 
   const isSpotMethod = metodo === 'spot';
+
+  // Cálculos automáticos para spots
+  const calculatedDays = spotConfig.spotsPerDay > 0 
+    ? Math.ceil(spotConfig.totalSpots / spotConfig.spotsPerDay) 
+    : 0;
+  
+  const estimatedCostPerSpot = 15; // Precio base por spot en MXN (puede venir de la pantalla)
+  const estimatedTotalCost = spotConfig.totalSpots * estimatedCostPerSpot;
+  
+  const totalDaysFromDates = (() => {
+    if (spotConfig.dateSelectionType === 'dias_salteados') {
+      return spotConfig.selectedDates.length;
+    }
+    if (spotConfig.dateSelectionType === 'dia_unico') {
+      return 1;
+    }
+    if (fechaInicio && fechaFin) {
+      return differenceInDays(fechaFin, fechaInicio) + 1;
+    }
+    return 0;
+  })();
+
+  const daysValidation = (() => {
+    if (!isSpotMethod || spotConfig.totalSpots === 0 || spotConfig.spotsPerDay === 0) return null;
+    
+    if (totalDaysFromDates > 0 && totalDaysFromDates < calculatedDays) {
+      return {
+        type: 'warning' as const,
+        message: `Necesitas ${calculatedDays} días para completar ${spotConfig.totalSpots} spots (a ${spotConfig.spotsPerDay}/día), pero solo seleccionaste ${totalDaysFromDates} días.`
+      };
+    }
+    if (totalDaysFromDates > calculatedDays) {
+      const spotsPerDayAdjusted = Math.ceil(spotConfig.totalSpots / totalDaysFromDates);
+      return {
+        type: 'info' as const,
+        message: `Con ${totalDaysFromDates} días, podrías reducir a ${spotsPerDayAdjusted} spots/día para distribuir mejor.`
+      };
+    }
+    return null;
+  })();
 
   const handleSpotConfigChange = (field: keyof SpotConfig, value: any) => {
     setSpotConfig(prev => ({ ...prev, [field]: value }));
@@ -377,6 +418,54 @@ export function CampaignCreationModal({
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Resumen de costo estimado */}
+              {spotConfig.totalSpots > 0 && (
+                <Card className="bg-muted/50 border-primary/20">
+                  <CardContent className="pt-4 pb-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">Resumen Estimado</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-muted-foreground">Total de spots:</div>
+                      <div className="font-medium text-right">{spotConfig.totalSpots}</div>
+                      
+                      <div className="text-muted-foreground">Spots por día:</div>
+                      <div className="font-medium text-right">{spotConfig.spotsPerDay || '-'}</div>
+                      
+                      <div className="text-muted-foreground">Días necesarios:</div>
+                      <div className="font-medium text-right">{calculatedDays > 0 ? `${calculatedDays} día(s)` : '-'}</div>
+                      
+                      {totalDaysFromDates > 0 && (
+                        <>
+                          <div className="text-muted-foreground">Días seleccionados:</div>
+                          <div className="font-medium text-right">{totalDaysFromDates} día(s)</div>
+                        </>
+                      )}
+                      
+                      <div className="col-span-2 border-t border-border my-1"></div>
+                      
+                      <div className="text-muted-foreground">Costo estimado:</div>
+                      <div className="font-semibold text-right text-primary">
+                        ${estimatedTotalCost.toLocaleString('es-MX')} MXN
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
+                      * Precio estimado. El costo final depende de la pantalla seleccionada.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Validación de días */}
+              {daysValidation && (
+                <Alert variant={daysValidation.type === 'warning' ? 'destructive' : 'default'}>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>{daysValidation.message}</AlertDescription>
+                </Alert>
               )}
             </div>
           )}
