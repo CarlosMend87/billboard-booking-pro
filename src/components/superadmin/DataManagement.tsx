@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DatabaseExport } from "@/components/export/DatabaseExport";
 
 export default function DataManagement() {
   const [backupProgress, setBackupProgress] = useState(0);
@@ -303,15 +304,18 @@ export default function DataManagement() {
         </CardContent>
       </Card>
 
+      {/* Database Export - Excel completo */}
+      <DatabaseExport />
+
       {/* Data Export */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="w-5 h-5" />
-            <span>Exportación de Datos</span>
+            <span>Exportación de Datos (CSV)</span>
           </CardTitle>
           <CardDescription>
-            Exportar datos específicos en formato CSV o JSON
+            Exportar datos específicos en formato CSV
           </CardDescription>
         </CardHeader>
         <CardContent>
