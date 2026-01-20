@@ -631,6 +631,45 @@ export type Database = {
           },
         ]
       }
+      points_of_interest: {
+        Row: {
+          ciudad: string | null
+          created_at: string
+          direccion: string | null
+          id: string
+          lat: number
+          lng: number
+          metadata: Json | null
+          nombre: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ciudad?: string | null
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          lat: number
+          lng: number
+          metadata?: Json | null
+          nombre: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ciudad?: string | null
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          lat?: number
+          lng?: number
+          metadata?: Json | null
+          nombre?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1040,6 +1079,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_distance_meters: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       cleanup_expired_locks: { Args: never; Returns: undefined }
       create_billboard_lock: {
         Args: { billboard_uuid: string; user_uuid: string }
@@ -1068,6 +1111,18 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
           user_id: string
+        }[]
+      }
+      get_billboards_near_poi: {
+        Args: { poi_type: string; radius_meters?: number }
+        Returns: {
+          billboard_id: string
+          billboard_lat: number
+          billboard_lng: number
+          billboard_nombre: string
+          distance_meters: number
+          poi_id: string
+          poi_nombre: string
         }[]
       }
       get_current_user_profile: {
