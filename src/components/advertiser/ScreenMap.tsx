@@ -54,8 +54,8 @@ const MAP_ID = "advertiser-map";
 const DEFAULT_CENTER = { lat: 19.4326, lng: -99.1332 }; // CDMX
 const DEFAULT_ZOOM = 11;
 
-// Get API key from environment or use fallback
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80";
+// Get API key from environment - no fallback for security
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 export function ScreenMap({ 
   screens, 
