@@ -159,7 +159,9 @@ export default function AdvertiserHome() {
       {/* Search Bar Section */}
       <div className="bg-background pt-6 pb-8 border-b border-border">
         <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
-          <AirbnbSearchBar onSearch={handleSearch} initialFilters={searchFilters} />
+          <div className="flex justify-start">
+            <AirbnbSearchBar onSearch={handleSearch} initialFilters={searchFilters} />
+          </div>
         </div>
       </div>
 

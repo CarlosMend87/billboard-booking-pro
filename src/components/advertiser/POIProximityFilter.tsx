@@ -77,23 +77,28 @@ export function POIProximityFilter({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant={hasActiveFilter ? "default" : "outline"}
-          size="sm"
-          className={cn("gap-2", className)}
+        <button
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors rounded-lg",
+            hasActiveFilter
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground",
+            className
+          )}
         >
           <Navigation className="h-4 w-4" />
           {hasActiveFilter ? (
             <>
-              {selectedTypeInfo?.icon} {selectedTypeInfo?.label} ({selectedRadiusInfo?.label})
-              <Badge variant="secondary" className="ml-1 bg-white/20">
+              <span className="hidden sm:inline">{selectedTypeInfo?.icon} {selectedTypeInfo?.label}</span>
+              <span className="sm:hidden">Cerca</span>
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary/10 text-primary">
                 {filter.billboardIds?.length || 0}
               </Badge>
             </>
           ) : (
-            "Cerca de..."
+            <span>Cerca de...</span>
           )}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="start">
         <div className="space-y-4">
