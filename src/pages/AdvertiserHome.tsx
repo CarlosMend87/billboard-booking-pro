@@ -6,112 +6,65 @@ import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
 import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
 import { useScreens } from "@/hooks/useScreens";
-import { ScreenCardProps } from "@/components/advertiser/ScreenCard";
-
-// Mock data fallback for when no real data is available
-const generateMockScreens = (city: string, count: number): ScreenCardProps[] => {
-  const badges: ("alta-demanda" | "disponible" | "premium" | undefined)[] = [
-    "alta-demanda",
-    "disponible",
-    "premium",
-    undefined,
-  ];
-  
-  const nombres = [
-    "Pantalla LED Plaza Principal",
-    "Espectacular Av. Reforma",
-    "Digital Billboard Centro",
-    "Mupi Estación Metro",
-    "LED Indoor Centro Comercial",
-    "Pantalla Carretera Norte",
-    "Digital Display Aeropuerto",
-    "Billboard Premium Zona Rosa",
-  ];
-
-  const ubicaciones = [
-    "Av. Insurgentes Sur",
-    "Paseo de la Reforma",
-    "Av. Universidad",
-    "Centro Histórico",
-    "Santa Fe",
-    "Polanco",
-    "Condesa",
-    "Roma Norte",
-  ];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: `mock-${city}-${i}`,
-    nombre: nombres[i % nombres.length],
-    ubicacion: ubicaciones[i % ubicaciones.length],
-    ciudad: city,
-    precio: Math.floor(Math.random() * 50000) + 15000,
-    rating: Number((Math.random() * 1 + 4).toFixed(1)),
-    impactos: Math.floor(Math.random() * 500000) + 100000,
-    imagenes: ["/placeholder.svg"],
-    badge: badges[Math.floor(Math.random() * badges.length)],
-  }));
-};
+import { Monitor, AlertCircle } from "lucide-react";
 
 export default function AdvertiserHome() {
   const navigate = useNavigate();
-  const { screens, loading, getScreenById } = useScreens();
+  const { screens, loading, error, getScreenById } = useScreens();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Group screens by city
+  // Agrupar pantallas por ciudad usando datos reales
   const screensByCity = useMemo(() => {
-    const cdmxScreens = screens.filter((s) => 
-      s.ciudad.toLowerCase().includes("cdmx") || 
-      s.ciudad.toLowerCase().includes("ciudad de méxico") ||
-      s.ciudad.toLowerCase().includes("mexico")
+    const cdmxScreens = screens.filter((s) => s.ciudad === "CDMX");
+    const monterreyScreens = screens.filter((s) => s.ciudad === "Monterrey");
+    const meridaScreens = screens.filter((s) => s.ciudad === "Mérida");
+    const guadalajaraScreens = screens.filter((s) => s.ciudad === "Guadalajara");
+    
+    // Pantallas con mayor impacto o premium para recomendadas
+    const premiumScreens = screens.filter((s) => 
+      s.badge === "premium" || s.hasComputerVision
     );
     
-    const monterreyScreens = screens.filter((s) => 
-      s.ciudad.toLowerCase().includes("monterrey")
-    );
+    // Si no hay premium, mostrar todas ordenadas
+    const recommendedScreens = premiumScreens.length > 0 
+      ? premiumScreens 
+      : [...screens].sort((a, b) => (b.impactos || 0) - (a.impactos || 0));
 
-    // Use mock data if no real screens available
     return {
-      cdmx: cdmxScreens.length > 0 ? cdmxScreens.slice(0, 10) : generateMockScreens("CDMX", 8),
-      monterrey: monterreyScreens.length > 0 ? monterreyScreens.slice(0, 10) : generateMockScreens("Monterrey", 8),
-      recommended: screens.length > 0 ? screens.slice(0, 10) : generateMockScreens("Recomendado", 8),
+      cdmx: cdmxScreens,
+      monterrey: monterreyScreens,
+      merida: meridaScreens,
+      guadalajara: guadalajaraScreens,
+      recommended: recommendedScreens.slice(0, 12),
+      all: screens,
     };
   }, [screens]);
 
-  // Filter by category
-  const filteredScreens = (screensList: ScreenCardProps[]) => {
+  // Filtrar por categoría de tipo
+  const filteredScreens = (screensList: typeof screens) => {
     if (selectedCategory === "all") return screensList;
-    // Additional filtering can be implemented based on screen type
-    return screensList;
+    
+    return screensList.filter((screen) => {
+      switch (selectedCategory) {
+        case "digital":
+          return screen.tipo === "digital";
+        case "espectacular":
+          return screen.tipo === "espectacular" || screen.tipo === "billboard";
+        case "mupi":
+          return screen.tipo === "mupi";
+        case "indoor":
+          return screen.tipo === "indoor";
+        case "outdoor":
+          return screen.tipo === "outdoor" || screen.tipo === "exterior";
+        default:
+          return true;
+      }
+    });
   };
 
   const handleScreenClick = async (screenId: string) => {
-    // Check if it's a mock screen
-    if (screenId.startsWith("mock-")) {
-      // For mock screens, create a mock detail
-      const mockDetail: ScreenDetail = {
-        id: screenId,
-        nombre: "Pantalla de demostración",
-        direccion: "Av. Paseo de la Reforma 222, CDMX",
-        ubicacion: "CDMX",
-        tipo: "digital",
-        lat: 19.4326,
-        lng: -99.1332,
-        precio: { mensual: 35000 },
-        medidas: { ancho: 10, alto: 5 },
-        digital: { es_digital: true },
-        fotos: ["/placeholder.svg"],
-        contratacion: { mensual: true, catorcena: true },
-        has_computer_vision: false,
-        status: "disponible",
-      };
-      setSelectedScreen(mockDetail);
-      setModalOpen(true);
-      return;
-    }
-
-    // Fetch real screen details
     const screenDetail = await getScreenById(screenId);
     if (screenDetail) {
       setSelectedScreen(screenDetail);
@@ -123,6 +76,20 @@ export default function AdvertiserHome() {
     setModalOpen(false);
     navigate(`/disponibilidad-anuncios?screen=${screen.id}`);
   };
+
+  // Estado de error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AirbnbHeader />
+        <div className="flex flex-col items-center justify-center py-20">
+          <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Error al cargar pantallas</h2>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,25 +122,73 @@ export default function AdvertiserHome() {
               </div>
             ))}
           </div>
+        ) : screens.length === 0 ? (
+          // Estado vacío - sin datos en la base de datos
+          <div className="flex flex-col items-center justify-center py-20">
+            <Monitor className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Sin pantallas disponibles</h2>
+            <p className="text-muted-foreground text-center max-w-md">
+              No hay pantallas disponibles en este momento. Las pantallas aparecerán aquí cuando estén registradas en el sistema.
+            </p>
+          </div>
         ) : (
           <>
-            <ScreenSection
-              title="Pantallas en CDMX"
-              screens={filteredScreens(screensByCity.cdmx)}
-              onScreenClick={handleScreenClick}
-            />
+            {/* Pantallas recomendadas (siempre mostrar si hay datos) */}
+            {filteredScreens(screensByCity.recommended).length > 0 && (
+              <ScreenSection
+                title="Pantallas recomendadas para tu campaña"
+                screens={filteredScreens(screensByCity.recommended)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
 
-            <ScreenSection
-              title="Pantallas populares en Monterrey"
-              screens={filteredScreens(screensByCity.monterrey)}
-              onScreenClick={handleScreenClick}
-            />
+            {/* Pantallas en CDMX */}
+            {filteredScreens(screensByCity.cdmx).length > 0 && (
+              <ScreenSection
+                title="Pantallas en CDMX"
+                screens={filteredScreens(screensByCity.cdmx)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
 
-            <ScreenSection
-              title="Pantallas recomendadas para tu campaña"
-              screens={filteredScreens(screensByCity.recommended)}
-              onScreenClick={handleScreenClick}
-            />
+            {/* Pantallas en Monterrey */}
+            {filteredScreens(screensByCity.monterrey).length > 0 && (
+              <ScreenSection
+                title="Pantallas en Monterrey"
+                screens={filteredScreens(screensByCity.monterrey)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
+
+            {/* Pantallas en Mérida */}
+            {filteredScreens(screensByCity.merida).length > 0 && (
+              <ScreenSection
+                title="Pantallas en Mérida"
+                screens={filteredScreens(screensByCity.merida)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
+
+            {/* Pantallas en Guadalajara */}
+            {filteredScreens(screensByCity.guadalajara).length > 0 && (
+              <ScreenSection
+                title="Pantallas en Guadalajara"
+                screens={filteredScreens(screensByCity.guadalajara)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
+
+            {/* Si solo hay pantallas sin ciudad identificada, mostrar todas */}
+            {screensByCity.cdmx.length === 0 && 
+             screensByCity.monterrey.length === 0 && 
+             screensByCity.merida.length === 0 &&
+             screensByCity.guadalajara.length === 0 && (
+              <ScreenSection
+                title="Todas las pantallas disponibles"
+                screens={filteredScreens(screens)}
+                onScreenClick={handleScreenClick}
+              />
+            )}
           </>
         )}
       </main>

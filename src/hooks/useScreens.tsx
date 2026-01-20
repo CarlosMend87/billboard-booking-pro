@@ -7,60 +7,109 @@ interface Billboard {
   id: string;
   nombre: string;
   direccion: string;
-  ubicacion?: string;
   tipo: string;
   lat: number;
   lng: number;
-  precio: any;
-  medidas: any;
-  digital: any;
+  precio: Record<string, number>;
+  medidas: Record<string, number | string>;
+  digital: Record<string, boolean | string | number> | null;
   fotos: string[];
-  contratacion: any;
+  contratacion: Record<string, boolean | number>;
   has_computer_vision: boolean;
+  last_detection_count: number | null;
   status: string;
   owner_id: string;
 }
 
+// Determina el badge basado en datos reales del billboard
 const getBadge = (billboard: Billboard): "alta-demanda" | "disponible" | "premium" | undefined => {
   if (billboard.has_computer_vision) return "premium";
   
-  const isDigital = typeof billboard.digital === 'object' && billboard.digital?.es_digital === true;
+  const isDigital = billboard.tipo === 'digital' || (billboard.digital && billboard.digital.cantidad_slots);
   if (isDigital) return "alta-demanda";
   
   return "disponible";
 };
 
-const getPrecioMensual = (precio: any): number => {
-  if (typeof precio === 'object' && precio?.mensual) {
-    return precio.mensual;
+// Extrae el precio mensual real del objeto de precios
+const getPrecioMensual = (precio: Record<string, number> | null): number | null => {
+  if (!precio) return null;
+  
+  if (typeof precio === 'object') {
+    if (precio.mensual) return precio.mensual;
+    if (precio.catorcenal) return precio.catorcenal * 2;
+    if (precio.semanal) return precio.semanal * 4;
+    if (precio.dia) return precio.dia * 30;
   }
-  if (typeof precio === 'number') {
-    return precio;
-  }
-  return 25000;
+  
+  return null;
 };
 
-const getLocation = (billboard: Billboard): string => {
-  // Extract city from direccion or ubicacion
-  const ubicacion = billboard.ubicacion || billboard.direccion || "";
+// Calcula impactos reales basados en detecciones de computer vision o estimación por tipo
+const getImpactos = (billboard: Billboard): number | null => {
+  if (billboard.has_computer_vision && billboard.last_detection_count) {
+    return billboard.last_detection_count * 30;
+  }
   
-  if (ubicacion.toLowerCase().includes("cdmx") || ubicacion.toLowerCase().includes("ciudad de méxico")) {
+  if (billboard.digital && billboard.digital.slots_por_hora) {
+    const slotsHora = Number(billboard.digital.slots_por_hora) || 12;
+    return slotsHora * 16 * 30 * 50;
+  }
+  
+  return null;
+};
+
+// Extrae la ciudad de la dirección
+const getLocation = (billboard: Billboard): string => {
+  const direccion = billboard.direccion || "";
+  const direccionLower = direccion.toLowerCase();
+  
+  if (direccionLower.includes("cdmx") || direccionLower.includes("ciudad de méxico") || 
+      direccionLower.includes("naucalpan") || direccionLower.includes("polanco") ||
+      direccionLower.includes("santa fe") || direccionLower.includes("reforma")) {
     return "CDMX";
   }
-  if (ubicacion.toLowerCase().includes("monterrey")) {
+  if (direccionLower.includes("monterrey") || direccionLower.includes("nuevo león") ||
+      direccionLower.includes("san pedro") || direccionLower.includes("garza garcía")) {
     return "Monterrey";
   }
-  if (ubicacion.toLowerCase().includes("guadalajara")) {
+  if (direccionLower.includes("guadalajara") || direccionLower.includes("jalisco") ||
+      direccionLower.includes("zapopan")) {
     return "Guadalajara";
   }
+  if (direccionLower.includes("mérida") || direccionLower.includes("yucatán") ||
+      direccionLower.includes("montecristo")) {
+    return "Mérida";
+  }
+  if (direccionLower.includes("cancún") || direccionLower.includes("quintana roo")) {
+    return "Cancún";
+  }
+  if (direccionLower.includes("puebla")) {
+    return "Puebla";
+  }
+  if (direccionLower.includes("tijuana") || direccionLower.includes("baja california")) {
+    return "Tijuana";
+  }
   
-  // Try to extract from direccion
-  const parts = billboard.direccion?.split(",") || [];
+  const parts = direccion.split(",");
   if (parts.length > 1) {
-    return parts[parts.length - 1].trim();
+    return parts[parts.length - 1].trim() || "México";
   }
   
   return "México";
+};
+
+// Extrae la ubicación específica (calle/zona) de la dirección
+const getUbicacionEspecifica = (billboard: Billboard): string => {
+  const direccion = billboard.direccion || "";
+  
+  const parts = direccion.split(",");
+  if (parts.length > 0) {
+    const ubicacion = parts[0].trim();
+    return ubicacion.length > 50 ? ubicacion.substring(0, 47) + "..." : ubicacion;
+  }
+  
+  return billboard.nombre || "Sin ubicación";
 };
 
 export function useScreens() {
@@ -77,24 +126,29 @@ export function useScreens() {
         .from("billboards")
         .select("*")
         .eq("status", "disponible")
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
       const billboards = (data || []) as Billboard[];
 
-      const mappedScreens: ScreenCardProps[] = billboards.map((b) => ({
-        id: b.id,
-        nombre: b.nombre || "Pantalla sin nombre",
-        ubicacion: b.direccion?.split(",")[0] || "Ubicación no especificada",
-        ciudad: getLocation(b),
-        precio: getPrecioMensual(b.precio),
-        rating: 4.5 + Math.random() * 0.5, // Simulated rating
-        impactos: 150000 + Math.floor(Math.random() * 200000),
-        imagenes: b.fotos && b.fotos.length > 0 ? b.fotos : ["/placeholder.svg"],
-        badge: getBadge(b),
-      }));
+      const mappedScreens: ScreenCardProps[] = billboards.map((b) => {
+        const precio = getPrecioMensual(b.precio);
+        const impactos = getImpactos(b);
+        
+        return {
+          id: b.id,
+          nombre: b.nombre,
+          ubicacion: getUbicacionEspecifica(b),
+          ciudad: getLocation(b),
+          precio: precio,
+          impactos: impactos,
+          imagenes: b.fotos && b.fotos.length > 0 ? b.fotos : [],
+          badge: getBadge(b),
+          tipo: b.tipo,
+          hasComputerVision: b.has_computer_vision,
+        };
+      });
 
       setScreens(mappedScreens);
     } catch (err: any) {
@@ -121,7 +175,7 @@ export function useScreens() {
         id: b.id,
         nombre: b.nombre,
         direccion: b.direccion,
-        ubicacion: b.ubicacion || getLocation(b),
+        ubicacion: getLocation(b),
         tipo: b.tipo,
         lat: Number(b.lat),
         lng: Number(b.lng),
@@ -132,6 +186,7 @@ export function useScreens() {
         contratacion: b.contratacion,
         has_computer_vision: b.has_computer_vision,
         status: b.status,
+        last_detection_count: b.last_detection_count,
       };
     } catch (err) {
       console.error("Error fetching screen by id:", err);
