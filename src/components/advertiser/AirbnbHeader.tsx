@@ -30,7 +30,7 @@ export function AirbnbHeader() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <Logo size={32} className="text-primary" />
-            <span className="text-xl font-bold text-primary hidden sm:block">AdScreen</span>
+            <span className="text-xl font-bold text-primary hidden sm:block">Adavailable</span>
           </Link>
 
           {/* Centered Navigation Tabs */}
