@@ -114,7 +114,71 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     <div className="w-full max-w-[850px] mx-auto">
       <div className="bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center">
-          {/* Location Field with Autocomplete */}
+          {/* START DATE FIELD - Now First */}
+          <Popover open={activeField === "startDate"} onOpenChange={(open) => setActiveField(open ? "startDate" : null)}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
+                  "hover:bg-muted",
+                  activeField === "startDate" && "bg-muted"
+                )}
+              >
+                <div className="text-xs font-semibold text-foreground">Fecha Inicio</div>
+                <div className="text-sm text-muted-foreground">
+                  {startDate ? format(startDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
+                </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={startDate}
+                onSelect={(date) => {
+                  setStartDate(date);
+                  setActiveField("endDate");
+                }}
+                disabled={(date) => date < new Date()}
+                className="rounded-2xl"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <div className="w-px h-8 bg-border" />
+
+          {/* END DATE FIELD - Now Second */}
+          <Popover open={activeField === "endDate"} onOpenChange={(open) => setActiveField(open ? "endDate" : null)}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
+                  "hover:bg-muted",
+                  activeField === "endDate" && "bg-muted"
+                )}
+              >
+                <div className="text-xs font-semibold text-foreground">Fecha Fin</div>
+                <div className="text-sm text-muted-foreground">
+                  {endDate ? format(endDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
+                </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="center">
+              <CalendarComponent
+                mode="single"
+                selected={endDate}
+                onSelect={(date) => {
+                  setEndDate(date);
+                  setActiveField("location");
+                }}
+                disabled={(date) => date < (startDate || new Date())}
+                className="rounded-2xl"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <div className="w-px h-8 bg-border" />
+
+          {/* LOCATION FIELD - Now Third */}
           <Popover 
             open={activeField === "location"} 
             onOpenChange={(open) => {
@@ -132,11 +196,11 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
               >
                 <div className="text-xs font-semibold text-foreground">Ubicación</div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {location || "Ciudad, colonia o punto de interés"}
+                  {location || "Ciudad o zona"}
                 </div>
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl" align="start">
+            <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl" align="center">
               <div className="p-4">
                 {/* Search Input */}
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg mb-4">
@@ -224,71 +288,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
 
           <div className="w-px h-8 bg-border" />
 
-          {/* Start Date Field */}
-          <Popover open={activeField === "startDate"} onOpenChange={(open) => setActiveField(open ? "startDate" : null)}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
-                  "hover:bg-muted",
-                  activeField === "startDate" && "bg-muted"
-                )}
-              >
-                <div className="text-xs font-semibold text-foreground">Inicio</div>
-                <div className="text-sm text-muted-foreground">
-                  {startDate ? format(startDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
-                </div>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="center">
-              <CalendarComponent
-                mode="single"
-                selected={startDate}
-                onSelect={(date) => {
-                  setStartDate(date);
-                  setActiveField("endDate");
-                }}
-                disabled={(date) => date < new Date()}
-                className="rounded-2xl"
-              />
-            </PopoverContent>
-          </Popover>
-
-          <div className="w-px h-8 bg-border" />
-
-          {/* End Date Field */}
-          <Popover open={activeField === "endDate"} onOpenChange={(open) => setActiveField(open ? "endDate" : null)}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
-                  "hover:bg-muted",
-                  activeField === "endDate" && "bg-muted"
-                )}
-              >
-                <div className="text-xs font-semibold text-foreground">Fin</div>
-                <div className="text-sm text-muted-foreground">
-                  {endDate ? format(endDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
-                </div>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="center">
-              <CalendarComponent
-                mode="single"
-                selected={endDate}
-                onSelect={(date) => {
-                  setEndDate(date);
-                  setActiveField(null);
-                }}
-                disabled={(date) => date < (startDate || new Date())}
-                className="rounded-2xl"
-              />
-            </PopoverContent>
-          </Popover>
-
-          <div className="w-px h-8 bg-border" />
-
-          {/* Screen Type Field */}
+          {/* SCREEN TYPE FIELD - Now Fourth (Last) */}
           <Popover open={activeField === "screenType"} onOpenChange={(open) => setActiveField(open ? "screenType" : null)}>
             <PopoverTrigger asChild>
               <button

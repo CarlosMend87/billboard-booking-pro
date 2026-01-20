@@ -6,6 +6,7 @@ import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
 import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
 import { ScreenMap } from "@/components/advertiser/ScreenMap";
+import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIProximityFilter";
 import { useScreens } from "@/hooks/useScreens";
 import { Monitor, AlertCircle, Map, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,13 @@ export default function AdvertiserHome() {
     startDate: searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined,
     endDate: searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined,
     screenType: searchParams.get("type") || "",
+  });
+
+  // POI proximity filter state
+  const [poiFilter, setPoiFilter] = useState<POIFilterState>({
+    poiType: null,
+    radius: 1000,
+    billboardIds: null,
   });
 
   // Apply all filters
@@ -67,8 +75,13 @@ export default function AdvertiserHome() {
       });
     }
 
+    // Apply POI proximity filter
+    if (poiFilter.billboardIds !== null) {
+      result = result.filter((screen) => poiFilter.billboardIds!.includes(screen.id));
+    }
+
     return result;
-  }, [screens, searchFilters, selectedCategory]);
+  }, [screens, searchFilters, selectedCategory, poiFilter.billboardIds]);
 
   // Group filtered screens by city
   const screensByCity = useMemo(() => {
@@ -136,7 +149,7 @@ export default function AdvertiserHome() {
     );
   }
 
-  const hasFilters = searchFilters.location || searchFilters.screenType || selectedCategory !== "all";
+  const hasFilters = searchFilters.location || searchFilters.screenType || selectedCategory !== "all" || poiFilter.poiType !== null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,13 +163,28 @@ export default function AdvertiserHome() {
         </div>
       </div>
 
-      {/* Category Filter + View Toggle */}
+      {/* Category Filter + POI Filter + View Toggle */}
       <div className="flex items-center justify-between border-b border-border">
-        <CategoryFilter
-          selected={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
+        <div className="flex items-center gap-2">
+          <CategoryFilter
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+          <div className="hidden md:block pl-4">
+            <POIProximityFilter
+              filter={poiFilter}
+              onFilterChange={setPoiFilter}
+            />
+          </div>
+        </div>
         <div className="pr-6 md:pr-10 lg:pr-20 flex gap-2">
+          {/* Mobile POI Filter */}
+          <div className="md:hidden">
+            <POIProximityFilter
+              filter={poiFilter}
+              onFilterChange={setPoiFilter}
+            />
+          </div>
           <Button
             variant={viewMode === "grid" ? "default" : "outline"}
             size="sm"
