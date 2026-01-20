@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
+import { jsPDF } from "jspdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +17,12 @@ import {
   Monitor,
   Zap,
   DollarSign,
-  Eye
+  Eye,
+  FileDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScreenCardProps } from "./ScreenCard";
+import { useAuth } from "@/hooks/useAuth";
 import defaultBillboardImage from "@/assets/default-billboard.avif";
 
 interface ScreenMapProps {
@@ -62,6 +65,7 @@ export function ScreenMap({
   expanded = false,
   onExpandToggle,
 }: ScreenMapProps) {
+  const { user } = useAuth();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<MapMarker[]>([]);
@@ -76,6 +80,7 @@ export function ScreenMap({
   const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [zoneStats, setZoneStats] = useState<ZoneStats | null>(null);
   const [showStatsPanel, setShowStatsPanel] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
   // Calculate screens within a polygon
   const calculateZoneStats = useCallback((polygon: google.maps.Polygon): ZoneStats => {
@@ -322,6 +327,151 @@ export function ScreenMap({
     setZoneStats(null);
     setShowStatsPanel(false);
   }, []);
+
+  // Export zone statistics to PDF
+  const exportZonePDF = useCallback(() => {
+    if (!zoneStats || zoneStats.total === 0 || !user) return;
+
+    setExportingPDF(true);
+    
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPosition = margin;
+
+      // Header
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Reporte de Zona Seleccionada", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 12;
+
+      // Subtitle
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text("Plataforma de Inventario Publicitario", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 15;
+
+      // Generation info
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      const now = new Date();
+      doc.text(`Fecha: ${now.toLocaleDateString('es-MX')} - ${now.toLocaleTimeString('es-MX')}`, margin, yPosition);
+      doc.text(`Usuario: ${user.email || 'Usuario autenticado'}`, pageWidth - margin, yPosition, { align: "right" });
+      yPosition += 15;
+
+      // Zone Summary Box
+      doc.setFillColor(245, 247, 250);
+      doc.roundedRect(margin, yPosition, pageWidth - (margin * 2), 50, 3, 3, 'F');
+      yPosition += 10;
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resumen de Zona", margin + 10, yPosition);
+      yPosition += 12;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      
+      // Stats in two columns
+      const col1X = margin + 10;
+      const col2X = pageWidth / 2;
+      
+      doc.text(`Total de Pantallas: ${zoneStats.total}`, col1X, yPosition);
+      doc.text(`Digitales: ${zoneStats.digital}`, col2X, yPosition);
+      yPosition += 8;
+      
+      doc.text(`Estáticas: ${zoneStats.static}`, col1X, yPosition);
+      doc.text(`Con Computer Vision: ${zoneStats.withCV}`, col2X, yPosition);
+      yPosition += 8;
+      
+      if (zoneStats.minPrice !== null && zoneStats.maxPrice !== null) {
+        doc.text(`Rango de Precios: $${zoneStats.minPrice.toLocaleString('es-MX')} - $${zoneStats.maxPrice.toLocaleString('es-MX')} MXN/mes`, col1X, yPosition);
+      }
+      if (zoneStats.totalImpacts > 0) {
+        doc.text(`Impactos Est./Mes: ${(zoneStats.totalImpacts / 1000000).toFixed(2)}M`, col2X, yPosition);
+      }
+      yPosition += 25;
+
+      // Table Header
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Detalle del Inventario", margin, yPosition);
+      yPosition += 10;
+
+      // Table column headers
+      doc.setFillColor(59, 130, 246);
+      doc.setTextColor(255, 255, 255);
+      doc.rect(margin, yPosition, pageWidth - (margin * 2), 10, 'F');
+      
+      doc.setFontSize(9);
+      doc.text("Nombre", margin + 5, yPosition + 7);
+      doc.text("Tipo", margin + 65, yPosition + 7);
+      doc.text("Ciudad", margin + 95, yPosition + 7);
+      doc.text("Precio/Mes", margin + 130, yPosition + 7);
+      doc.text("Estado", pageWidth - margin - 15, yPosition + 7, { align: "right" });
+      yPosition += 15;
+
+      // Table rows
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+
+      zoneStats.screens.forEach((screen, index) => {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 30) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        // Alternate row colors
+        if (index % 2 === 0) {
+          doc.setFillColor(249, 250, 251);
+          doc.rect(margin, yPosition - 5, pageWidth - (margin * 2), 12, 'F');
+        }
+
+        const name = screen.nombre.length > 25 ? screen.nombre.substring(0, 22) + "..." : screen.nombre;
+        const tipo = screen.tipo === 'digital' ? 'Digital' : 'Estático';
+        const ciudad = screen.ciudad || 'N/A';
+        const precio = screen.precio ? `$${screen.precio.toLocaleString('es-MX')}` : 'Consultar';
+        const estado = 'Disponible';
+
+        doc.setFontSize(8);
+        doc.text(name, margin + 5, yPosition + 2);
+        doc.text(tipo, margin + 65, yPosition + 2);
+        doc.text(ciudad.length > 12 ? ciudad.substring(0, 10) + "..." : ciudad, margin + 95, yPosition + 2);
+        doc.text(precio, margin + 130, yPosition + 2);
+        
+        // Status with color
+        doc.setTextColor(16, 185, 129);
+        doc.text(estado, pageWidth - margin - 15, yPosition + 2, { align: "right" });
+        doc.setTextColor(0, 0, 0);
+
+        yPosition += 12;
+      });
+
+      // Footer
+      yPosition = pageHeight - 15;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        "Este reporte fue generado automáticamente. Los precios y disponibilidad están sujetos a cambios.",
+        pageWidth / 2,
+        yPosition,
+        { align: "center" }
+      );
+
+      // Save PDF
+      const filename = `reporte-zona-${now.getTime()}.pdf`;
+      doc.save(filename);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setExportingPDF(false);
+    }
+  }, [zoneStats, user]);
 
   // Create custom cluster renderer
   const createClusterRenderer = useCallback(() => {
@@ -764,19 +914,41 @@ export function ScreenMap({
               </div>
             )}
 
-            {/* View screens button */}
+            {/* Action buttons */}
             {zoneStats.total > 0 && (
-              <Button 
-                size="sm" 
-                className="w-full mt-2"
-                onClick={() => {
-                  if (zoneStats.screens[0]) {
-                    onScreenClick(zoneStats.screens[0].id);
-                  }
-                }}
-              >
-                Ver pantallas en zona
-              </Button>
+              <div className="space-y-2 mt-2">
+                <Button 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    if (zoneStats.screens[0]) {
+                      onScreenClick(zoneStats.screens[0].id);
+                    }
+                  }}
+                >
+                  Ver pantallas en zona
+                </Button>
+                
+                {/* Export PDF button - only for authenticated users */}
+                {user && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={exportZonePDF}
+                    disabled={exportingPDF}
+                  >
+                    <FileDown className="h-4 w-4" />
+                    {exportingPDF ? "Generando PDF..." : "Exportar PDF"}
+                  </Button>
+                )}
+                
+                {!user && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    Inicia sesión para exportar PDF
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
