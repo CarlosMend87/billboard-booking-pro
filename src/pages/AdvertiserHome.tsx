@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AirbnbHeader } from "@/components/advertiser/AirbnbHeader";
 import { AirbnbSearchBar } from "@/components/advertiser/AirbnbSearchBar";
 import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
 import { ScreenSection } from "@/components/advertiser/ScreenSection";
+import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
+import { useScreens } from "@/hooks/useScreens";
 import { ScreenCardProps } from "@/components/advertiser/ScreenCard";
-import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for demonstration - will be replaced with real data
+// Mock data fallback for when no real data is available
 const generateMockScreens = (city: string, count: number): ScreenCardProps[] => {
   const badges: ("alta-demanda" | "disponible" | "premium" | undefined)[] = [
     "alta-demanda",
@@ -39,65 +40,88 @@ const generateMockScreens = (city: string, count: number): ScreenCardProps[] => 
   ];
 
   return Array.from({ length: count }, (_, i) => ({
-    id: `${city}-${i}`,
+    id: `mock-${city}-${i}`,
     nombre: nombres[i % nombres.length],
     ubicacion: ubicaciones[i % ubicaciones.length],
     ciudad: city,
     precio: Math.floor(Math.random() * 50000) + 15000,
     rating: Number((Math.random() * 1 + 4).toFixed(1)),
     impactos: Math.floor(Math.random() * 500000) + 100000,
-    imagenes: [
-      "/placeholder.svg",
-      "/placeholder.svg",
-      "/placeholder.svg",
-    ],
+    imagenes: ["/placeholder.svg"],
     badge: badges[Math.floor(Math.random() * badges.length)],
   }));
 };
 
 export default function AdvertiserHome() {
   const navigate = useNavigate();
+  const { screens, loading, getScreenById } = useScreens();
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [screens, setScreens] = useState<{
-    cdmx: ScreenCardProps[];
-    monterrey: ScreenCardProps[];
-    recommended: ScreenCardProps[];
-  }>({
-    cdmx: [],
-    monterrey: [],
-    recommended: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    // Load initial mock data - in production, this would fetch from Supabase
-    const loadScreens = async () => {
-      setLoading(true);
-      
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      // Use mock data for now
-      setScreens({
-        cdmx: generateMockScreens("CDMX", 8),
-        monterrey: generateMockScreens("Monterrey", 8),
-        recommended: generateMockScreens("Recomendado", 8),
-      });
-      
-      setLoading(false);
+  // Group screens by city
+  const screensByCity = useMemo(() => {
+    const cdmxScreens = screens.filter((s) => 
+      s.ciudad.toLowerCase().includes("cdmx") || 
+      s.ciudad.toLowerCase().includes("ciudad de méxico") ||
+      s.ciudad.toLowerCase().includes("mexico")
+    );
+    
+    const monterreyScreens = screens.filter((s) => 
+      s.ciudad.toLowerCase().includes("monterrey")
+    );
+
+    // Use mock data if no real screens available
+    return {
+      cdmx: cdmxScreens.length > 0 ? cdmxScreens.slice(0, 10) : generateMockScreens("CDMX", 8),
+      monterrey: monterreyScreens.length > 0 ? monterreyScreens.slice(0, 10) : generateMockScreens("Monterrey", 8),
+      recommended: screens.length > 0 ? screens.slice(0, 10) : generateMockScreens("Recomendado", 8),
     };
+  }, [screens]);
 
-    loadScreens();
-  }, []);
-
-  const handleScreenClick = (screenId: string) => {
-    navigate(`/disponibilidad-anuncios?screen=${screenId}`);
-  };
-
+  // Filter by category
   const filteredScreens = (screensList: ScreenCardProps[]) => {
     if (selectedCategory === "all") return screensList;
-    // In production, filter by actual screen type
+    // Additional filtering can be implemented based on screen type
     return screensList;
+  };
+
+  const handleScreenClick = async (screenId: string) => {
+    // Check if it's a mock screen
+    if (screenId.startsWith("mock-")) {
+      // For mock screens, create a mock detail
+      const mockDetail: ScreenDetail = {
+        id: screenId,
+        nombre: "Pantalla de demostración",
+        direccion: "Av. Paseo de la Reforma 222, CDMX",
+        ubicacion: "CDMX",
+        tipo: "digital",
+        lat: 19.4326,
+        lng: -99.1332,
+        precio: { mensual: 35000 },
+        medidas: { ancho: 10, alto: 5 },
+        digital: { es_digital: true },
+        fotos: ["/placeholder.svg"],
+        contratacion: { mensual: true, catorcena: true },
+        has_computer_vision: false,
+        status: "disponible",
+      };
+      setSelectedScreen(mockDetail);
+      setModalOpen(true);
+      return;
+    }
+
+    // Fetch real screen details
+    const screenDetail = await getScreenById(screenId);
+    if (screenDetail) {
+      setSelectedScreen(screenDetail);
+      setModalOpen(true);
+    }
+  };
+
+  const handleReserve = (screen: ScreenDetail) => {
+    setModalOpen(false);
+    navigate(`/disponibilidad-anuncios?screen=${screen.id}`);
   };
 
   return (
@@ -135,24 +159,32 @@ export default function AdvertiserHome() {
           <>
             <ScreenSection
               title="Pantallas en CDMX"
-              screens={filteredScreens(screens.cdmx)}
+              screens={filteredScreens(screensByCity.cdmx)}
               onScreenClick={handleScreenClick}
             />
 
             <ScreenSection
               title="Pantallas populares en Monterrey"
-              screens={filteredScreens(screens.monterrey)}
+              screens={filteredScreens(screensByCity.monterrey)}
               onScreenClick={handleScreenClick}
             />
 
             <ScreenSection
               title="Pantallas recomendadas para tu campaña"
-              screens={filteredScreens(screens.recommended)}
+              screens={filteredScreens(screensByCity.recommended)}
               onScreenClick={handleScreenClick}
             />
           </>
         )}
       </main>
+
+      {/* Screen Detail Modal */}
+      <ScreenDetailModal
+        screen={selectedScreen}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onReserve={handleReserve}
+      />
 
       {/* Footer */}
       <footer className="border-t border-border bg-muted/30 mt-12">
