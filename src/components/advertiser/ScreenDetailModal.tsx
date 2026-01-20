@@ -3,7 +3,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   X, 
   Heart, 
@@ -17,13 +16,10 @@ import {
   Ruler,
   Zap,
   Users,
-  Clock,
-  Map,
-  Navigation
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DatePickerWithAvailability } from "./DatePickerWithAvailability";
-import { StreetViewPanel } from "./StreetViewPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 export interface ScreenDetail {
@@ -383,53 +379,30 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
 
             <Separator />
 
-            {/* Location with Map and Street View */}
+            {/* Location with Map */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Ubicación</h2>
               
               {screen.lat && screen.lng ? (
-                <Tabs defaultValue="streetview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="streetview" className="gap-2">
-                      <Navigation className="h-4 w-4" />
-                      Street View
-                    </TabsTrigger>
-                    <TabsTrigger value="map" className="gap-2">
-                      <Map className="h-4 w-4" />
-                      Mapa
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="streetview" className="mt-0">
-                    <StreetViewPanel
-                      lat={screen.lat}
-                      lng={screen.lng}
-                      className="aspect-video"
+                <div className="aspect-video bg-muted rounded-xl overflow-hidden relative">
+                  {mapLoaded ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyB1ErtrPfoAKScTZR7Fa2pnxf47BRImu80&q=${screen.lat},${screen.lng}&zoom=16`}
                     />
-                  </TabsContent>
-                  
-                  <TabsContent value="map" className="mt-0">
-                    <div className="aspect-video bg-muted rounded-xl overflow-hidden relative">
-                      {mapLoaded ? (
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          style={{ border: 0 }}
-                          loading="lazy"
-                          allowFullScreen
-                          referrerPolicy="no-referrer-when-downgrade"
-                          src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${screen.lat},${screen.lng}&zoom=15`}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="animate-pulse text-muted-foreground">
-                            Cargando mapa...
-                          </div>
-                        </div>
-                      )}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="animate-pulse text-muted-foreground">
+                        Cargando mapa...
+                      </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
+                  )}
+                </div>
               ) : (
                 <div className="aspect-video bg-muted rounded-xl flex items-center justify-center">
                   <div className="text-muted-foreground text-center">
