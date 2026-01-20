@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { AvailableInventoryList } from "@/components/advertiser/AvailableInventoryList";
-import { AvailableInventoryMap } from "@/components/advertiser/AvailableInventoryMap";
+import { FullscreenInventoryMap } from "@/components/advertiser/FullscreenInventoryMap";
 import { InventoryAsset } from "@/lib/mockInventory";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { CartSidebar } from "@/components/cart/CartSidebar";
@@ -148,6 +148,19 @@ export default function DisponibilidadAnuncios() {
     addItem(asset, modalidad, config);
   };
 
+  // Render fullscreen map when map view is selected
+  if (viewMode === 'map') {
+    return (
+      <FullscreenInventoryMap
+        filters={filters}
+        onFiltersChange={handleFilterChange}
+        onAdvancedFiltersChange={handleAdvancedFiltersChange}
+        onClearAdvancedFilters={handleClearAdvancedFilters}
+        onAddToCart={handleAddToCart}
+        onClose={() => setViewMode('list')}
+      />
+    );
+  }
   return (
     <div className="min-h-screen bg-background">
       <Header onOpenCampaigns={() => setShowSelectionModal(true)} />
@@ -235,7 +248,7 @@ export default function DisponibilidadAnuncios() {
                   <span className="hidden sm:inline">Lista</span>
                 </Button>
                 <Button
-                  variant={viewMode === 'map' ? 'default' : 'outline'}
+                  variant="outline"
                   size="sm"
                   onClick={() => setViewMode('map')}
                   className="flex items-center gap-2"
@@ -283,11 +296,7 @@ export default function DisponibilidadAnuncios() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2">
-            {viewMode === 'map' ? (
-              <AvailableInventoryMap filters={filters} onAddToCart={handleAddToCart} />
-            ) : (
-              <AvailableInventoryList filters={filters} onAddToCart={handleAddToCart} />
-            )}
+            <AvailableInventoryList filters={filters} onAddToCart={handleAddToCart} />
           </div>
           
           <div className="xl:col-span-1">
