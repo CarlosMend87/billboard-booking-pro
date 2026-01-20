@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, MapPin, Calendar, Monitor } from "lucide-react";
+import { Search, MapPin, Calendar, Monitor, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useLocationSuggestions } from "@/hooks/useLocationSuggestions";
 
 const SCREEN_TYPES = [
   { value: "", label: "Todos" },
@@ -16,17 +18,6 @@ const SCREEN_TYPES = [
   { value: "indoor", label: "Indoor" },
   { value: "outdoor", label: "Outdoor" },
   { value: "digital", label: "Digital" },
-];
-
-const LOCATIONS = [
-  "CDMX",
-  "Monterrey",
-  "Guadalajara",
-  "Querétaro",
-  "Puebla",
-  "Cancún",
-  "Mérida",
-  "Tijuana",
 ];
 
 export interface SearchFilters {
@@ -46,9 +37,15 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
   const [searchParams] = useSearchParams();
   const [activeField, setActiveField] = useState<string | null>(null);
   const [location, setLocation] = useState(initialFilters?.location || "");
+  const [locationQuery, setLocationQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(initialFilters?.startDate);
   const [endDate, setEndDate] = useState<Date | undefined>(initialFilters?.endDate);
   const [screenType, setScreenType] = useState(initialFilters?.screenType || "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get location suggestions from real database
+  const { getSuggestions, loading: locationsLoading } = useLocationSuggestions();
+  const suggestions = getSuggestions(locationQuery || location);
 
   // Sync with URL params on mount
   useEffect(() => {
@@ -62,6 +59,13 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     if (end) setEndDate(new Date(end));
     if (type) setScreenType(type);
   }, [searchParams]);
+
+  // Focus input when location field opens
+  useEffect(() => {
+    if (activeField === "location" && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [activeField]);
 
   const handleSearch = () => {
     const filters: SearchFilters = {
@@ -89,6 +93,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
 
   const clearFilters = () => {
     setLocation("");
+    setLocationQuery("");
     setStartDate(undefined);
     setEndDate(undefined);
     setScreenType("");
@@ -97,14 +102,26 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     }
   };
 
+  const handleLocationSelect = (value: string) => {
+    setLocation(value);
+    setLocationQuery("");
+    setActiveField(null);
+  };
+
   const hasActiveFilters = location || startDate || endDate || screenType;
 
   return (
     <div className="w-full max-w-[850px] mx-auto">
       <div className="bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center">
-          {/* Location Field */}
-          <Popover open={activeField === "location"} onOpenChange={(open) => setActiveField(open ? "location" : null)}>
+          {/* Location Field with Autocomplete */}
+          <Popover 
+            open={activeField === "location"} 
+            onOpenChange={(open) => {
+              setActiveField(open ? "location" : null);
+              if (!open) setLocationQuery("");
+            }}
+          >
             <PopoverTrigger asChild>
               <button
                 className={cn(
@@ -121,36 +138,86 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl" align="start">
               <div className="p-4">
+                {/* Search Input */}
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg mb-4">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <input
+                    ref={inputRef}
                     type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Buscar ubicación..."
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    placeholder="Buscar ciudad o zona..."
                     className="flex-1 bg-transparent text-sm outline-none"
-                    autoFocus
                   />
-                </div>
-                <div className="space-y-1">
-                  {LOCATIONS.filter(loc => 
-                    loc.toLowerCase().includes(location.toLowerCase())
-                  ).map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() => {
-                        setLocation(loc);
-                        setActiveField(null);
-                      }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
+                  {locationQuery && (
+                    <button 
+                      onClick={() => setLocationQuery("")}
+                      className="text-muted-foreground hover:text-foreground"
                     >
-                      <div className="bg-muted-foreground/10 rounded-lg p-2">
-                        <MapPin className="h-4 w-4" />
-                      </div>
-                      <span className="text-sm">{loc}</span>
+                      <span className="sr-only">Limpiar</span>
+                      ×
                     </button>
-                  ))}
+                  )}
                 </div>
+
+                {/* Suggestions List */}
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  {locationsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((suggestion) => (
+                      <button
+                        key={`${suggestion.type}-${suggestion.value}`}
+                        onClick={() => handleLocationSelect(suggestion.value)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <div className={cn(
+                          "rounded-lg p-2",
+                          suggestion.type === "ciudad" 
+                            ? "bg-primary/10" 
+                            : "bg-muted-foreground/10"
+                        )}>
+                          {suggestion.type === "ciudad" ? (
+                            <Building2 className="h-4 w-4 text-primary" />
+                          ) : (
+                            <MapPin className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <span className="text-sm font-medium block">
+                            {suggestion.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {suggestion.count} pantalla{suggestion.count !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        {suggestion.type === "ciudad" && (
+                          <Badge variant="secondary" className="text-xs">
+                            Ciudad
+                          </Badge>
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No se encontraron ubicaciones
+                    </div>
+                  )}
+                </div>
+
+                {/* Clear selection */}
+                {location && (
+                  <div className="pt-3 mt-3 border-t border-border">
+                    <button
+                      onClick={() => handleLocationSelect("")}
+                      className="text-sm text-muted-foreground hover:text-foreground w-full text-left px-3 py-2 rounded-lg hover:bg-muted"
+                    >
+                      Mostrar todas las ubicaciones
+                    </button>
+                  </div>
+                )}
               </div>
             </PopoverContent>
           </Popover>
