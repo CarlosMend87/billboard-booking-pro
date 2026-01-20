@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AirbnbHeader } from "@/components/advertiser/AirbnbHeader";
-import { AirbnbSearchBar } from "@/components/advertiser/AirbnbSearchBar";
+import { AirbnbSearchBar, SearchFilters } from "@/components/advertiser/AirbnbSearchBar";
 import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
 import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
@@ -10,27 +10,78 @@ import { Monitor, AlertCircle } from "lucide-react";
 
 export default function AdvertiserHome() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { screens, loading, error, getScreenById } = useScreens();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  
+  // Search filters state
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    location: searchParams.get("location") || "",
+    startDate: searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined,
+    endDate: searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined,
+    screenType: searchParams.get("type") || "",
+  });
 
-  // Agrupar pantallas por ciudad usando datos reales
+  // Apply all filters
+  const filteredScreens = useMemo(() => {
+    let result = [...screens];
+
+    // Filter by location
+    if (searchFilters.location) {
+      const locationLower = searchFilters.location.toLowerCase();
+      result = result.filter((s) => 
+        s.ciudad.toLowerCase().includes(locationLower) ||
+        s.ubicacion.toLowerCase().includes(locationLower)
+      );
+    }
+
+    // Filter by screen type from search bar
+    if (searchFilters.screenType) {
+      result = result.filter((s) => 
+        s.tipo?.toLowerCase().includes(searchFilters.screenType.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      result = result.filter((screen) => {
+        switch (selectedCategory) {
+          case "digital":
+            return screen.tipo === "digital";
+          case "espectacular":
+            return screen.tipo === "espectacular" || screen.tipo === "billboard";
+          case "mupi":
+            return screen.tipo === "mupi";
+          case "indoor":
+            return screen.tipo === "indoor";
+          case "outdoor":
+            return screen.tipo === "outdoor" || screen.tipo === "exterior";
+          default:
+            return true;
+        }
+      });
+    }
+
+    return result;
+  }, [screens, searchFilters, selectedCategory]);
+
+  // Group filtered screens by city
   const screensByCity = useMemo(() => {
-    const cdmxScreens = screens.filter((s) => s.ciudad === "CDMX");
-    const monterreyScreens = screens.filter((s) => s.ciudad === "Monterrey");
-    const meridaScreens = screens.filter((s) => s.ciudad === "Mérida");
-    const guadalajaraScreens = screens.filter((s) => s.ciudad === "Guadalajara");
+    const cdmxScreens = filteredScreens.filter((s) => s.ciudad === "CDMX");
+    const monterreyScreens = filteredScreens.filter((s) => s.ciudad === "Monterrey");
+    const meridaScreens = filteredScreens.filter((s) => s.ciudad === "Mérida");
+    const guadalajaraScreens = filteredScreens.filter((s) => s.ciudad === "Guadalajara");
     
-    // Pantallas con mayor impacto o premium para recomendadas
-    const premiumScreens = screens.filter((s) => 
+    // Premium/recommended screens
+    const premiumScreens = filteredScreens.filter((s) => 
       s.badge === "premium" || s.hasComputerVision
     );
     
-    // Si no hay premium, mostrar todas ordenadas
     const recommendedScreens = premiumScreens.length > 0 
       ? premiumScreens 
-      : [...screens].sort((a, b) => (b.impactos || 0) - (a.impactos || 0));
+      : [...filteredScreens].sort((a, b) => (b.impactos || 0) - (a.impactos || 0));
 
     return {
       cdmx: cdmxScreens,
@@ -38,30 +89,21 @@ export default function AdvertiserHome() {
       merida: meridaScreens,
       guadalajara: guadalajaraScreens,
       recommended: recommendedScreens.slice(0, 12),
-      all: screens,
+      all: filteredScreens,
     };
-  }, [screens]);
+  }, [filteredScreens]);
 
-  // Filtrar por categoría de tipo
-  const filteredScreens = (screensList: typeof screens) => {
-    if (selectedCategory === "all") return screensList;
+  const handleSearch = (filters: SearchFilters) => {
+    setSearchFilters(filters);
     
-    return screensList.filter((screen) => {
-      switch (selectedCategory) {
-        case "digital":
-          return screen.tipo === "digital";
-        case "espectacular":
-          return screen.tipo === "espectacular" || screen.tipo === "billboard";
-        case "mupi":
-          return screen.tipo === "mupi";
-        case "indoor":
-          return screen.tipo === "indoor";
-        case "outdoor":
-          return screen.tipo === "outdoor" || screen.tipo === "exterior";
-        default:
-          return true;
-      }
-    });
+    // Update URL params
+    const params = new URLSearchParams();
+    if (filters.location) params.set("location", filters.location);
+    if (filters.startDate) params.set("startDate", filters.startDate.toISOString());
+    if (filters.endDate) params.set("endDate", filters.endDate.toISOString());
+    if (filters.screenType) params.set("type", filters.screenType);
+    
+    navigate(`/explorar?${params.toString()}`, { replace: true });
   };
 
   const handleScreenClick = async (screenId: string) => {
@@ -77,7 +119,7 @@ export default function AdvertiserHome() {
     navigate(`/disponibilidad-anuncios?screen=${screen.id}`);
   };
 
-  // Estado de error
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-background">
@@ -91,6 +133,8 @@ export default function AdvertiserHome() {
     );
   }
 
+  const hasFilters = searchFilters.location || searchFilters.screenType || selectedCategory !== "all";
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -99,7 +143,7 @@ export default function AdvertiserHome() {
       {/* Search Bar Section */}
       <div className="bg-background pt-6 pb-8 border-b border-border">
         <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
-          <AirbnbSearchBar />
+          <AirbnbSearchBar onSearch={handleSearch} initialFilters={searchFilters} />
         </div>
       </div>
 
@@ -122,70 +166,77 @@ export default function AdvertiserHome() {
               </div>
             ))}
           </div>
-        ) : screens.length === 0 ? (
-          // Estado vacío - sin datos en la base de datos
+        ) : filteredScreens.length === 0 ? (
+          // Empty state
           <div className="flex flex-col items-center justify-center py-20">
             <Monitor className="h-16 w-16 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Sin pantallas disponibles</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              {hasFilters ? "Sin resultados" : "Sin pantallas disponibles"}
+            </h2>
             <p className="text-muted-foreground text-center max-w-md">
-              No hay pantallas disponibles en este momento. Las pantallas aparecerán aquí cuando estén registradas en el sistema.
+              {hasFilters 
+                ? "No hay pantallas que coincidan con tus filtros. Intenta ajustar tu búsqueda."
+                : "No hay pantallas disponibles en este momento."}
             </p>
           </div>
+        ) : hasFilters ? (
+          // When filters are active, show all results in a single section
+          <ScreenSection
+            title={`${filteredScreens.length} pantalla${filteredScreens.length !== 1 ? 's' : ''} encontrada${filteredScreens.length !== 1 ? 's' : ''}`}
+            screens={filteredScreens}
+            onScreenClick={handleScreenClick}
+          />
         ) : (
+          // Default view: grouped by city
           <>
-            {/* Pantallas recomendadas (siempre mostrar si hay datos) */}
-            {filteredScreens(screensByCity.recommended).length > 0 && (
+            {screensByCity.recommended.length > 0 && (
               <ScreenSection
                 title="Pantallas recomendadas para tu campaña"
-                screens={filteredScreens(screensByCity.recommended)}
+                screens={screensByCity.recommended}
                 onScreenClick={handleScreenClick}
               />
             )}
 
-            {/* Pantallas en CDMX */}
-            {filteredScreens(screensByCity.cdmx).length > 0 && (
+            {screensByCity.cdmx.length > 0 && (
               <ScreenSection
                 title="Pantallas en CDMX"
-                screens={filteredScreens(screensByCity.cdmx)}
+                screens={screensByCity.cdmx}
                 onScreenClick={handleScreenClick}
               />
             )}
 
-            {/* Pantallas en Monterrey */}
-            {filteredScreens(screensByCity.monterrey).length > 0 && (
+            {screensByCity.monterrey.length > 0 && (
               <ScreenSection
                 title="Pantallas en Monterrey"
-                screens={filteredScreens(screensByCity.monterrey)}
+                screens={screensByCity.monterrey}
                 onScreenClick={handleScreenClick}
               />
             )}
 
-            {/* Pantallas en Mérida */}
-            {filteredScreens(screensByCity.merida).length > 0 && (
+            {screensByCity.merida.length > 0 && (
               <ScreenSection
                 title="Pantallas en Mérida"
-                screens={filteredScreens(screensByCity.merida)}
+                screens={screensByCity.merida}
                 onScreenClick={handleScreenClick}
               />
             )}
 
-            {/* Pantallas en Guadalajara */}
-            {filteredScreens(screensByCity.guadalajara).length > 0 && (
+            {screensByCity.guadalajara.length > 0 && (
               <ScreenSection
                 title="Pantallas en Guadalajara"
-                screens={filteredScreens(screensByCity.guadalajara)}
+                screens={screensByCity.guadalajara}
                 onScreenClick={handleScreenClick}
               />
             )}
 
-            {/* Si solo hay pantallas sin ciudad identificada, mostrar todas */}
+            {/* Fallback if no city groups */}
             {screensByCity.cdmx.length === 0 && 
              screensByCity.monterrey.length === 0 && 
              screensByCity.merida.length === 0 &&
              screensByCity.guadalajara.length === 0 && (
               <ScreenSection
                 title="Todas las pantallas disponibles"
-                screens={filteredScreens(screens)}
+                screens={filteredScreens}
                 onScreenClick={handleScreenClick}
               />
             )}
@@ -239,7 +290,7 @@ export default function AdvertiserHome() {
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-sm text-muted-foreground text-center">
-            © 2026 AdScreen. Todos los derechos reservados.
+            © 2026 Adavailable. Todos los derechos reservados.
           </div>
         </div>
       </footer>

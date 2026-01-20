@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Heart, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import defaultBillboard from "@/assets/default-billboard.avif";
 export interface ScreenCardProps {
   id: string;
   nombre: string;
@@ -31,40 +31,40 @@ export function ScreenCard({
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const handlePrevImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((prev) => prev === 0 ? imagenes.length - 1 : prev - 1); };
-  const handleNextImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((prev) => prev === imagenes.length - 1 ? 0 : prev + 1); };
+  // Usar imágenes reales o imagen por defecto
+  const displayImages = imagenes.length > 0 && !imageError ? imagenes : [defaultBillboard];
+  const currentImage = displayImages[currentImageIndex] || defaultBillboard;
+
+  const handlePrevImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((prev) => prev === 0 ? displayImages.length - 1 : prev - 1); };
+  const handleNextImage = (e: React.MouseEvent) => { e.stopPropagation(); setCurrentImageIndex((prev) => prev === displayImages.length - 1 ? 0 : prev + 1); };
   const handleFavorite = (e: React.MouseEvent) => { e.stopPropagation(); setIsFavorite(!isFavorite); onFavorite?.(id); };
 
   const formatNumber = (num: number) => num >= 1000000 ? (num / 1000000).toFixed(1) + "M" : num >= 1000 ? (num / 1000).toFixed(0) + "K" : num.toString();
   const formatPrice = (price: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(price);
 
-  const hasImages = imagenes.length > 0 && !imageError;
-
   return (
     <div className="group cursor-pointer" onClick={onClick} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <div className="relative aspect-square overflow-hidden rounded-xl mb-3">
-        {hasImages ? (
-          <img src={imagenes[currentImageIndex]} alt={nombre} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onError={() => setImageError(true)} />
-        ) : (
-          <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
-            <Monitor className="h-12 w-12 text-muted-foreground mb-2" />
-            <span className="text-xs text-muted-foreground">Sin imagen</span>
-          </div>
-        )}
+        <img 
+          src={currentImage} 
+          alt={nombre} 
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+          onError={() => setImageError(true)} 
+        />
         <button onClick={handleFavorite} className="absolute top-3 right-3 z-10 p-2 transition-transform hover:scale-110">
           <Heart className={cn("h-6 w-6 drop-shadow-md transition-colors", isFavorite ? "fill-rose-500 text-rose-500" : "fill-black/30 text-white hover:fill-black/50")} />
         </button>
         {badge && <div className={cn("absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm", badgeConfig[badge].className)}>{badgeConfig[badge].label}</div>}
         {hasComputerVision && <div className="absolute bottom-3 left-3 px-2 py-1 rounded-full text-xs font-medium bg-violet-500 text-white shadow-sm">AI Vision</div>}
-        {hasImages && imagenes.length > 1 && isHovered && (
+        {displayImages.length > 1 && isHovered && (
           <>
             <button onClick={handlePrevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/90 rounded-full shadow-md hover:bg-white"><ChevronLeft className="h-4 w-4 text-foreground" /></button>
             <button onClick={handleNextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/90 rounded-full shadow-md hover:bg-white"><ChevronRight className="h-4 w-4 text-foreground" /></button>
           </>
         )}
-        {hasImages && imagenes.length > 1 && (
+        {displayImages.length > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-            {imagenes.slice(0, 5).map((_, index) => (<div key={index} className={cn("w-1.5 h-1.5 rounded-full transition-colors", index === currentImageIndex ? "bg-white" : "bg-white/50")} />))}
+            {displayImages.slice(0, 5).map((_, index) => (<div key={index} className={cn("w-1.5 h-1.5 rounded-full transition-colors", index === currentImageIndex ? "bg-white" : "bg-white/50")} />))}
           </div>
         )}
       </div>
