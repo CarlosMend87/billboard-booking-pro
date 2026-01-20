@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Search, MapPin, Monitor, Building2, Megaphone } from "lucide-react";
+import { Search, MapPin, Monitor, Building2, Megaphone, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocationSuggestions } from "@/hooks/useLocationSuggestions";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+
 const SCREEN_TYPES = [
   { value: "", label: "Todos" },
   { value: "led", label: "LED" },
@@ -34,6 +36,13 @@ interface AirbnbSearchBarProps {
   initialFilters?: Partial<SearchFilters>;
 }
 
+interface CampaignSummary {
+  id: string;
+  nombre: string;
+  status: string;
+  presupuesto_total: number;
+}
+
 export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -45,33 +54,49 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
   const [endDate, setEndDate] = useState<Date | undefined>(initialFilters?.endDate);
   const [screenType, setScreenType] = useState(initialFilters?.screenType || "");
   const [activeCampaignsCount, setActiveCampaignsCount] = useState(0);
+  const [prevCount, setPrevCount] = useState(0);
+  const [animateBadge, setAnimateBadge] = useState(false);
+  const [activeCampaigns, setActiveCampaigns] = useState<CampaignSummary[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get location suggestions from real database
   const { getSuggestions, loading: locationsLoading } = useLocationSuggestions();
   const suggestions = getSuggestions(locationQuery || location);
 
-  // Fetch active campaigns count
+  // Fetch active campaigns count and summary
   useEffect(() => {
     const fetchActiveCampaigns = async () => {
       if (!user) {
         setActiveCampaignsCount(0);
+        setActiveCampaigns([]);
         return;
       }
       
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('campañas')
-        .select('*', { count: 'exact', head: true })
+        .select('id, nombre, status, presupuesto_total')
         .eq('advertiser_id', user.id)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .limit(5);
       
-      if (!error && count !== null) {
-        setActiveCampaignsCount(count);
+      if (!error && data) {
+        setActiveCampaignsCount(data.length);
+        setActiveCampaigns(data);
       }
     };
 
     fetchActiveCampaigns();
   }, [user]);
+
+  // Animate badge when count changes
+  useEffect(() => {
+    if (activeCampaignsCount !== prevCount && prevCount !== 0) {
+      setAnimateBadge(true);
+      const timer = setTimeout(() => setAnimateBadge(false), 600);
+      return () => clearTimeout(timer);
+    }
+    setPrevCount(activeCampaignsCount);
+  }, [activeCampaignsCount, prevCount]);
 
   // Sync with URL params on mount
   useEffect(() => {
@@ -138,11 +163,11 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="w-full max-w-[950px] mx-auto">
-        <div className="flex items-center gap-3">
-          {/* Campaigns Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+      <div className="w-full max-w-[1100px] mx-auto">
+        <div className="flex items-center gap-4">
+          {/* Campaigns Button with HoverCard */}
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
               <Button
                 asChild
                 className="h-14 px-5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-md relative"
@@ -152,18 +177,54 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                   <span className="hidden sm:inline font-medium">Campañas</span>
                   {activeCampaignsCount > 0 && (
                     <Badge 
-                      className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 bg-destructive text-destructive-foreground text-xs font-bold"
+                      className={cn(
+                        "absolute -top-2 -right-2 h-5 min-w-5 px-1.5 bg-destructive text-destructive-foreground text-xs font-bold transition-all",
+                        animateBadge && "animate-[pulse_0.6s_ease-in-out] scale-125"
+                      )}
                     >
                       {activeCampaignsCount}
                     </Badge>
                   )}
                 </Link>
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>Ver y gestionar tus campañas activas</p>
-            </TooltipContent>
-          </Tooltip>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-72 p-0" align="start">
+              <div className="p-3 border-b border-border">
+                <h4 className="font-semibold text-sm">Campañas Activas</h4>
+                <p className="text-xs text-muted-foreground">
+                  {activeCampaignsCount > 0 
+                    ? `Tienes ${activeCampaignsCount} campaña${activeCampaignsCount !== 1 ? 's' : ''} activa${activeCampaignsCount !== 1 ? 's' : ''}`
+                    : 'No tienes campañas activas'}
+                </p>
+              </div>
+              {activeCampaigns.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {activeCampaigns.map((campaign) => (
+                    <Link
+                      key={campaign.id}
+                      to="/progreso-campaña"
+                      className="flex items-center justify-between p-3 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{campaign.nombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          ${campaign.presupuesto_total.toLocaleString()} MXN
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Crea tu primera campaña</p>
+                  <Button size="sm" asChild>
+                    <Link to="/progreso-campaña">Comenzar</Link>
+                  </Button>
+                </div>
+              )}
+            </HoverCardContent>
+          </HoverCard>
 
           {/* Search Bar */}
           <div className="flex-1 bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
