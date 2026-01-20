@@ -20,6 +20,7 @@ import { formatPrice as pricingFormatPrice, precioCatorcenal, precioSemanal } fr
 import { AirbnbSearchBar, SearchFilters } from "./AirbnbSearchBar";
 import { AdvancedFilters } from "./AdvancedFilters";
 import { POIProximityFilter, POIFilterState } from "./POIProximityFilter";
+import defaultBillboardImage from "@/assets/default-billboard.avif";
 
 interface FullscreenInventoryMapProps {
   filters: InventoryFilters;
@@ -732,7 +733,7 @@ export function FullscreenInventoryMap({
               <div className="mt-6 space-y-6">
                 <div className="rounded-lg overflow-hidden bg-muted">
                   <img 
-                    src="https://static.wixstatic.com/media/3aa6d8_ec45742e0c7642e29fff05d6e9636202~mv2.png/v1/fill/w_980,h_651,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Espectacular%202.png"
+                    src={defaultBillboardImage}
                     alt={selectedBillboard.nombre}
                     className="w-full h-48 object-cover"
                   />
