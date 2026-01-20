@@ -7,7 +7,6 @@ import {
   X, 
   Heart, 
   Share, 
-  Star, 
   MapPin, 
   Monitor, 
   Eye, 
@@ -29,13 +28,14 @@ export interface ScreenDetail {
   tipo: string;
   lat: number;
   lng: number;
-  precio: any;
-  medidas: any;
-  digital: any;
+  precio: Record<string, number> | null;
+  medidas: Record<string, number | string> | null;
+  digital: Record<string, boolean | string | number> | null;
   fotos: string[];
-  contratacion: any;
+  contratacion: Record<string, boolean | number> | null;
   has_computer_vision: boolean;
   status: string;
+  last_detection_count?: number | null;
 }
 
 interface ScreenDetailModalProps {
@@ -49,12 +49,13 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (open) {
       setCurrentImageIndex(0);
       setMapLoaded(false);
-      // Simulate map loading
+      setImageError(false);
       const timer = setTimeout(() => setMapLoaded(true), 500);
       return () => clearTimeout(timer);
     }
@@ -62,49 +63,115 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
 
   if (!screen) return null;
 
-  const images = screen.fotos?.length > 0 ? screen.fotos : ["/placeholder.svg"];
+  const images = screen.fotos?.length > 0 ? screen.fotos : [];
+  const hasImages = images.length > 0 && !imageError;
   
-  const getPrecioMensual = () => {
-    if (typeof screen.precio === 'object' && screen.precio?.mensual) {
-      return screen.precio.mensual;
+  // Obtener precio mensual real
+  const getPrecioMensual = (): number | null => {
+    if (!screen.precio) return null;
+    
+    if (typeof screen.precio === 'object') {
+      if (screen.precio.mensual) return screen.precio.mensual;
+      if (screen.precio.catorcenal) return screen.precio.catorcenal * 2;
+      if (screen.precio.semanal) return screen.precio.semanal * 4;
     }
-    if (typeof screen.precio === 'number') {
-      return screen.precio;
-    }
-    return 25000;
+    
+    return null;
   };
 
-  const getMedidas = () => {
-    if (typeof screen.medidas === 'object') {
-      return `${screen.medidas.ancho || 0}m x ${screen.medidas.alto || 0}m`;
+  // Obtener medidas reales
+  const getMedidas = (): string => {
+    if (!screen.medidas) return "Sin datos";
+    
+    const ancho = screen.medidas.ancho || screen.medidas.ancho_m;
+    const alto = screen.medidas.alto || screen.medidas.alto_m;
+    
+    if (ancho && alto) {
+      // Detectar si son pixeles o metros
+      if (Number(ancho) > 100 || Number(alto) > 100) {
+        return `${ancho} x ${alto} px`;
+      }
+      return `${ancho}m x ${alto}m`;
     }
-    return "Consultar";
+    
+    if (screen.medidas.dimension_pixel) {
+      return screen.medidas.dimension_pixel as string;
+    }
+    
+    return "Sin datos";
   };
 
-  const getArea = () => {
-    if (typeof screen.medidas === 'object' && screen.medidas.ancho && screen.medidas.alto) {
-      return (screen.medidas.ancho * screen.medidas.alto).toFixed(1);
+  // Obtener área real
+  const getArea = (): string => {
+    if (!screen.medidas) return "N/A";
+    
+    const ancho = Number(screen.medidas.ancho || screen.medidas.ancho_m || 0);
+    const alto = Number(screen.medidas.alto || screen.medidas.alto_m || 0);
+    
+    if (ancho > 0 && alto > 0) {
+      // Si son pixeles, no calcular área en m²
+      if (ancho > 100 || alto > 100) {
+        return "Digital";
+      }
+      return `${(ancho * alto).toFixed(1)} m²`;
     }
+    
     return "N/A";
   };
 
-  const isDigital = () => {
-    if (typeof screen.digital === 'object') {
-      return screen.digital.es_digital === true;
+  // Calcular impactos reales
+  const getImpactos = (): string => {
+    if (screen.has_computer_vision && screen.last_detection_count) {
+      const mensual = screen.last_detection_count * 30;
+      if (mensual >= 1000000) return `${(mensual / 1000000).toFixed(1)}M`;
+      if (mensual >= 1000) return `${(mensual / 1000).toFixed(0)}K`;
+      return mensual.toString();
     }
-    return screen.tipo === 'digital' || screen.tipo === 'led';
+    
+    // Si es digital, estimar basado en slots
+    if (screen.digital && screen.digital.slots_por_hora) {
+      const slotsHora = Number(screen.digital.slots_por_hora) || 12;
+      const estimado = slotsHora * 16 * 30 * 50;
+      return `~${(estimado / 1000).toFixed(0)}K`;
+    }
+    
+    return "Sin datos";
   };
 
-  const getModalidades = () => {
-    if (typeof screen.contratacion === 'object') {
-      const modalidades = [];
-      if (screen.contratacion.mensual) modalidades.push("Mensual");
-      if (screen.contratacion.catorcena) modalidades.push("Catorcena");
-      if (screen.contratacion.semanal) modalidades.push("Semanal");
-      if (screen.contratacion.impresiones) modalidades.push("Por impresiones");
-      return modalidades;
-    }
-    return ["Mensual"];
+  const isDigital = (): boolean => {
+    return screen.tipo === 'digital' || 
+           (screen.digital !== null && Boolean(screen.digital.cantidad_slots));
+  };
+
+  // Obtener modalidades reales de contratación
+  const getModalidades = (): string[] => {
+    if (!screen.contratacion) return [];
+    
+    const modalidades: string[] = [];
+    if (screen.contratacion.mensual) modalidades.push("Mensual");
+    if (screen.contratacion.catorcenal) modalidades.push("Catorcenal");
+    if (screen.contratacion.semanal) modalidades.push("Semanal");
+    if (screen.contratacion.dia) modalidades.push("Diario");
+    if (screen.contratacion.hora) modalidades.push("Por hora");
+    if (screen.contratacion.spot) modalidades.push("Por spot");
+    if (screen.contratacion.programatico) modalidades.push("Programático");
+    
+    return modalidades.length > 0 ? modalidades : ["Consultar"];
+  };
+
+  // Obtener precios por modalidad
+  const getPreciosPorModalidad = (): { modalidad: string; precio: number }[] => {
+    if (!screen.precio || typeof screen.precio !== 'object') return [];
+    
+    const precios: { modalidad: string; precio: number }[] = [];
+    
+    if (screen.precio.mensual) precios.push({ modalidad: "Mensual", precio: screen.precio.mensual });
+    if (screen.precio.catorcenal) precios.push({ modalidad: "Catorcenal", precio: screen.precio.catorcenal });
+    if (screen.precio.semanal) precios.push({ modalidad: "Semanal", precio: screen.precio.semanal });
+    if (screen.precio.dia) precios.push({ modalidad: "Diario", precio: screen.precio.dia });
+    if (screen.precio.spot) precios.push({ modalidad: "Spot", precio: screen.precio.spot });
+    
+    return precios;
   };
 
   const handlePrevImage = () => {
@@ -114,6 +181,9 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
+
+  const precioMensual = getPrecioMensual();
+  const precios = getPreciosPorModalidad();
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -142,13 +212,21 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
 
         {/* Image Gallery */}
         <div className="relative aspect-[16/9] bg-muted">
-          <img
-            src={images[currentImageIndex]}
-            alt={screen.nombre}
-            className="w-full h-full object-cover"
-          />
+          {hasImages ? (
+            <img
+              src={images[currentImageIndex]}
+              alt={screen.nombre}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center">
+              <Monitor className="h-16 w-16 text-muted-foreground mb-3" />
+              <span className="text-muted-foreground">Sin imágenes disponibles</span>
+            </div>
+          )}
           
-          {images.length > 1 && (
+          {hasImages && images.length > 1 && (
             <>
               <button
                 onClick={handlePrevImage}
@@ -163,7 +241,6 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                 <ChevronRight className="h-5 w-5" />
               </button>
               
-              {/* Thumbnails */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                 {images.slice(0, 5).map((_, index) => (
                   <button
@@ -211,13 +288,14 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                 <span>{screen.direccion}</span>
               </div>
               <div className="flex items-center gap-4 mt-3">
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-foreground text-foreground" />
-                  <span className="font-medium">4.8</span>
-                  <span className="text-muted-foreground">(24 campañas)</span>
-                </div>
-                <span className="text-muted-foreground">•</span>
                 <span className="text-muted-foreground capitalize">{screen.tipo}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className={cn(
+                  "capitalize",
+                  screen.status === 'disponible' ? "text-emerald-600" : "text-muted-foreground"
+                )}>
+                  {screen.status}
+                </span>
               </div>
             </div>
 
@@ -230,22 +308,27 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                 <div className="flex flex-col items-center p-4 bg-muted/50 rounded-xl">
                   <Ruler className="h-6 w-6 mb-2 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Dimensiones</span>
-                  <span className="font-medium">{getMedidas()}</span>
+                  <span className="font-medium text-center">{getMedidas()}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-muted/50 rounded-xl">
                   <Monitor className="h-6 w-6 mb-2 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Área</span>
-                  <span className="font-medium">{getArea()} m²</span>
+                  <span className="font-medium">{getArea()}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-muted/50 rounded-xl">
                   <Users className="h-6 w-6 mb-2 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Impactos/mes</span>
-                  <span className="font-medium">250K+</span>
+                  <span className="font-medium">{getImpactos()}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-muted/50 rounded-xl">
                   <Clock className="h-6 w-6 mb-2 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Disponible</span>
-                  <span className="font-medium text-emerald-600">Ahora</span>
+                  <span className="text-sm text-muted-foreground">Estado</span>
+                  <span className={cn(
+                    "font-medium",
+                    screen.status === 'disponible' ? "text-emerald-600" : "text-amber-600"
+                  )}>
+                    {screen.status === 'disponible' ? 'Disponible' : screen.status}
+                  </span>
                 </div>
               </div>
             </div>
@@ -265,13 +348,33 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
               </div>
             </div>
 
+            {/* Precios por modalidad */}
+            {precios.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h2 className="text-lg font-semibold mb-4">Precios</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {precios.map(({ modalidad, precio }) => (
+                      <div key={modalidad} className="p-3 bg-muted/50 rounded-lg">
+                        <span className="text-sm text-muted-foreground block">{modalidad}</span>
+                        <span className="font-semibold">
+                          ${precio.toLocaleString("es-MX")} MXN
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
             <Separator />
 
             {/* Map */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Ubicación</h2>
               <div className="aspect-video bg-muted rounded-xl overflow-hidden relative">
-                {mapLoaded ? (
+                {mapLoaded && screen.lat && screen.lng ? (
                   <iframe
                     width="100%"
                     height="100%"
@@ -283,12 +386,14 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <div className="animate-pulse text-muted-foreground">Cargando mapa...</div>
+                    <div className="animate-pulse text-muted-foreground">
+                      {!screen.lat || !screen.lng ? "Ubicación no disponible" : "Cargando mapa..."}
+                    </div>
                   </div>
                 )}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                {screen.ubicacion || screen.direccion}
+                {screen.direccion}
               </p>
             </div>
           </div>
@@ -296,12 +401,20 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
           {/* Right Column - Booking Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 border border-border rounded-xl p-6 shadow-lg bg-card">
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-2xl font-semibold">
-                  ${getPrecioMensual().toLocaleString("es-MX")}
-                </span>
-                <span className="text-muted-foreground">MXN / mes</span>
-              </div>
+              {precioMensual !== null ? (
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-2xl font-semibold">
+                    ${precioMensual.toLocaleString("es-MX")}
+                  </span>
+                  <span className="text-muted-foreground">MXN / mes</span>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <span className="text-lg font-medium text-muted-foreground">
+                    Precio bajo consulta
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="border border-border rounded-lg overflow-hidden">
@@ -317,7 +430,7 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                   </div>
                   <div className="p-3">
                     <label className="text-xs font-medium text-muted-foreground block">MODALIDAD</label>
-                    <span className="text-sm">Mensual</span>
+                    <span className="text-sm">{getModalidades()[0] || "Mensual"}</span>
                   </div>
                 </div>
 
@@ -333,23 +446,27 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                 </p>
               </div>
 
-              <Separator className="my-6" />
+              {precioMensual !== null && (
+                <>
+                  <Separator className="my-6" />
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="underline">${getPrecioMensual().toLocaleString("es-MX")} x 1 mes</span>
-                  <span>${getPrecioMensual().toLocaleString("es-MX")}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="underline">Tarifa de servicio</span>
-                  <span>${Math.round(getPrecioMensual() * 0.1).toLocaleString("es-MX")}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>${Math.round(getPrecioMensual() * 1.1).toLocaleString("es-MX")} MXN</span>
-                </div>
-              </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="underline">${precioMensual.toLocaleString("es-MX")} x 1 mes</span>
+                      <span>${precioMensual.toLocaleString("es-MX")}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="underline">Tarifa de servicio</span>
+                      <span>${Math.round(precioMensual * 0.1).toLocaleString("es-MX")}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total estimado</span>
+                      <span>${Math.round(precioMensual * 1.1).toLocaleString("es-MX")} MXN</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
