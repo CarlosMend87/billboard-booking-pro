@@ -8,6 +8,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import Index from "./pages/Index";
+import AdvertiserHome from "./pages/AdvertiserHome";
 import AddBillboard from "./pages/AddBillboard";
 import BookingWizard from "./pages/BookingWizard";
 import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
@@ -98,6 +99,11 @@ function RoleBasedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/agente-dashboard" replace />;
   }
   
+  // Advertisers see the new Airbnb-style home
+  if (role === 'advertiser') {
+    return <Navigate to="/explorar" replace />;
+  }
+  
   return <>{children}</>;
 }
 
@@ -115,6 +121,11 @@ const App = () => (
                 <RoleBasedRoute>
                   <Index />
                 </RoleBasedRoute>
+              } />
+              <Route path="/explorar" element={
+                <ProtectedRoute>
+                  <AdvertiserHome />
+                </ProtectedRoute>
               } />
               <Route path="/add-billboard" element={
                 <ProtectedRoute>
