@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Search, MapPin, Calendar, Monitor, Building2, Megaphone } from "lucide-react";
+import { Search, MapPin, Monitor, Building2, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocationSuggestions } from "@/hooks/useLocationSuggestions";
-
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 const SCREEN_TYPES = [
   { value: "", label: "Todos" },
   { value: "led", label: "LED" },
@@ -35,17 +37,41 @@ interface AirbnbSearchBarProps {
 export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [activeField, setActiveField] = useState<string | null>(null);
   const [location, setLocation] = useState(initialFilters?.location || "");
   const [locationQuery, setLocationQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(initialFilters?.startDate);
   const [endDate, setEndDate] = useState<Date | undefined>(initialFilters?.endDate);
   const [screenType, setScreenType] = useState(initialFilters?.screenType || "");
+  const [activeCampaignsCount, setActiveCampaignsCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get location suggestions from real database
   const { getSuggestions, loading: locationsLoading } = useLocationSuggestions();
   const suggestions = getSuggestions(locationQuery || location);
+
+  // Fetch active campaigns count
+  useEffect(() => {
+    const fetchActiveCampaigns = async () => {
+      if (!user) {
+        setActiveCampaignsCount(0);
+        return;
+      }
+      
+      const { count, error } = await supabase
+        .from('campañas')
+        .select('*', { count: 'exact', head: true })
+        .eq('advertiser_id', user.id)
+        .eq('status', 'active');
+      
+      if (!error && count !== null) {
+        setActiveCampaignsCount(count);
+      }
+    };
+
+    fetchActiveCampaigns();
+  }, [user]);
 
   // Sync with URL params on mount
   useEffect(() => {
@@ -111,39 +137,60 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
   const hasActiveFilters = location || startDate || endDate || screenType;
 
   return (
-    <div className="w-full max-w-[950px] mx-auto">
-      <div className="flex items-center gap-3">
-        {/* Campaigns Button */}
-        <Button
-          asChild
-          variant="outline"
-          className="h-14 px-5 rounded-full border-border bg-foreground text-background hover:bg-foreground/90 hover:text-background flex items-center gap-2 shadow-sm"
-        >
-          <Link to="/progreso-campaña">
-            <Megaphone className="h-5 w-5" />
-            <span className="hidden sm:inline font-medium">Campañas</span>
-          </Link>
-        </Button>
-
-        {/* Search Bar */}
-        <div className="flex-1 bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center">
-            {/* START DATE FIELD - Now First */}
-          <Popover open={activeField === "startDate"} onOpenChange={(open) => setActiveField(open ? "startDate" : null)}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
-                  "hover:bg-muted",
-                  activeField === "startDate" && "bg-muted"
-                )}
+    <TooltipProvider delayDuration={300}>
+      <div className="w-full max-w-[950px] mx-auto">
+        <div className="flex items-center gap-3">
+          {/* Campaigns Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                className="h-14 px-5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-md relative"
               >
-                <div className="text-xs font-semibold text-foreground">Fecha Inicio</div>
-                <div className="text-sm text-muted-foreground">
-                  {startDate ? format(startDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
-                </div>
-              </button>
-            </PopoverTrigger>
+                <Link to="/progreso-campaña">
+                  <Megaphone className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Campañas</span>
+                  {activeCampaignsCount > 0 && (
+                    <Badge 
+                      className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 bg-destructive text-destructive-foreground text-xs font-bold"
+                    >
+                      {activeCampaignsCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Ver y gestionar tus campañas activas</p>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Search Bar */}
+          <div className="flex-1 bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              {/* START DATE FIELD - Now First */}
+              <Popover open={activeField === "startDate"} onOpenChange={(open) => setActiveField(open ? "startDate" : null)}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
+                          "hover:bg-muted",
+                          activeField === "startDate" && "bg-muted"
+                        )}
+                      >
+                        <div className="text-xs font-semibold text-foreground">Fecha Inicio</div>
+                        <div className="text-sm text-muted-foreground">
+                          {startDate ? format(startDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Selecciona cuándo inicia tu campaña</p>
+                  </TooltipContent>
+                </Tooltip>
             <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="start">
               <CalendarComponent
                 mode="single"
@@ -156,26 +203,33 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                 className="rounded-2xl"
               />
             </PopoverContent>
-          </Popover>
+              </Popover>
 
-          <div className="w-px h-8 bg-border" />
+              <div className="w-px h-8 bg-border" />
 
-          {/* END DATE FIELD - Now Second */}
-          <Popover open={activeField === "endDate"} onOpenChange={(open) => setActiveField(open ? "endDate" : null)}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
-                  "hover:bg-muted",
-                  activeField === "endDate" && "bg-muted"
-                )}
-              >
-                <div className="text-xs font-semibold text-foreground">Fecha Fin</div>
-                <div className="text-sm text-muted-foreground">
-                  {endDate ? format(endDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
-                </div>
-              </button>
-            </PopoverTrigger>
+              {/* END DATE FIELD - Now Second */}
+              <Popover open={activeField === "endDate"} onOpenChange={(open) => setActiveField(open ? "endDate" : null)}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex-1 text-left px-6 py-4 rounded-full transition-all min-w-[130px]",
+                          "hover:bg-muted",
+                          activeField === "endDate" && "bg-muted"
+                        )}
+                      >
+                        <div className="text-xs font-semibold text-foreground">Fecha Fin</div>
+                        <div className="text-sm text-muted-foreground">
+                          {endDate ? format(endDate, "d MMM yyyy", { locale: es }) : "Agregar fecha"}
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Selecciona cuándo termina tu campaña</p>
+                  </TooltipContent>
+                </Tooltip>
             <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl" align="center">
               <CalendarComponent
                 mode="single"
@@ -188,32 +242,39 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                 className="rounded-2xl"
               />
             </PopoverContent>
-          </Popover>
+              </Popover>
 
-          <div className="w-px h-8 bg-border" />
+              <div className="w-px h-8 bg-border" />
 
-          {/* LOCATION FIELD - Now Third */}
-          <Popover 
-            open={activeField === "location"} 
-            onOpenChange={(open) => {
-              setActiveField(open ? "location" : null);
-              if (!open) setLocationQuery("");
-            }}
-          >
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all",
-                  "hover:bg-muted",
-                  activeField === "location" && "bg-muted"
-                )}
+              {/* LOCATION FIELD - Now Third */}
+              <Popover 
+                open={activeField === "location"} 
+                onOpenChange={(open) => {
+                  setActiveField(open ? "location" : null);
+                  if (!open) setLocationQuery("");
+                }}
               >
-                <div className="text-xs font-semibold text-foreground">Ubicación</div>
-                <div className="text-sm text-muted-foreground truncate">
-                  {location || "Ciudad o zona"}
-                </div>
-              </button>
-            </PopoverTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex-1 text-left px-6 py-4 rounded-full transition-all",
+                          "hover:bg-muted",
+                          activeField === "location" && "bg-muted"
+                        )}
+                      >
+                        <div className="text-xs font-semibold text-foreground">Ubicación</div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {location || "Ciudad o zona"}
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Filtra por ciudad o zona específica</p>
+                  </TooltipContent>
+                </Tooltip>
             <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl" align="center">
               <div className="p-4">
                 {/* Search Input */}
@@ -298,26 +359,33 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                 )}
               </div>
             </PopoverContent>
-          </Popover>
+              </Popover>
 
-          <div className="w-px h-8 bg-border" />
+              <div className="w-px h-8 bg-border" />
 
-          {/* SCREEN TYPE FIELD - Now Fourth (Last) */}
-          <Popover open={activeField === "screenType"} onOpenChange={(open) => setActiveField(open ? "screenType" : null)}>
-            <PopoverTrigger asChild>
-              <button
-                className={cn(
-                  "flex-1 text-left px-6 py-4 rounded-full transition-all",
-                  "hover:bg-muted",
-                  activeField === "screenType" && "bg-muted"
-                )}
-              >
-                <div className="text-xs font-semibold text-foreground">Formato</div>
-                <div className="text-sm text-muted-foreground">
-                  {screenType ? SCREEN_TYPES.find(t => t.value === screenType)?.label : "Tipo de pantalla"}
-                </div>
-              </button>
-            </PopoverTrigger>
+              {/* SCREEN TYPE FIELD - Now Fourth (Last) */}
+              <Popover open={activeField === "screenType"} onOpenChange={(open) => setActiveField(open ? "screenType" : null)}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex-1 text-left px-6 py-4 rounded-full transition-all",
+                          "hover:bg-muted",
+                          activeField === "screenType" && "bg-muted"
+                        )}
+                      >
+                        <div className="text-xs font-semibold text-foreground">Formato</div>
+                        <div className="text-sm text-muted-foreground">
+                          {screenType ? SCREEN_TYPES.find(t => t.value === screenType)?.label : "Tipo de pantalla"}
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Elige el tipo de pantalla que necesitas</p>
+                  </TooltipContent>
+                </Tooltip>
             <PopoverContent className="w-64 p-2 rounded-2xl shadow-xl" align="end">
               <div className="space-y-1">
                 {SCREEN_TYPES.map((type) => (
@@ -340,31 +408,39 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                 ))}
               </div>
             </PopoverContent>
-          </Popover>
+              </Popover>
 
-          {/* Search Button */}
-          <div className="pr-2 flex items-center gap-2">
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Limpiar
-              </Button>
-            )}
-            <Button
-              onClick={handleSearch}
-              size="icon"
-              className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shadow-md"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
+              {/* Search Button */}
+              <div className="pr-2 flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Limpiar
+                  </Button>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleSearch}
+                      size="icon"
+                      className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shadow-md"
+                    >
+                      <Search className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Buscar pantallas disponibles</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
