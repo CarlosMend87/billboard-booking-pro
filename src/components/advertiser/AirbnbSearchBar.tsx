@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, MapPin, Calendar, Monitor, Building2 } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Search, MapPin, Calendar, Monitor, Building2, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -111,10 +111,24 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
   const hasActiveFilters = location || startDate || endDate || screenType;
 
   return (
-    <div className="w-full max-w-[850px] mx-auto">
-      <div className="bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex items-center">
-          {/* START DATE FIELD - Now First */}
+    <div className="w-full max-w-[950px] mx-auto">
+      <div className="flex items-center gap-3">
+        {/* Campaigns Button */}
+        <Button
+          asChild
+          variant="outline"
+          className="h-14 px-5 rounded-full border-border bg-foreground text-background hover:bg-foreground/90 hover:text-background flex items-center gap-2 shadow-sm"
+        >
+          <Link to="/progreso-campaña">
+            <Megaphone className="h-5 w-5" />
+            <span className="hidden sm:inline font-medium">Campañas</span>
+          </Link>
+        </Button>
+
+        {/* Search Bar */}
+        <div className="flex-1 bg-background rounded-full border border-border shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            {/* START DATE FIELD - Now First */}
           <Popover open={activeField === "startDate"} onOpenChange={(open) => setActiveField(open ? "startDate" : null)}>
             <PopoverTrigger asChild>
               <button
@@ -347,6 +361,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
             >
               <Search className="h-5 w-5" />
             </Button>
+            </div>
           </div>
         </div>
       </div>
