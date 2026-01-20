@@ -5,8 +5,10 @@ import { AirbnbSearchBar, SearchFilters } from "@/components/advertiser/AirbnbSe
 import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
 import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
+import { ScreenMap } from "@/components/advertiser/ScreenMap";
 import { useScreens } from "@/hooks/useScreens";
-import { Monitor, AlertCircle } from "lucide-react";
+import { Monitor, AlertCircle, Map, LayoutGrid } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AdvertiserHome() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function AdvertiserHome() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   
   // Search filters state
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
@@ -147,11 +150,31 @@ export default function AdvertiserHome() {
         </div>
       </div>
 
-      {/* Category Filter */}
-      <CategoryFilter
-        selected={selectedCategory}
-        onSelect={setSelectedCategory}
-      />
+      {/* Category Filter + View Toggle */}
+      <div className="flex items-center justify-between border-b border-border">
+        <CategoryFilter
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+        <div className="pr-6 md:pr-10 lg:pr-20 flex gap-2">
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Grid
+          </Button>
+          <Button
+            variant={viewMode === "map" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("map")}
+          >
+            <Map className="h-4 w-4 mr-2" />
+            Mapa
+          </Button>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20 py-8 space-y-12">
@@ -166,8 +189,15 @@ export default function AdvertiserHome() {
               </div>
             ))}
           </div>
+        ) : viewMode === "map" ? (
+          /* Map View */
+          <ScreenMap
+            screens={filteredScreens}
+            onScreenClick={handleScreenClick}
+            loading={loading}
+            className="h-[600px]"
+          />
         ) : filteredScreens.length === 0 ? (
-          // Empty state
           <div className="flex flex-col items-center justify-center py-20">
             <Monitor className="h-16 w-16 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">

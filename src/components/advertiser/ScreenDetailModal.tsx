@@ -19,6 +19,8 @@ import {
   Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DatePickerWithAvailability } from "./DatePickerWithAvailability";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface ScreenDetail {
   id: string;
@@ -50,12 +52,19 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
   const [isFavorite, setIsFavorite] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isAvailable, setIsAvailable] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (open) {
       setCurrentImageIndex(0);
       setMapLoaded(false);
       setImageError(false);
+      setStartDate(undefined);
+      setEndDate(undefined);
+      setIsAvailable(false);
       const timer = setTimeout(() => setMapLoaded(true), 500);
       return () => clearTimeout(timer);
     }
@@ -417,32 +426,26 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
               )}
 
               <div className="space-y-4">
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2">
-                    <div className="p-3 border-r border-b border-border">
-                      <label className="text-xs font-medium text-muted-foreground block">INICIO</label>
-                      <span className="text-sm">Seleccionar</span>
-                    </div>
-                    <div className="p-3 border-b border-border">
-                      <label className="text-xs font-medium text-muted-foreground block">FIN</label>
-                      <span className="text-sm">Seleccionar</span>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <label className="text-xs font-medium text-muted-foreground block">MODALIDAD</label>
-                    <span className="text-sm">{getModalidades()[0] || "Mensual"}</span>
-                  </div>
-                </div>
+                {/* Date Picker with Availability */}
+                <DatePickerWithAvailability
+                  billboardId={screen.id}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                  onAvailabilityChange={setIsAvailable}
+                />
 
                 <Button 
                   className="w-full py-6 text-base font-medium rounded-lg"
                   onClick={() => onReserve(screen)}
+                  disabled={!isAvailable || !user}
                 >
-                  Reservar pantalla
+                  {!user ? "Inicia sesión para reservar" : !isAvailable ? "Selecciona fechas disponibles" : "Reservar pantalla"}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  No se te cobrará todavía
+                  {!user ? "Necesitas una cuenta para continuar" : "No se te cobrará todavía"}
                 </p>
               </div>
 

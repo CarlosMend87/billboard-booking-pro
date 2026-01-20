@@ -13,6 +13,8 @@ export interface ScreenCardProps {
   badge?: "alta-demanda" | "disponible" | "premium";
   tipo?: string;
   hasComputerVision?: boolean;
+  lat?: number;
+  lng?: number;
   onFavorite?: (id: string) => void;
   onClick?: () => void;
 }

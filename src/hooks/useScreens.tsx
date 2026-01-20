@@ -147,6 +147,8 @@ export function useScreens() {
           badge: getBadge(b),
           tipo: b.tipo,
           hasComputerVision: b.has_computer_vision,
+          lat: Number(b.lat) || undefined,
+          lng: Number(b.lng) || undefined,
         };
       });
 
