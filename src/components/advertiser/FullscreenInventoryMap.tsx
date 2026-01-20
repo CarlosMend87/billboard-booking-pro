@@ -43,6 +43,7 @@ interface MapBillboard {
   precio: any;
   medidas: any;
   contratacion: any;
+  fotos?: string[] | null;
   has_computer_vision?: boolean;
   last_detection_count?: number;
   last_detection_date?: string;
@@ -733,9 +734,12 @@ export function FullscreenInventoryMap({
               <div className="mt-6 space-y-6">
                 <div className="rounded-lg overflow-hidden bg-muted">
                   <img 
-                    src={defaultBillboardImage}
+                    src={selectedBillboard.fotos?.[0] || defaultBillboardImage}
                     alt={selectedBillboard.nombre}
                     className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = defaultBillboardImage;
+                    }}
                   />
                 </div>
 
