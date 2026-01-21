@@ -25,7 +25,7 @@ export default function AdvertiserHome() {
     location: searchParams.get("location") || "",
     startDate: searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined,
     endDate: searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined,
-    screenType: searchParams.get("type") || "",
+    screenTypes: searchParams.get("type")?.split(',').filter(Boolean) || [],
   });
 
   // POI proximity filter state
@@ -48,10 +48,12 @@ export default function AdvertiserHome() {
       );
     }
 
-    // Filter by screen type from search bar
-    if (searchFilters.screenType) {
+    // Filter by screen types from search bar (multi-select)
+    if (searchFilters.screenTypes.length > 0) {
       result = result.filter((s) => 
-        s.tipo?.toLowerCase().includes(searchFilters.screenType.toLowerCase())
+        searchFilters.screenTypes.some(type => 
+          s.tipo?.toLowerCase().includes(type.toLowerCase())
+        )
       );
     }
 
@@ -117,7 +119,7 @@ export default function AdvertiserHome() {
     if (filters.location) params.set("location", filters.location);
     if (filters.startDate) params.set("startDate", filters.startDate.toISOString());
     if (filters.endDate) params.set("endDate", filters.endDate.toISOString());
-    if (filters.screenType) params.set("type", filters.screenType);
+    if (filters.screenTypes.length > 0) params.set("type", filters.screenTypes.join(','));
     
     navigate(`/explorar?${params.toString()}`, { replace: true });
   };
@@ -149,7 +151,7 @@ export default function AdvertiserHome() {
     );
   }
 
-  const hasFilters = searchFilters.location || searchFilters.screenType || selectedCategory !== "all" || poiFilter.poiType !== null;
+  const hasFilters = searchFilters.location || searchFilters.screenTypes.length > 0 || selectedCategory !== "all" || poiFilter.poiType !== null;
 
   return (
     <div className="min-h-screen bg-background">

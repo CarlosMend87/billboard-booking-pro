@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Search, MapPin, Monitor, Building2, Megaphone, ChevronRight } from "lucide-react";
+import { Search, MapPin, Monitor, Building2, Megaphone, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -15,10 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const SCREEN_TYPES = [
-  { value: "", label: "Todos" },
-  { value: "led", label: "LED" },
   { value: "espectacular", label: "Espectacular" },
-  { value: "mupi", label: "Mupi" },
   { value: "indoor", label: "Indoor" },
   { value: "outdoor", label: "Outdoor" },
   { value: "digital", label: "Digital" },
@@ -28,7 +26,7 @@ export interface SearchFilters {
   location: string;
   startDate: Date | undefined;
   endDate: Date | undefined;
-  screenType: string;
+  screenTypes: string[];
 }
 
 interface AirbnbSearchBarProps {
@@ -52,7 +50,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
   const [locationQuery, setLocationQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(initialFilters?.startDate);
   const [endDate, setEndDate] = useState<Date | undefined>(initialFilters?.endDate);
-  const [screenType, setScreenType] = useState(initialFilters?.screenType || "");
+  const [screenTypes, setScreenTypes] = useState<string[]>(initialFilters?.screenTypes || []);
   const [activeCampaignsCount, setActiveCampaignsCount] = useState(0);
   const [prevCount, setPrevCount] = useState(0);
   const [animateBadge, setAnimateBadge] = useState(false);
@@ -108,7 +106,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     if (loc) setLocation(loc);
     if (start) setStartDate(new Date(start));
     if (end) setEndDate(new Date(end));
-    if (type) setScreenType(type);
+    if (type) setScreenTypes(type.split(',').filter(Boolean));
   }, [searchParams]);
 
   // Focus input when location field opens
@@ -123,7 +121,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
       location,
       startDate,
       endDate,
-      screenType,
+      screenTypes,
     };
 
     // If callback provided, use it (for in-page filtering)
@@ -137,7 +135,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     if (location) params.set("location", location);
     if (startDate) params.set("startDate", startDate.toISOString());
     if (endDate) params.set("endDate", endDate.toISOString());
-    if (screenType) params.set("type", screenType);
+    if (screenTypes.length > 0) params.set("type", screenTypes.join(','));
     
     navigate(`/explorar?${params.toString()}`);
   };
@@ -147,9 +145,9 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     setLocationQuery("");
     setStartDate(undefined);
     setEndDate(undefined);
-    setScreenType("");
+    setScreenTypes([]);
     if (onSearch) {
-      onSearch({ location: "", startDate: undefined, endDate: undefined, screenType: "" });
+      onSearch({ location: "", startDate: undefined, endDate: undefined, screenTypes: [] });
     }
   };
 
@@ -159,7 +157,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
     setActiveField(null);
   };
 
-  const hasActiveFilters = location || startDate || endDate || screenType;
+  const hasActiveFilters = location || startDate || endDate || screenTypes.length > 0;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -424,7 +422,7 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
 
               <div className="w-px h-8 bg-border" />
 
-              {/* SCREEN TYPE FIELD - Now Fourth (Last) */}
+              {/* SCREEN TYPE FIELD - Now Fourth (Last) - Multi-select */}
               <Popover open={activeField === "screenType"} onOpenChange={(open) => setActiveField(open ? "screenType" : null)}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -438,35 +436,60 @@ export function AirbnbSearchBar({ onSearch, initialFilters }: AirbnbSearchBarPro
                       >
                         <div className="text-xs font-semibold text-foreground">Formato</div>
                         <div className="text-sm text-muted-foreground">
-                          {screenType ? SCREEN_TYPES.find(t => t.value === screenType)?.label : "Tipo de pantalla"}
+                          {screenTypes.length > 0 
+                            ? screenTypes.length === 1 
+                              ? SCREEN_TYPES.find(t => t.value === screenTypes[0])?.label 
+                              : `${screenTypes.length} formatos`
+                            : "Tipo de pantalla"}
                         </div>
                       </button>
                     </PopoverTrigger>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    <p>Elige el tipo de pantalla que necesitas</p>
+                    <p>Elige uno o más tipos de pantalla</p>
                   </TooltipContent>
                 </Tooltip>
-            <PopoverContent className="w-64 p-2 rounded-2xl shadow-xl" align="end">
+            <PopoverContent className="w-64 p-3 rounded-2xl shadow-xl bg-popover" align="end">
               <div className="space-y-1">
-                {SCREEN_TYPES.map((type) => (
+                <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                  Selecciona uno o más formatos
+                </div>
+                {SCREEN_TYPES.map((type) => {
+                  const isSelected = screenTypes.includes(type.value);
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => {
+                        if (isSelected) {
+                          setScreenTypes(screenTypes.filter(t => t !== type.value));
+                        } else {
+                          setScreenTypes([...screenTypes, type.value]);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors",
+                        isSelected 
+                          ? "bg-primary/10 font-medium" 
+                          : "hover:bg-muted/50"
+                      )}
+                    >
+                      <Checkbox 
+                        checked={isSelected} 
+                        className="pointer-events-none"
+                      />
+                      <Monitor className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{type.label}</span>
+                    </button>
+                  );
+                })}
+                {screenTypes.length > 0 && (
                   <button
-                    key={type.value}
-                    onClick={() => {
-                      setScreenType(type.value);
-                      setActiveField(null);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors",
-                      screenType === type.value 
-                        ? "bg-muted font-medium" 
-                        : "hover:bg-muted/50"
-                    )}
+                    onClick={() => setScreenTypes([])}
+                    className="w-full text-xs text-muted-foreground hover:text-foreground mt-2 pt-2 border-t border-border"
                   >
-                    <Monitor className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{type.label}</span>
+                    Limpiar selección
                   </button>
-                ))}
+                )}
               </div>
             </PopoverContent>
               </Popover>
