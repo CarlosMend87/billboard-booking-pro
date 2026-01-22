@@ -51,6 +51,7 @@ export default function AdvertiserHome() {
     clearCart,
     revalidateCart,
     isInCart,
+    transferToBookingWizard,
   } = useCartWithValidation();
 
   // Compare state
@@ -231,6 +232,9 @@ export default function AdvertiserHome() {
         ubicacion: `${screen.ubicacion}, ${screen.ciudad}`,
         tipo: screen.tipo || "espectacular",
         precio: screen.precio || 0,
+        ownerId: screen.owner_id,
+        medidas: screen.medidas ? { ancho: screen.medidas.ancho, alto: screen.medidas.alto } : undefined,
+        foto: screen.foto,
       },
       {
         startDate: searchFilters.startDate,
@@ -238,6 +242,14 @@ export default function AdvertiserHome() {
       }
     );
   }, [user, searchFilters.startDate, searchFilters.endDate, screens, addToCart]);
+
+  // Handle continue to reservation with transfer
+  const handleContinueReservation = useCallback(async () => {
+    const success = await transferToBookingWizard();
+    if (success) {
+      navigate("/booking-wizard");
+    }
+  }, [transferToBookingWizard, navigate]);
 
   // Get screens for compare drawer
   const screensToCompare = useMemo(() => {
@@ -468,6 +480,7 @@ export default function AdvertiserHome() {
         items={cartItems}
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
+        onContinueReservation={handleContinueReservation}
         isValidating={cartValidating}
         activeDates={cartDates ? { startDate: cartDates.startDate, endDate: cartDates.endDate } : undefined}
       />
