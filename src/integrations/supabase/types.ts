@@ -1011,6 +1011,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_favorites: {
+        Row: {
+          billboard_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          billboard_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          billboard_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_billboard_id_fkey"
+            columns: ["billboard_id"]
+            isOneToOne: false
+            referencedRelation: "billboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           granted_at: string | null
@@ -1083,6 +1112,14 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      check_billboard_availability: {
+        Args: {
+          p_billboard_id: string
+          p_end_date: string
+          p_start_date: string
+        }
+        Returns: boolean
+      }
       cleanup_expired_locks: { Args: never; Returns: undefined }
       create_billboard_lock: {
         Args: { billboard_uuid: string; user_uuid: string }
@@ -1112,6 +1149,38 @@ export type Database = {
           status: Database["public"]["Enums"]["user_status"]
           user_id: string
         }[]
+      }
+      get_available_billboards: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          admobilize_config: Json | null
+          contratacion: Json
+          created_at: string
+          digital: Json | null
+          direccion: string
+          fotos: string[] | null
+          has_computer_vision: boolean | null
+          id: string
+          last_detection_count: number | null
+          last_detection_date: string | null
+          lat: number
+          lng: number
+          medidas: Json
+          metadata: Json | null
+          nombre: string
+          owner_id: string
+          precio: Json
+          precio_impresion_m2: number | null
+          status: string
+          tipo: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "billboards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_billboards_near_poi: {
         Args: { poi_type: string; radius_meters?: number }

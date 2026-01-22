@@ -8,9 +8,21 @@ interface ScreenSectionProps {
   title: string;
   screens: ScreenCardProps[];
   onScreenClick?: (screenId: string) => void;
+  onFavorite?: (screenId: string) => void;
+  onCompare?: (screenId: string) => void;
+  favoriteIds?: string[];
+  compareIds?: string[];
 }
 
-export function ScreenSection({ title, screens, onScreenClick }: ScreenSectionProps) {
+export function ScreenSection({ 
+  title, 
+  screens, 
+  onScreenClick,
+  onFavorite,
+  onCompare,
+  favoriteIds = [],
+  compareIds = [],
+}: ScreenSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -34,7 +46,7 @@ export function ScreenSection({ title, screens, onScreenClick }: ScreenSectionPr
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 320 * 2; // Scroll 2 cards at a time
+      const scrollAmount = 320 * 2;
       scrollRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -53,7 +65,7 @@ export function ScreenSection({ title, screens, onScreenClick }: ScreenSectionPr
             variant="outline"
             size="icon"
             className={cn(
-              "rounded-full h-8 w-8 border-gray-300",
+              "rounded-full h-8 w-8 border-border",
               !canScrollLeft && "opacity-50 cursor-not-allowed"
             )}
             onClick={() => scroll("left")}
@@ -65,7 +77,7 @@ export function ScreenSection({ title, screens, onScreenClick }: ScreenSectionPr
             variant="outline"
             size="icon"
             className={cn(
-              "rounded-full h-8 w-8 border-gray-300",
+              "rounded-full h-8 w-8 border-border",
               !canScrollRight && "opacity-50 cursor-not-allowed"
             )}
             onClick={() => scroll("right")}
@@ -85,7 +97,11 @@ export function ScreenSection({ title, screens, onScreenClick }: ScreenSectionPr
           <div key={screen.id} className="flex-shrink-0 w-[280px] md:w-[300px]">
             <ScreenCard
               {...screen}
+              isFavorite={favoriteIds.includes(screen.id)}
+              isInCompare={compareIds.includes(screen.id)}
               onClick={() => onScreenClick?.(screen.id)}
+              onFavorite={onFavorite}
+              onCompare={onCompare}
             />
           </div>
         ))}
