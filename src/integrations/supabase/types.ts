@@ -1011,6 +1011,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_carts: {
+        Row: {
+          active_dates: Json | null
+          created_at: string
+          id: string
+          items: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_dates?: Json | null
+          created_at?: string
+          id?: string
+          items?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_dates?: Json | null
+          created_at?: string
+          id?: string
+          items?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_favorites: {
         Row: {
           billboard_id: string

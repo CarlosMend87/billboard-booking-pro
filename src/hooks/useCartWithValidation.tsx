@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FloatingCartItem } from "@/components/cart/FloatingCart";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AddToCartParams {
   billboardId: string;
@@ -19,19 +20,137 @@ interface DateRange {
   endDate: Date;
 }
 
-// Storage keys - using consistent naming
+// Storage keys
 const CART_STORAGE_KEY = "dooh_floating_cart";
 const DATES_STORAGE_KEY = "dooh_cart_dates";
-
-// Transfer data to legacy cart context format
 const LEGACY_CART_KEY = "cart";
 
+// Debounce timeout for DB sync
+const DB_SYNC_DEBOUNCE = 1000;
+
 export function useCartWithValidation() {
+  const { user } = useAuth();
   const [items, setItems] = useState<FloatingCartItem[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const [activeDates, setActiveDates] = useState<DateRange | null>(null);
+  const [isLoadingFromDb, setIsLoadingFromDb] = useState(false);
+  
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLoadedFromDb = useRef(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from database for authenticated users
+  const loadCartFromDatabase = useCallback(async () => {
+    if (!user?.id || hasLoadedFromDb.current) return;
+    
+    setIsLoadingFromDb(true);
+    try {
+      // Use raw query to avoid type issues with new table
+      const { data, error } = await supabase
+        .from("user_carts" as any)
+        .select("items, active_dates")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading cart from DB:", error);
+        return;
+      }
+
+      if (data) {
+        // Parse items from JSON - cast through unknown for type safety
+        const record = data as unknown as { items: any[]; active_dates: any };
+        const dbItems = record.items || [];
+        const parsedItems: FloatingCartItem[] = dbItems.map((item: any) => ({
+          ...item,
+          fechaInicio: new Date(item.fechaInicio),
+          fechaFin: new Date(item.fechaFin),
+        }));
+
+        // Parse dates
+        const dbDates = record.active_dates;
+        const parsedDates = dbDates ? {
+          startDate: new Date(dbDates.startDate),
+          endDate: new Date(dbDates.endDate),
+        } : null;
+
+        // Update state
+        if (parsedItems.length > 0) {
+          setItems(parsedItems);
+          if (parsedDates) {
+            setActiveDates(parsedDates);
+          }
+          // Also update localStorage
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(parsedItems));
+          if (parsedDates) {
+            localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(parsedDates));
+          }
+        }
+      }
+      
+      hasLoadedFromDb.current = true;
+    } catch (err) {
+      console.error("Error loading cart:", err);
+    } finally {
+      setIsLoadingFromDb(false);
+    }
+  }, [user?.id]);
+
+  // Save cart to database (debounced)
+  const saveCartToDatabase = useCallback(async (
+    cartItems: FloatingCartItem[], 
+    dates: DateRange | null
+  ) => {
+    if (!user?.id) return;
+
+    try {
+      // Prepare items for JSON storage (convert Dates to strings)
+      const itemsForDb = cartItems.map(item => ({
+        ...item,
+        fechaInicio: item.fechaInicio.toISOString(),
+        fechaFin: item.fechaFin.toISOString(),
+      }));
+
+      const datesForDb = dates ? {
+        startDate: dates.startDate.toISOString(),
+        endDate: dates.endDate.toISOString(),
+      } : null;
+
+      // Upsert cart data - use raw query to avoid type issues
+      const { error } = await supabase
+        .from("user_carts" as any)
+        .upsert({
+          user_id: user.id,
+          items: itemsForDb,
+          active_dates: datesForDb,
+          updated_at: new Date().toISOString(),
+        } as any, {
+          onConflict: "user_id",
+        });
+
+      if (error) {
+        console.error("Error saving cart to DB:", error);
+      }
+    } catch (err) {
+      console.error("Error saving cart:", err);
+    }
+  }, [user?.id]);
+
+  // Debounced DB sync
+  const scheduleDatabaseSync = useCallback((
+    cartItems: FloatingCartItem[], 
+    dates: DateRange | null
+  ) => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    
+    syncTimeoutRef.current = setTimeout(() => {
+      saveCartToDatabase(cartItems, dates);
+    }, DB_SYNC_DEBOUNCE);
+  }, [saveCartToDatabase]);
+
+  // Load cart on mount - first from localStorage, then from DB
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
@@ -39,7 +158,6 @@ export function useCartWithValidation() {
       
       if (savedCart) {
         const parsed = JSON.parse(savedCart);
-        // Convert date strings back to Date objects
         const cartItems: FloatingCartItem[] = parsed.map((item: any) => ({
           ...item,
           fechaInicio: new Date(item.fechaInicio),
@@ -60,14 +178,28 @@ export function useCartWithValidation() {
     }
   }, []);
 
-  // Save cart to localStorage when items change
+  // Load from database when user is authenticated
+  useEffect(() => {
+    if (user?.id) {
+      loadCartFromDatabase();
+    } else {
+      hasLoadedFromDb.current = false;
+    }
+  }, [user?.id, loadCartFromDatabase]);
+
+  // Save to localStorage and schedule DB sync when items change
   useEffect(() => {
     if (items.length > 0) {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      scheduleDatabaseSync(items, activeDates);
     } else {
       localStorage.removeItem(CART_STORAGE_KEY);
+      if (user?.id) {
+        // Clear from DB too
+        saveCartToDatabase([], null);
+      }
     }
-  }, [items]);
+  }, [items, activeDates, scheduleDatabaseSync, saveCartToDatabase, user?.id]);
 
   // Save dates to localStorage when they change
   useEffect(() => {
@@ -75,6 +207,15 @@ export function useCartWithValidation() {
       localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(activeDates));
     }
   }, [activeDates]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Backend availability check using RPC
   const checkAvailabilityBackend = useCallback(async (
@@ -107,13 +248,11 @@ export function useCartWithValidation() {
     params: AddToCartParams,
     dates: DateRange
   ): Promise<{ success: boolean; error?: string }> => {
-    // Validate dates are selected
     if (!dates.startDate || !dates.endDate) {
       toast.error("Selecciona fechas antes de agregar al carrito");
       return { success: false, error: "Fechas requeridas" };
     }
 
-    // Check if item already in cart
     const existingItem = items.find(item => item.billboardId === params.billboardId);
     if (existingItem) {
       toast.info("Esta pantalla ya está en tu carrito");
@@ -123,7 +262,6 @@ export function useCartWithValidation() {
     setIsValidating(true);
 
     try {
-      // CRITICAL: Backend validation
       const isAvailable = await checkAvailabilityBackend(
         params.billboardId,
         dates.startDate,
@@ -135,7 +273,6 @@ export function useCartWithValidation() {
         return { success: false, error: "No disponible" };
       }
 
-      // Create cart item with all necessary data
       const newItem: FloatingCartItem = {
         id: `${params.billboardId}-${Date.now()}`,
         billboardId: params.billboardId,
@@ -180,8 +317,14 @@ export function useCartWithValidation() {
     setActiveDates(null);
     localStorage.removeItem(CART_STORAGE_KEY);
     localStorage.removeItem(DATES_STORAGE_KEY);
+    
+    // Clear from database
+    if (user?.id) {
+      saveCartToDatabase([], null);
+    }
+    
     toast.success("Carrito limpiado");
-  }, []);
+  }, [user?.id, saveCartToDatabase]);
 
   // Revalidate all items when dates change
   const revalidateCart = useCallback(async (newDates: DateRange) => {
@@ -231,9 +374,8 @@ export function useCartWithValidation() {
     return items.some(item => item.billboardId === billboardId);
   }, [items]);
 
-  // CRITICAL: Transfer cart data to legacy CartContext format for BookingWizard
+  // Transfer cart data to legacy CartContext format for BookingWizard
   const transferToBookingWizard = useCallback(async (): Promise<boolean> => {
-    // Only transfer valid items
     const validItems = items.filter(i => i.isValid);
     
     if (validItems.length === 0) {
@@ -241,8 +383,7 @@ export function useCartWithValidation() {
       return false;
     }
 
-    // Final validation before transfer
-    setIsValidating(true);
+    setIsTransferring(true);
     
     try {
       // Revalidate all items one more time
@@ -272,7 +413,7 @@ export function useCartWithValidation() {
         toast.warning(`${validItems.length - stillValid.length} pantalla(s) ya no están disponibles`);
       }
 
-      // Build legacy cart format that BookingWizard expects
+      // Build legacy cart format
       const legacyCartItems = stillValid.map(item => ({
         id: `${item.billboardId}-mensual-{}`,
         asset: {
@@ -314,10 +455,7 @@ export function useCartWithValidation() {
         campaignInfo: null,
       };
 
-      // Store in legacy format for BookingWizard
       localStorage.setItem(LEGACY_CART_KEY, JSON.stringify(legacyCart));
-      
-      // Update our items to reflect final state
       setItems(revalidated);
 
       return true;
@@ -326,13 +464,15 @@ export function useCartWithValidation() {
       toast.error("Error al preparar la reserva");
       return false;
     } finally {
-      setIsValidating(false);
+      setIsTransferring(false);
     }
   }, [items, checkAvailabilityBackend]);
 
   return {
     items,
     isValidating,
+    isTransferring,
+    isLoadingFromDb,
     activeDates,
     addToCart,
     removeFromCart,
