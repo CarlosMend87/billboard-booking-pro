@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AirbnbHeader } from "@/components/advertiser/AirbnbHeader";
 import { AirbnbSearchBar, SearchFilters } from "@/components/advertiser/AirbnbSearchBar";
@@ -7,26 +7,45 @@ import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
 import { ScreenMap } from "@/components/advertiser/ScreenMap";
 import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIProximityFilter";
-import { useScreens } from "@/hooks/useScreens";
-import { Monitor, AlertCircle, Map, LayoutGrid } from "lucide-react";
+import { ScreenCompareDrawer } from "@/components/advertiser/ScreenCompareDrawer";
+import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
+import { useAvailableScreens } from "@/hooks/useAvailableScreens";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useAuth } from "@/hooks/useAuth";
+import { Monitor, AlertCircle, Map, LayoutGrid, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AdvertiserHome() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { screens, loading, error, getScreenById } = useScreens();
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
+  const { user } = useAuth();
   
-  // Search filters state
+  // Search filters state - read from URL on mount
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     location: searchParams.get("location") || "",
     startDate: searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined,
     endDate: searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined,
     screenTypes: searchParams.get("type")?.split(',').filter(Boolean) || [],
   });
+
+  // Use the new hook that filters by date availability
+  const { screens, loading, error, getScreenById } = useAvailableScreens({
+    startDate: searchFilters.startDate,
+    endDate: searchFilters.endDate,
+  });
+
+  // Favorites hook
+  const { favorites, isFavorite, toggleFavorite, favoritesCount } = useFavorites();
+
+  // Compare state
+  const [compareScreens, setCompareScreens] = useState<string[]>([]);
+  
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedScreen, setSelectedScreen] = useState<ScreenDetail | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
 
   // POI proximity filter state
   const [poiFilter, setPoiFilter] = useState<POIFilterState>({
@@ -137,6 +156,42 @@ export default function AdvertiserHome() {
     navigate(`/disponibilidad-anuncios?screen=${screen.id}`);
   };
 
+  // Handle favorite toggle
+  const handleFavorite = useCallback((screenId: string) => {
+    if (!user) {
+      toast.error("Inicia sesión para guardar favoritos");
+      return;
+    }
+    toggleFavorite(screenId);
+  }, [user, toggleFavorite]);
+
+  // Handle compare toggle
+  const handleCompare = useCallback((screenId: string) => {
+    setCompareScreens(prev => {
+      if (prev.includes(screenId)) {
+        return prev.filter(id => id !== screenId);
+      }
+      if (prev.length >= 4) {
+        toast.error("Máximo 4 pantallas para comparar");
+        return prev;
+      }
+      return [...prev, screenId];
+    });
+  }, []);
+
+  // Get screens for compare drawer
+  const screensToCompare = useMemo(() => {
+    return filteredScreens.filter(s => compareScreens.includes(s.id));
+  }, [filteredScreens, compareScreens]);
+
+  // Common props for ScreenSection
+  const sectionProps = {
+    onFavorite: handleFavorite,
+    onCompare: handleCompare,
+    favoriteIds: favorites,
+    compareIds: compareScreens,
+  };
+
   // Error state
   if (error) {
     return (
@@ -152,6 +207,7 @@ export default function AdvertiserHome() {
   }
 
   const hasFilters = searchFilters.location || searchFilters.screenTypes.length > 0 || selectedCategory !== "all" || poiFilter.poiType !== null;
+  const hasDateFilter = searchFilters.startDate && searchFilters.endDate;
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,9 +217,34 @@ export default function AdvertiserHome() {
       {/* Search Bar Section */}
       <div className="bg-background pt-6 pb-8 border-b border-border">
         <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
-          <div className="flex justify-start">
+          <div className="flex items-center justify-between gap-4">
             <AirbnbSearchBar onSearch={handleSearch} initialFilters={searchFilters} />
+            
+            {/* Favorites & Export buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              {favoritesCount > 0 && (
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Heart className="h-4 w-4 fill-destructive text-destructive" />
+                  {favoritesCount} favorito{favoritesCount !== 1 ? 's' : ''}
+                </Button>
+              )}
+              {filteredScreens.length > 0 && (
+                <ScreenProposalPDF 
+                  screens={filteredScreens.slice(0, 20)} 
+                  campaignName="Propuesta DOOH" 
+                />
+              )}
+            </div>
           </div>
+          
+          {/* Date filter indicator */}
+          {hasDateFilter && (
+            <div className="mt-4">
+              <Badge variant="secondary" className="gap-1">
+                Mostrando {filteredScreens.length} pantallas disponibles del {searchFilters.startDate?.toLocaleDateString('es-MX')} al {searchFilters.endDate?.toLocaleDateString('es-MX')}
+              </Badge>
+            </div>
+          )}
         </div>
       </div>
 
@@ -247,6 +328,7 @@ export default function AdvertiserHome() {
             title={`${filteredScreens.length} pantalla${filteredScreens.length !== 1 ? 's' : ''} encontrada${filteredScreens.length !== 1 ? 's' : ''}`}
             screens={filteredScreens}
             onScreenClick={handleScreenClick}
+            {...sectionProps}
           />
         ) : (
           // Default view: grouped by city
@@ -256,6 +338,7 @@ export default function AdvertiserHome() {
                 title="Pantallas recomendadas para tu campaña"
                 screens={screensByCity.recommended}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
 
@@ -264,6 +347,7 @@ export default function AdvertiserHome() {
                 title="Pantallas en CDMX"
                 screens={screensByCity.cdmx}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
 
@@ -272,6 +356,7 @@ export default function AdvertiserHome() {
                 title="Pantallas en Monterrey"
                 screens={screensByCity.monterrey}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
 
@@ -280,6 +365,7 @@ export default function AdvertiserHome() {
                 title="Pantallas en Mérida"
                 screens={screensByCity.merida}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
 
@@ -288,6 +374,7 @@ export default function AdvertiserHome() {
                 title="Pantallas en Guadalajara"
                 screens={screensByCity.guadalajara}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
 
@@ -300,6 +387,7 @@ export default function AdvertiserHome() {
                 title="Todas las pantallas disponibles"
                 screens={filteredScreens}
                 onScreenClick={handleScreenClick}
+                {...sectionProps}
               />
             )}
           </>
@@ -312,6 +400,16 @@ export default function AdvertiserHome() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onReserve={handleReserve}
+      />
+
+      {/* Compare Drawer */}
+      <ScreenCompareDrawer
+        screens={screensToCompare}
+        onRemove={handleCompare}
+        onClear={() => setCompareScreens([])}
+        onReserve={(screenId) => {
+          handleScreenClick(screenId);
+        }}
       />
 
       {/* Footer */}
