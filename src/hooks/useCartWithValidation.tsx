@@ -9,6 +9,9 @@ interface AddToCartParams {
   ubicacion: string;
   tipo: string;
   precio: number;
+  ownerId?: string;
+  medidas?: { ancho?: number; alto?: number };
+  foto?: string;
 }
 
 interface DateRange {
@@ -16,8 +19,12 @@ interface DateRange {
   endDate: Date;
 }
 
+// Storage keys - using consistent naming
 const CART_STORAGE_KEY = "dooh_floating_cart";
 const DATES_STORAGE_KEY = "dooh_cart_dates";
+
+// Transfer data to legacy cart context format
+const LEGACY_CART_KEY = "cart";
 
 export function useCartWithValidation() {
   const [items, setItems] = useState<FloatingCartItem[]>([]);
@@ -128,7 +135,7 @@ export function useCartWithValidation() {
         return { success: false, error: "No disponible" };
       }
 
-      // Create cart item
+      // Create cart item with all necessary data
       const newItem: FloatingCartItem = {
         id: `${params.billboardId}-${Date.now()}`,
         billboardId: params.billboardId,
@@ -139,6 +146,9 @@ export function useCartWithValidation() {
         fechaInicio: dates.startDate,
         fechaFin: dates.endDate,
         isValid: true,
+        ownerId: params.ownerId,
+        medidas: params.medidas,
+        foto: params.foto,
       };
 
       setItems(prev => [...prev, newItem]);
@@ -221,6 +231,105 @@ export function useCartWithValidation() {
     return items.some(item => item.billboardId === billboardId);
   }, [items]);
 
+  // CRITICAL: Transfer cart data to legacy CartContext format for BookingWizard
+  const transferToBookingWizard = useCallback(async (): Promise<boolean> => {
+    // Only transfer valid items
+    const validItems = items.filter(i => i.isValid);
+    
+    if (validItems.length === 0) {
+      toast.error("No hay pantallas válidas en el carrito");
+      return false;
+    }
+
+    // Final validation before transfer
+    setIsValidating(true);
+    
+    try {
+      // Revalidate all items one more time
+      const revalidated = await Promise.all(
+        validItems.map(async (item) => {
+          const isAvailable = await checkAvailabilityBackend(
+            item.billboardId,
+            item.fechaInicio,
+            item.fechaFin
+          );
+          return { ...item, isValid: isAvailable };
+        })
+      );
+
+      const stillValid = revalidated.filter(i => i.isValid);
+      
+      if (stillValid.length === 0) {
+        toast.error("Las pantallas ya no están disponibles. Intenta con otras fechas.");
+        setItems(revalidated.map(item => ({
+          ...item,
+          validationError: item.isValid ? undefined : "Ya no disponible"
+        })));
+        return false;
+      }
+
+      if (stillValid.length < validItems.length) {
+        toast.warning(`${validItems.length - stillValid.length} pantalla(s) ya no están disponibles`);
+      }
+
+      // Build legacy cart format that BookingWizard expects
+      const legacyCartItems = stillValid.map(item => ({
+        id: `${item.billboardId}-mensual-{}`,
+        asset: {
+          id: item.billboardId,
+          nombre: item.nombre,
+          tipo: item.tipo,
+          lat: 0,
+          lng: 0,
+          medidas: {
+            ancho: item.medidas?.ancho || 0,
+            alto: item.medidas?.alto || 0,
+            caras: 1,
+          },
+          contratacion: {
+            mensual: true,
+          },
+          precio: {
+            mensual: item.precio,
+          },
+          estado: "disponible" as const,
+          foto: item.foto || "/placeholder.svg",
+          owner_id: item.ownerId,
+        },
+        modalidad: "mensual" as const,
+        config: {
+          meses: 1,
+          fechaInicio: item.fechaInicio.toISOString().split('T')[0],
+          fechaFin: item.fechaFin.toISOString().split('T')[0],
+        },
+        precioUnitario: item.precio,
+        subtotal: item.precio,
+        quantity: 1,
+      }));
+
+      const legacyCart = {
+        items: legacyCartItems,
+        total: stillValid.reduce((sum, i) => sum + i.precio, 0),
+        itemCount: stillValid.length,
+        campaignInfo: null,
+      };
+
+      // Store in legacy format for BookingWizard
+      localStorage.setItem(LEGACY_CART_KEY, JSON.stringify(legacyCart));
+      
+      // Update our items to reflect final state
+      setItems(revalidated);
+
+      return true;
+    } catch (err) {
+      console.error("Error transferring cart:", err);
+      toast.error("Error al preparar la reserva");
+      return false;
+    } finally {
+      setIsValidating(false);
+    }
+  }, [items, checkAvailabilityBackend]);
+
   return {
     items,
     isValidating,
@@ -230,6 +339,7 @@ export function useCartWithValidation() {
     clearCart,
     revalidateCart,
     isInCart,
+    transferToBookingWizard,
     itemCount: items.length,
     validItemCount: items.filter(i => i.isValid).length,
     total: items.filter(i => i.isValid).reduce((sum, item) => sum + item.precio, 0),

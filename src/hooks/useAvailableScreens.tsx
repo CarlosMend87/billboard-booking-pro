@@ -145,6 +145,7 @@ export function useAvailableScreens(dateRange?: DateRange) {
       const mappedScreens: ScreenCardProps[] = data.map((b) => {
         const precio = getPrecioMensual(b.precio);
         const impactos = getImpactos(b);
+        const primaryImage = b.fotos && b.fotos.length > 0 ? b.fotos[0] : undefined;
         
         return {
           id: b.id,
@@ -159,6 +160,13 @@ export function useAvailableScreens(dateRange?: DateRange) {
           hasComputerVision: b.has_computer_vision,
           lat: Number(b.lat) || undefined,
           lng: Number(b.lng) || undefined,
+          // Extended data for cart transfer
+          owner_id: b.owner_id,
+          medidas: b.medidas ? { 
+            ancho: Number(b.medidas.ancho) || Number(b.medidas.ancho_m) || undefined, 
+            alto: Number(b.medidas.alto) || Number(b.medidas.alto_m) || undefined 
+          } : undefined,
+          foto: primaryImage,
         };
       });
 

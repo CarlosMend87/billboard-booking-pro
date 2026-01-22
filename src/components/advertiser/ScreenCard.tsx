@@ -17,6 +17,11 @@ export interface ScreenCardProps {
   hasComputerVision?: boolean;
   lat?: number;
   lng?: number;
+  // Extended data for cart/booking
+  owner_id?: string;
+  medidas?: { ancho?: number; alto?: number };
+  foto?: string;
+  // UI state
   isFavorite?: boolean;
   isInCompare?: boolean;
   isInCart?: boolean;
