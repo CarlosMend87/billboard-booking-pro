@@ -478,6 +478,17 @@ export default function AdvertiserHome() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onReserve={handleReserve}
+        isInCart={selectedScreen ? isInCart(selectedScreen.id) : false}
+        onAddToCart={async (screen) => {
+          const result = await handleAddToCart(screen.id);
+          return result.success;
+        }}
+        canAddToCart={hasValidDates && !!user}
+        addToCartDisabledReason={!user ? "Inicia sesión" : !hasValidDates ? "Selecciona fechas" : undefined}
+        activeDates={{
+          start: searchFilters.startDate || null,
+          end: searchFilters.endDate || null,
+        }}
       />
 
       {/* Compare Drawer */}

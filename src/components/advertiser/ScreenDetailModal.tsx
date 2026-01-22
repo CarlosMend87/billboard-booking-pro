@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DatePickerWithAvailability } from "./DatePickerWithAvailability";
+import { AddToCartButton } from "./AddToCartButton";
 import { useAuth } from "@/hooks/useAuth";
 
 export interface ScreenDetail {
@@ -45,9 +46,25 @@ interface ScreenDetailModalProps {
   open: boolean;
   onClose: () => void;
   onReserve: (screen: ScreenDetail) => void;
+  // Cart props
+  isInCart?: boolean;
+  onAddToCart?: (screen: ScreenDetail) => Promise<boolean>;
+  canAddToCart?: boolean;
+  addToCartDisabledReason?: string;
+  activeDates?: { start: Date | null; end: Date | null };
 }
 
-export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDetailModalProps) {
+export function ScreenDetailModal({ 
+  screen, 
+  open, 
+  onClose, 
+  onReserve,
+  isInCart = false,
+  onAddToCart,
+  canAddToCart = false,
+  addToCartDisabledReason,
+  activeDates
+}: ScreenDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -56,6 +73,16 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isAvailable, setIsAvailable] = useState(false);
   const { user } = useAuth();
+
+  // Sync with active dates from parent
+  useEffect(() => {
+    if (activeDates?.start) {
+      setStartDate(activeDates.start);
+    }
+    if (activeDates?.end) {
+      setEndDate(activeDates.end);
+    }
+  }, [activeDates]);
 
   useEffect(() => {
     if (open) {
@@ -447,16 +474,45 @@ export function ScreenDetailModal({ screen, open, onClose, onReserve }: ScreenDe
                   onAvailabilityChange={setIsAvailable}
                 />
 
-                <Button 
-                  className="w-full py-6 text-base font-medium rounded-lg"
-                  onClick={() => onReserve(screen)}
-                  disabled={!isAvailable || !user}
-                >
-                  {!user ? "Inicia sesión para reservar" : !isAvailable ? "Selecciona fechas disponibles" : "Reservar pantalla"}
-                </Button>
+                {onAddToCart ? (
+                  <AddToCartButton
+                    isInCart={isInCart}
+                    disabled={!canAddToCart || !isAvailable || !user}
+                    disabledReason={
+                      !user 
+                        ? "Inicia sesión para continuar" 
+                        : !isAvailable 
+                          ? "Selecciona fechas disponibles" 
+                          : addToCartDisabledReason
+                    }
+                    onAddToCart={async () => {
+                      if (screen && onAddToCart) {
+                        const success = await onAddToCart(screen);
+                        return { success };
+                      }
+                      return { success: false, error: "No se pudo agregar" };
+                    }}
+                    size="lg"
+                    variant="modal"
+                    className="w-full py-6 text-base font-medium"
+                  />
+                ) : (
+                  <Button 
+                    className="w-full py-6 text-base font-medium rounded-lg"
+                    onClick={() => onReserve(screen)}
+                    disabled={!isAvailable || !user}
+                  >
+                    {!user ? "Inicia sesión para reservar" : !isAvailable ? "Selecciona fechas disponibles" : "Reservar pantalla"}
+                  </Button>
+                )}
 
                 <p className="text-center text-sm text-muted-foreground">
-                  {!user ? "Necesitas una cuenta para continuar" : "No se te cobrará todavía"}
+                  {!user 
+                    ? "Necesitas una cuenta para continuar" 
+                    : isInCart 
+                      ? "Esta pantalla ya está en tu carrito"
+                      : "No se te cobrará todavía"
+                  }
                 </p>
               </div>
 
