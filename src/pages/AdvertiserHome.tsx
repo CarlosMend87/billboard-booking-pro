@@ -10,6 +10,7 @@ import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIP
 import { ScreenCompareDrawer } from "@/components/advertiser/ScreenCompareDrawer";
 import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
 import { FloatingCart } from "@/components/cart/FloatingCart";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useAvailableScreens } from "@/hooks/useAvailableScreens";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCartWithValidation } from "@/hooks/useCartWithValidation";
@@ -45,6 +46,7 @@ export default function AdvertiserHome() {
   const {
     items: cartItems,
     isValidating: cartValidating,
+    isTransferring: cartTransferring,
     activeDates: cartDates,
     addToCart,
     removeFromCart,
@@ -292,6 +294,12 @@ export default function AdvertiserHome() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global Loading Overlay for cart transfer */}
+      <LoadingOverlay 
+        isLoading={cartTransferring} 
+        message="Preparando tu reserva"
+        submessage="Validando disponibilidad de pantallas..."
+      />
       {/* Header */}
       <AirbnbHeader />
 
