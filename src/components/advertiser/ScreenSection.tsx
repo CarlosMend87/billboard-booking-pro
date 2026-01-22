@@ -10,8 +10,12 @@ interface ScreenSectionProps {
   onScreenClick?: (screenId: string) => void;
   onFavorite?: (screenId: string) => void;
   onCompare?: (screenId: string) => void;
+  onAddToCart?: (screenId: string) => Promise<{ success: boolean; error?: string }>;
   favoriteIds?: string[];
   compareIds?: string[];
+  cartIds?: string[];
+  canAddToCart?: boolean;
+  addToCartDisabledReason?: string;
 }
 
 export function ScreenSection({ 
@@ -20,8 +24,12 @@ export function ScreenSection({
   onScreenClick,
   onFavorite,
   onCompare,
+  onAddToCart,
   favoriteIds = [],
   compareIds = [],
+  cartIds = [],
+  canAddToCart = true,
+  addToCartDisabledReason,
 }: ScreenSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -99,9 +107,13 @@ export function ScreenSection({
               {...screen}
               isFavorite={favoriteIds.includes(screen.id)}
               isInCompare={compareIds.includes(screen.id)}
+              isInCart={cartIds.includes(screen.id)}
               onClick={() => onScreenClick?.(screen.id)}
               onFavorite={onFavorite}
               onCompare={onCompare}
+              onAddToCart={onAddToCart}
+              canAddToCart={canAddToCart}
+              addToCartDisabledReason={addToCartDisabledReason}
             />
           </div>
         ))}

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Heart, ChevronLeft, ChevronRight, Scale } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Scale, ShoppingCart, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import defaultBillboard from "@/assets/default-billboard.avif";
 
 export interface ScreenCardProps {
@@ -18,9 +19,13 @@ export interface ScreenCardProps {
   lng?: number;
   isFavorite?: boolean;
   isInCompare?: boolean;
+  isInCart?: boolean;
   onFavorite?: (id: string) => void;
   onCompare?: (id: string) => void;
+  onAddToCart?: (id: string) => Promise<{ success: boolean; error?: string }>;
   onClick?: () => void;
+  canAddToCart?: boolean;
+  addToCartDisabledReason?: string;
 }
 
 const badgeConfig = {
@@ -31,12 +36,15 @@ const badgeConfig = {
 
 export function ScreenCard({
   id, nombre, ubicacion, ciudad, precio, impactos, imagenes, badge, tipo, hasComputerVision, 
-  isFavorite: isFavoriteProp, isInCompare, onFavorite, onCompare, onClick,
+  isFavorite: isFavoriteProp, isInCompare, isInCart, onFavorite, onCompare, onAddToCart, onClick,
+  canAddToCart = true, addToCartDisabledReason,
 }: ScreenCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [localFavorite, setLocalFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [showAddedSuccess, setShowAddedSuccess] = useState(false);
 
   // Use external favorite state if provided, otherwise use local state
   const isFavorite = isFavoriteProp !== undefined ? isFavoriteProp : localFavorite;
@@ -68,8 +76,35 @@ export function ScreenCard({
     onCompare?.(id);
   };
 
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onAddToCart || isAddingToCart || isInCart || !canAddToCart) return;
+
+    setIsAddingToCart(true);
+    try {
+      const result = await onAddToCart(id);
+      if (result.success) {
+        setShowAddedSuccess(true);
+        setTimeout(() => setShowAddedSuccess(false), 2000);
+      }
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const formatNumber = (num: number) => num >= 1000000 ? (num / 1000000).toFixed(1) + "M" : num >= 1000 ? (num / 1000).toFixed(0) + "K" : num.toString();
   const formatPrice = (price: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(price);
+
+  const getButtonState = () => {
+    if (isAddingToCart) return { text: "Validando...", icon: Loader2, disabled: true, animateIcon: true };
+    if (showAddedSuccess) return { text: "¡Agregado!", icon: Check, disabled: true, className: "bg-green-600 hover:bg-green-600" };
+    if (isInCart) return { text: "En carrito", icon: Check, disabled: true, className: "bg-muted text-muted-foreground" };
+    if (!canAddToCart) return { text: addToCartDisabledReason || "Selecciona fechas", icon: ShoppingCart, disabled: true };
+    return { text: "Agregar al carrito", icon: ShoppingCart, disabled: false };
+  };
+
+  const buttonState = getButtonState();
+  const IconComponent = buttonState.icon;
 
   return (
     <div className="group cursor-pointer" onClick={onClick} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
@@ -173,6 +208,22 @@ export function ScreenCard({
             <span className="text-muted-foreground">Consultar precio</span>
           )}
         </p>
+        
+        {/* Add to Cart Button */}
+        {onAddToCart && (
+          <Button
+            size="sm"
+            className={cn(
+              "w-full mt-2 font-semibold transition-all duration-200",
+              buttonState.className
+            )}
+            disabled={buttonState.disabled}
+            onClick={handleAddToCart}
+          >
+            <IconComponent className={cn("h-4 w-4 mr-2", buttonState.animateIcon && "animate-spin")} />
+            {buttonState.text}
+          </Button>
+        )}
       </div>
     </div>
   );

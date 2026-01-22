@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AirbnbHeader } from "@/components/advertiser/AirbnbHeader";
 import { AirbnbSearchBar, SearchFilters } from "@/components/advertiser/AirbnbSearchBar";
@@ -9,8 +9,10 @@ import { ScreenMap } from "@/components/advertiser/ScreenMap";
 import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIProximityFilter";
 import { ScreenCompareDrawer } from "@/components/advertiser/ScreenCompareDrawer";
 import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
+import { FloatingCart } from "@/components/cart/FloatingCart";
 import { useAvailableScreens } from "@/hooks/useAvailableScreens";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useCartWithValidation } from "@/hooks/useCartWithValidation";
 import { useAuth } from "@/hooks/useAuth";
 import { Monitor, AlertCircle, Map, LayoutGrid, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,18 @@ export default function AdvertiserHome() {
   // Favorites hook
   const { favorites, isFavorite, toggleFavorite, favoritesCount } = useFavorites();
 
+  // Cart with backend validation
+  const {
+    items: cartItems,
+    isValidating: cartValidating,
+    activeDates: cartDates,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    revalidateCart,
+    isInCart,
+  } = useCartWithValidation();
+
   // Compare state
   const [compareScreens, setCompareScreens] = useState<string[]>([]);
   
@@ -53,6 +67,19 @@ export default function AdvertiserHome() {
     radius: 1000,
     billboardIds: null,
   });
+
+  // Check if dates are selected for cart functionality
+  const hasValidDates = !!(searchFilters.startDate && searchFilters.endDate);
+
+  // Revalidate cart when dates change
+  useEffect(() => {
+    if (searchFilters.startDate && searchFilters.endDate && cartItems.length > 0) {
+      revalidateCart({
+        startDate: searchFilters.startDate,
+        endDate: searchFilters.endDate,
+      });
+    }
+  }, [searchFilters.startDate?.toISOString(), searchFilters.endDate?.toISOString()]);
 
   // Apply all filters
   const filteredScreens = useMemo(() => {
@@ -179,17 +206,59 @@ export default function AdvertiserHome() {
     });
   }, []);
 
+  // Handle add to cart with backend validation
+  const handleAddToCart = useCallback(async (screenId: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      toast.error("Inicia sesión para agregar al carrito");
+      return { success: false, error: "No autenticado" };
+    }
+
+    if (!searchFilters.startDate || !searchFilters.endDate) {
+      toast.error("Selecciona fechas antes de agregar al carrito");
+      return { success: false, error: "Fechas requeridas" };
+    }
+
+    // Find the screen data
+    const screen = screens.find(s => s.id === screenId);
+    if (!screen) {
+      return { success: false, error: "Pantalla no encontrada" };
+    }
+
+    return addToCart(
+      {
+        billboardId: screenId,
+        nombre: screen.nombre,
+        ubicacion: `${screen.ubicacion}, ${screen.ciudad}`,
+        tipo: screen.tipo || "espectacular",
+        precio: screen.precio || 0,
+      },
+      {
+        startDate: searchFilters.startDate,
+        endDate: searchFilters.endDate,
+      }
+    );
+  }, [user, searchFilters.startDate, searchFilters.endDate, screens, addToCart]);
+
   // Get screens for compare drawer
   const screensToCompare = useMemo(() => {
     return filteredScreens.filter(s => compareScreens.includes(s.id));
   }, [filteredScreens, compareScreens]);
 
+  // Get cart item IDs for highlighting
+  const cartItemIds = useMemo(() => {
+    return cartItems.map(item => item.billboardId);
+  }, [cartItems]);
+
   // Common props for ScreenSection
   const sectionProps = {
     onFavorite: handleFavorite,
     onCompare: handleCompare,
+    onAddToCart: handleAddToCart,
     favoriteIds: favorites,
     compareIds: compareScreens,
+    cartIds: cartItemIds,
+    canAddToCart: hasValidDates && !!user,
+    addToCartDisabledReason: !user ? "Inicia sesión" : !hasValidDates ? "Selecciona fechas" : undefined,
   };
 
   // Error state
@@ -290,7 +359,7 @@ export default function AdvertiserHome() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20 py-8 space-y-12">
+      <main className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20 py-8 space-y-12 pb-32">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -393,6 +462,15 @@ export default function AdvertiserHome() {
           </>
         )}
       </main>
+
+      {/* Floating Cart Overlay */}
+      <FloatingCart
+        items={cartItems}
+        onRemoveItem={removeFromCart}
+        onClearCart={clearCart}
+        isValidating={cartValidating}
+        activeDates={cartDates ? { startDate: cartDates.startDate, endDate: cartDates.endDate } : undefined}
+      />
 
       {/* Screen Detail Modal */}
       <ScreenDetailModal
