@@ -724,6 +724,45 @@ export type Database = {
         }
         Relationships: []
       }
+      propuestas: {
+        Row: {
+          active_dates: Json | null
+          created_at: string
+          descripcion: string | null
+          id: string
+          item_count: number | null
+          items: Json
+          nombre: string
+          total_estimado: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_dates?: Json | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          item_count?: number | null
+          items?: Json
+          nombre: string
+          total_estimado?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_dates?: Json | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          item_count?: number | null
+          items?: Json
+          nombre?: string
+          total_estimado?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       renovaciones_campana: {
         Row: {
           campana_id: string
@@ -1017,6 +1056,9 @@ export type Database = {
           created_at: string
           id: string
           items: Json
+          last_activity_at: string | null
+          reminder_count: number | null
+          reminder_sent_at: string | null
           updated_at: string
           user_id: string
         }
@@ -1025,6 +1067,9 @@ export type Database = {
           created_at?: string
           id?: string
           items?: Json
+          last_activity_at?: string | null
+          reminder_count?: number | null
+          reminder_sent_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1033,6 +1078,9 @@ export type Database = {
           created_at?: string
           id?: string
           items?: Json
+          last_activity_at?: string | null
+          reminder_count?: number | null
+          reminder_sent_at?: string | null
           updated_at?: string
           user_id?: string
         }
