@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, X, Trash2, ChevronUp, ChevronDown, AlertTriangle, Loader2, Calendar, MapPin, ArrowRight } from "lucide-react";
+import { ShoppingCart, X, Trash2, ChevronUp, ChevronDown, AlertTriangle, Loader2, Calendar, MapPin, ArrowRight, Save, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -30,8 +30,11 @@ interface FloatingCartProps {
   onRemoveItem: (id: string) => void;
   onClearCart: () => void;
   onContinueReservation?: () => void;
+  onSavePropuesta?: () => void;
+  onOpenPropuestas?: () => void;
   isValidating?: boolean;
   activeDates?: { startDate?: Date; endDate?: Date };
+  propuestasCount?: number;
 }
 
 const formatPrice = (price: number) => 
@@ -48,8 +51,11 @@ export function FloatingCart({
   onRemoveItem, 
   onClearCart, 
   onContinueReservation,
+  onSavePropuesta,
+  onOpenPropuestas,
   isValidating, 
-  activeDates 
+  activeDates,
+  propuestasCount = 0,
 }: FloatingCartProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [wasExpanded, setWasExpanded] = useState(false);
@@ -298,24 +304,55 @@ export function FloatingCart({
                     </div>
                     
                     {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onClearCart}
-                        className="flex-shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 gap-2"
-                        disabled={!canCheckout}
-                        onClick={onContinueReservation}
-                      >
-                        Continuar Reserva
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      {/* Primary actions row */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onClearCart}
+                          className="flex-shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-2"
+                          disabled={!canCheckout}
+                          onClick={onContinueReservation}
+                        >
+                          Continuar Reserva
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Propuestas actions row */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1.5 text-xs"
+                          onClick={onSavePropuesta}
+                          disabled={items.length === 0}
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          Guardar Propuesta
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1.5 text-xs"
+                          onClick={onOpenPropuestas}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Ver Propuestas
+                          {propuestasCount > 0 && (
+                            <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                              {propuestasCount}
+                            </Badge>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                     
                     {/* Helper text */}

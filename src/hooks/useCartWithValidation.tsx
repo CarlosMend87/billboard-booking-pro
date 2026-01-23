@@ -140,6 +140,7 @@ export function useCartWithValidation() {
       } : null;
 
       // Upsert cart data - use raw query to avoid type issues
+      // Include last_activity_at for abandoned cart tracking
       const { error } = await supabase
         .from("user_carts" as any)
         .upsert({
@@ -147,6 +148,7 @@ export function useCartWithValidation() {
           items: itemsForDb,
           active_dates: datesForDb,
           updated_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
         } as any, {
           onConflict: "user_id",
         });
@@ -498,6 +500,27 @@ export function useCartWithValidation() {
     }
   }, [items]);
 
+  // Load items from a saved proposal
+  const loadFromPropuesta = useCallback((
+    propuestaItems: FloatingCartItem[],
+    propuestaDates: DateRange | null
+  ) => {
+    setItems(propuestaItems);
+    if (propuestaDates) {
+      setActiveDates(propuestaDates);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(propuestaItems));
+    if (propuestaDates) {
+      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(propuestaDates));
+    }
+    
+    toast.success("Propuesta cargada en el carrito", {
+      description: `${propuestaItems.length} pantalla${propuestaItems.length !== 1 ? 's' : ''} agregada${propuestaItems.length !== 1 ? 's' : ''}`,
+    });
+  }, []);
+
   return {
     items,
     isValidating,
@@ -511,6 +534,7 @@ export function useCartWithValidation() {
     revalidateCart,
     isInCart,
     transferToBookingWizard,
+    loadFromPropuesta,
     itemCount: items.length,
     validItemCount: items.filter(i => i.isValid).length,
     total: items.filter(i => i.isValid).reduce((sum, item) => sum + item.precio, 0),
