@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FloatingCartItem } from "@/components/cart/FloatingCart";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeCartConflicts } from "./useRealtimeCartConflicts";
 
 interface AddToCartParams {
   billboardId: string;
@@ -35,9 +36,31 @@ export function useCartWithValidation() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [activeDates, setActiveDates] = useState<DateRange | null>(null);
   const [isLoadingFromDb, setIsLoadingFromDb] = useState(false);
+  const [hasConflicts, setHasConflicts] = useState(false);
   
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedFromDb = useRef(false);
+
+  // Handle real-time conflict detection
+  const handleConflictDetected = useCallback((conflictedItemIds: string[]) => {
+    setHasConflicts(true);
+    
+    // Mark conflicted items as invalid
+    setItems(prevItems => 
+      prevItems.map(item => 
+        conflictedItemIds.includes(item.id)
+          ? { ...item, isValid: false, validationError: "Reservada por otra persona" }
+          : item
+      )
+    );
+  }, []);
+
+  // Subscribe to real-time conflicts
+  useRealtimeCartConflicts({
+    items,
+    onConflictDetected: handleConflictDetected,
+    enabled: items.length > 0,
+  });
 
   // Load cart from database for authenticated users
   const loadCartFromDatabase = useCallback(async () => {
@@ -468,11 +491,19 @@ export function useCartWithValidation() {
     }
   }, [items, checkAvailabilityBackend]);
 
+  // Clear conflict state when cart is cleared or items change
+  useEffect(() => {
+    if (items.every(item => item.isValid)) {
+      setHasConflicts(false);
+    }
+  }, [items]);
+
   return {
     items,
     isValidating,
     isTransferring,
     isLoadingFromDb,
+    hasConflicts,
     activeDates,
     addToCart,
     removeFromCart,
