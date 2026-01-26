@@ -4,6 +4,7 @@ import { FloatingCartItem } from "@/components/cart/FloatingCart";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeCartConflicts } from "./useRealtimeCartConflicts";
+import { buildLegacyCartFromFloatingItems } from "@/lib/cartLegacy";
 
 interface AddToCartParams {
   billboardId: string;
@@ -438,48 +439,7 @@ export function useCartWithValidation() {
         toast.warning(`${validItems.length - stillValid.length} pantalla(s) ya no están disponibles`);
       }
 
-      // Build legacy cart format
-      const legacyCartItems = stillValid.map(item => ({
-        id: `${item.billboardId}-mensual-{}`,
-        asset: {
-          id: item.billboardId,
-          nombre: item.nombre,
-          tipo: item.tipo,
-          lat: 0,
-          lng: 0,
-          medidas: {
-            ancho: item.medidas?.ancho || 0,
-            alto: item.medidas?.alto || 0,
-            caras: 1,
-          },
-          contratacion: {
-            mensual: true,
-          },
-          precio: {
-            mensual: item.precio,
-          },
-          estado: "disponible" as const,
-          foto: item.foto || "/placeholder.svg",
-          owner_id: item.ownerId,
-        },
-        modalidad: "mensual" as const,
-        config: {
-          meses: 1,
-          fechaInicio: item.fechaInicio.toISOString().split('T')[0],
-          fechaFin: item.fechaFin.toISOString().split('T')[0],
-        },
-        precioUnitario: item.precio,
-        subtotal: item.precio,
-        quantity: 1,
-      }));
-
-      const legacyCart = {
-        items: legacyCartItems,
-        total: stillValid.reduce((sum, i) => sum + i.precio, 0),
-        itemCount: stillValid.length,
-        campaignInfo: null,
-      };
-
+      const legacyCart = buildLegacyCartFromFloatingItems(stillValid);
       localStorage.setItem(LEGACY_CART_KEY, JSON.stringify(legacyCart));
       setItems(revalidated);
 

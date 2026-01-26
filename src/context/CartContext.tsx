@@ -31,6 +31,8 @@ interface CartContextType {
   updateItem: (itemId: string, config: CartItemConfig) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
+  /** Forzar hidratación del carrito (p.ej. desde /explorar → /booking-wizard) */
+  loadCart: (cart: Cart) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -260,6 +262,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_CART' });
   };
 
+  const loadCart = (nextCart: Cart) => {
+    dispatch({ type: 'LOAD_CART', payload: nextCart });
+    // Asegura persistencia inmediata (evita carreras antes de que corra el useEffect)
+    localStorage.setItem('cart', JSON.stringify(nextCart));
+  };
+
   return (
     <CartContext.Provider value={{
       cart,
@@ -267,7 +275,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeItem,
       updateItem,
       updateQuantity,
-      clearCart
+      clearCart,
+      loadCart,
     }}>
       {children}
     </CartContext.Provider>
