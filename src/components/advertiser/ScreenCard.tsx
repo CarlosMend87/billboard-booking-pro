@@ -21,6 +21,8 @@ export interface ScreenCardProps {
   owner_id?: string;
   medidas?: { ancho?: number; alto?: number };
   foto?: string;
+  // Modalidades de contratación disponibles
+  contratacion?: Record<string, boolean | number>;
   // UI state
   isFavorite?: boolean;
   isInCompare?: boolean;
@@ -40,7 +42,7 @@ const badgeConfig = {
 };
 
 export function ScreenCard({
-  id, nombre, ubicacion, ciudad, precio, impactos, imagenes, badge, tipo, hasComputerVision, 
+  id, nombre, ubicacion, ciudad, precio, impactos, imagenes, badge, tipo, hasComputerVision, contratacion,
   isFavorite: isFavoriteProp, isInCompare, isInCart, onFavorite, onCompare, onAddToCart, onClick,
   canAddToCart = true, addToCartDisabledReason,
 }: ScreenCardProps) {
@@ -99,6 +101,23 @@ export function ScreenCard({
 
   const formatNumber = (num: number) => num >= 1000000 ? (num / 1000000).toFixed(1) + "M" : num >= 1000 ? (num / 1000).toFixed(0) + "K" : num.toString();
   const formatPrice = (price: number) => new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(price);
+
+  // Extract available modalidades from contratacion object
+  const getModalidadesDisponibles = (): string[] => {
+    if (!contratacion) return [];
+    const modalidadLabels: Record<string, string> = {
+      mensual: "Mensual",
+      catorcenal: "Catorcenal",
+      semanal: "Semanal",
+      dia: "Por Día",
+      spot: "Por Spot",
+    };
+    return Object.entries(contratacion)
+      .filter(([key, value]) => value === true && modalidadLabels[key])
+      .map(([key]) => modalidadLabels[key]);
+  };
+
+  const modalidadesDisponibles = getModalidadesDisponibles();
 
   const getButtonState = () => {
     if (isAddingToCart) return { text: "Validando...", icon: Loader2, disabled: true, animateIcon: true };
@@ -198,6 +217,21 @@ export function ScreenCard({
           {tipo && <span className="text-xs text-muted-foreground capitalize shrink-0">{tipo}</span>}
         </div>
         <p className="text-sm text-muted-foreground line-clamp-1">{ubicacion}, {ciudad}</p>
+        
+        {/* Modalidades disponibles */}
+        {modalidadesDisponibles.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {modalidadesDisponibles.map((modalidad) => (
+              <span 
+                key={modalidad} 
+                className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground"
+              >
+                {modalidad}
+              </span>
+            ))}
+          </div>
+        )}
+        
         {impactos !== null && (
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{formatNumber(impactos)}</span> impactos/mes

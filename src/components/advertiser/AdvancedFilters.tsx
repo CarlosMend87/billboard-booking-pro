@@ -54,7 +54,7 @@ const MODALIDADES = [
   { value: "catorcenal", label: "Catorcenal" },
   { value: "semanal", label: "Semanal" },
   { value: "dia", label: "Por Día" },
-  { value: "cpm", label: "CPM" }
+  { value: "spot", label: "Por Spot" }
 ];
 
 const MAX_PRICE = 100000;
