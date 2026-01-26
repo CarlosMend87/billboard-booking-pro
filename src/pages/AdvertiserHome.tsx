@@ -379,7 +379,7 @@ export default function AdvertiserHome() {
   const hasDateFilter = searchFilters.startDate && searchFilters.endDate;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Global Loading Overlay for cart transfer */}
       <LoadingOverlay 
         isLoading={cartTransferring} 
