@@ -391,7 +391,7 @@ export default function AdvertiserHome() {
 
       {/* Search Bar Section */}
       <div className="bg-background pt-6 pb-8 border-b border-border">
-        <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
+        <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <AirbnbSearchBar onSearch={handleSearch} initialFilters={searchFilters} />
             
@@ -442,7 +442,7 @@ export default function AdvertiserHome() {
             />
           </div>
         </div>
-        <div className="pr-6 md:pr-10 lg:pr-20 flex gap-2">
+        <div className="pr-4 sm:pr-6 lg:pr-8 flex gap-2">
           {/* Mobile Filters */}
           <div className="md:hidden flex items-center gap-1">
             <AdvancedFilters
@@ -475,7 +475,7 @@ export default function AdvertiserHome() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20 py-8 space-y-12 pb-32">
+      <main className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-32">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {Array.from({ length: 10 }).map((_, i) => (

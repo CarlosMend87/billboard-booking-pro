@@ -54,15 +54,15 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
   };
 
   return (
-    <div className="relative border-b border-gray-200 bg-white">
-      <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
+    <div className="relative border-b border-border bg-background">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center">
           {/* Left Arrow */}
           {canScrollLeft && (
             <Button
               variant="outline"
               size="icon"
-              className="absolute left-0 z-10 rounded-full h-7 w-7 bg-white border-gray-300 shadow-md"
+              className="absolute left-0 z-10 rounded-full h-7 w-7 bg-background border-border shadow-md"
               onClick={() => scroll("left")}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -87,7 +87,7 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
                     "flex flex-col items-center gap-2 min-w-fit pb-2 border-b-2 transition-all",
                     isSelected
                       ? "border-foreground text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                   )}
                 >
                   <Icon className="h-6 w-6" />
@@ -102,7 +102,7 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
             <Button
               variant="outline"
               size="icon"
-              className="absolute right-0 z-10 rounded-full h-7 w-7 bg-white border-gray-300 shadow-md"
+              className="absolute right-0 z-10 rounded-full h-7 w-7 bg-background border-border shadow-md"
               onClick={() => scroll("right")}
             >
               <ChevronRight className="h-4 w-4" />

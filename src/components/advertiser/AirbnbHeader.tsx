@@ -24,8 +24,8 @@ export function AirbnbHeader() {
   const location = useLocation();
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      <div className="max-w-[1760px] mx-auto px-6 md:px-10 lg:px-20">
+    <header className="sticky top-0 z-50 bg-background border-b border-border">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -41,7 +41,7 @@ export function AirbnbHeader() {
                 to={tab.href}
                 className={cn(
                   "px-4 py-3 text-sm font-medium rounded-full transition-all duration-200",
-                  "hover:bg-gray-100 hover:text-foreground",
+                  "hover:bg-muted hover:text-foreground",
                   location.pathname === tab.href
                     ? "text-foreground"
                     : "text-muted-foreground"
@@ -57,7 +57,7 @@ export function AirbnbHeader() {
             <Button
               asChild
               variant="ghost"
-              className="hidden md:flex rounded-full text-sm font-medium hover:bg-gray-100"
+              className="hidden md:flex rounded-full text-sm font-medium hover:bg-muted"
             >
               <Link to="/booking-wizard">Publicar campaña</Link>
             </Button>
@@ -65,7 +65,7 @@ export function AirbnbHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full hover:bg-gray-100"
+              className="rounded-full hover:bg-muted"
             >
               <Globe className="h-4 w-4" />
             </Button>
@@ -74,10 +74,10 @@ export function AirbnbHeader() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 rounded-full border-gray-300 hover:shadow-md transition-shadow py-2 px-3 h-auto"
+                  className="flex items-center gap-2 rounded-full border-border hover:shadow-md transition-shadow py-2 px-3 h-auto"
                 >
                   <Menu className="h-4 w-4" />
-                  <div className="bg-gray-500 text-white rounded-full p-1">
+                  <div className="bg-muted-foreground text-background rounded-full p-1">
                     <User className="h-4 w-4" />
                   </div>
                 </Button>
