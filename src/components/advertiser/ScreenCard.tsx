@@ -218,17 +218,22 @@ export function ScreenCard({
         </div>
         <p className="text-sm text-muted-foreground line-clamp-1">{ubicacion}, {ciudad}</p>
         
-        {/* Modalidades disponibles */}
+        {/* Modalidades disponibles - max 3 with +N indicator */}
         {modalidadesDisponibles.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {modalidadesDisponibles.map((modalidad) => (
+          <div className="flex flex-wrap gap-1 h-6 overflow-hidden">
+            {modalidadesDisponibles.slice(0, 3).map((modalidad) => (
               <span 
                 key={modalidad} 
-                className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground"
+                className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground whitespace-nowrap"
               >
                 {modalidad}
               </span>
             ))}
+            {modalidadesDisponibles.length > 3 && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">
+                +{modalidadesDisponibles.length - 3}
+              </span>
+            )}
           </div>
         )}
         
