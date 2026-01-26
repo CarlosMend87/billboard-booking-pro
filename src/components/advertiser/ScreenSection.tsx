@@ -98,11 +98,11 @@ export function ScreenSection({
 
       <div
         ref={scrollRef}
-        className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 -mx-4 px-4"
+        className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {screens.map((screen) => (
-          <div key={screen.id} className="flex-shrink-0 w-[280px] md:w-[300px]">
+          <div key={screen.id} className="flex-shrink-0 w-[260px] sm:w-[280px] md:w-[300px]">
             <ScreenCard
               {...screen}
               isFavorite={favoriteIds.includes(screen.id)}
