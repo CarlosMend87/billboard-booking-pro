@@ -17,6 +17,7 @@ import { Calendar as CalendarIcon, Clock, Target, Zap, Printer, Tag, Check, X, L
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CreativosUpload, CreativosConfig } from "./CreativosUpload";
+import { CampaignDateVisualizer } from "./CampaignDateVisualizer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -502,13 +503,29 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     
     const duracionDias = calcularDuracion();
     
-    // For catorcenal, show selected catorcenas with mini calendar
+    // For catorcenal, show selected catorcenas with visualizer
     if (item.modalidad === 'catorcenal') {
       const periodos = (item.config.periodo || config.periodo)?.split(',') || [];
       const selectedCatorcenas = catorcenas2024.filter(c => periodos.includes(c.periodo));
       
-      const rangeStart = selectedCatorcenas.length > 0 ? new Date(selectedCatorcenas[0].inicio) : undefined;
-      const rangeEnd = selectedCatorcenas.length > 0 ? new Date(selectedCatorcenas[selectedCatorcenas.length - 1].fin) : undefined;
+      if (selectedCatorcenas.length === 0) {
+        return (
+          <div className="space-y-4">
+            <h4 className="font-medium flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              Fechas de la Campaña
+            </h4>
+            <Alert>
+              <AlertDescription>
+                Las catorcenas se seleccionarán durante la exploración de inventario.
+              </AlertDescription>
+            </Alert>
+          </div>
+        );
+      }
+      
+      const rangeStart = selectedCatorcenas[0].inicio;
+      const rangeEnd = selectedCatorcenas[selectedCatorcenas.length - 1].fin;
       
       return (
         <div className="space-y-4">
@@ -517,74 +534,43 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
             Fechas de la Campaña
           </h4>
           
-          {selectedCatorcenas.length > 0 ? (
-            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {selectedCatorcenas.map(catorcena => (
-                  <Badge key={catorcena.periodo} variant="secondary" className="text-sm">
-                    C{catorcena.numero.toString().padStart(2, '0')}
-                  </Badge>
-                ))}
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                {/* Mini calendar showing the range */}
-                <div className="border rounded-lg bg-background overflow-hidden">
-                  <Calendar
-                    mode="range"
-                    selected={{ from: rangeStart, to: rangeEnd }}
-                    month={rangeStart}
-                    className="pointer-events-none scale-90 origin-top-left"
-                    disabled
-                    classNames={{
-                      day_range_middle: "bg-primary/20 text-foreground",
-                      day_range_start: "bg-primary text-primary-foreground",
-                      day_range_end: "bg-primary text-primary-foreground",
-                    }}
-                  />
-                </div>
-                
-                {/* Date summary */}
-                <div className="flex-1 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-background rounded-lg border">
-                      <Label className="text-xs text-muted-foreground">Inicio</Label>
-                      <p className="font-semibold text-sm mt-1">
-                        {format(rangeStart!, "d MMM yyyy", { locale: es })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-background rounded-lg border">
-                      <Label className="text-xs text-muted-foreground">Fin</Label>
-                      <p className="font-semibold text-sm mt-1">
-                        {format(rangeEnd!, "d MMM yyyy", { locale: es })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Duración total</span>
-                      <Badge variant="default" className="font-semibold">
-                        {selectedCatorcenas.length} catorcena{selectedCatorcenas.length > 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+            {/* Catorcenas badges */}
+            <div className="flex flex-wrap gap-2">
+              {selectedCatorcenas.map(catorcena => (
+                <Badge key={catorcena.periodo} variant="secondary" className="text-sm">
+                  C{catorcena.numero.toString().padStart(2, '0')}
+                </Badge>
+              ))}
             </div>
-          ) : (
-            <Alert>
-              <AlertDescription>
-                Las catorcenas se seleccionarán durante la exploración de inventario.
-              </AlertDescription>
-            </Alert>
-          )}
+            
+            {/* Date visualizer */}
+            <CampaignDateVisualizer
+              fechaInicio={rangeStart}
+              fechaFin={rangeEnd}
+              duracionLabel={`${selectedCatorcenas.length} catorcena${selectedCatorcenas.length > 1 ? 's' : ''}`}
+            />
+          </div>
         </div>
       );
     }
     
-    // For other modalities, show readonly date range with mini calendar
-    const rangeStart = fechaInicio ? new Date(fechaInicio) : undefined;
-    const rangeEnd = fechaFin ? new Date(fechaFin) : undefined;
+    // For other modalities, show date visualizer
+    if (!fechaInicio || !fechaFin) {
+      return (
+        <div className="space-y-4">
+          <h4 className="font-medium flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            Fechas de la Campaña
+          </h4>
+          <Alert>
+            <AlertDescription>
+              Las fechas se definieron durante la selección de inventario.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
     
     return (
       <div className="space-y-4">
@@ -593,62 +579,13 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
           Fechas de la Campaña
         </h4>
         
-        {fechaInicio && fechaFin ? (
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              {/* Mini calendar showing the range */}
-              <div className="border rounded-lg bg-background overflow-hidden">
-                <Calendar
-                  mode="range"
-                  selected={{ from: rangeStart, to: rangeEnd }}
-                  month={rangeStart}
-                  className="pointer-events-none scale-90 origin-top-left"
-                  disabled
-                  classNames={{
-                    day_range_middle: "bg-primary/20 text-foreground",
-                    day_range_start: "bg-primary text-primary-foreground",
-                    day_range_end: "bg-primary text-primary-foreground",
-                  }}
-                />
-              </div>
-              
-              {/* Date summary */}
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-background rounded-lg border">
-                    <Label className="text-xs text-muted-foreground">Fecha de inicio</Label>
-                    <p className="font-semibold text-sm mt-1">
-                      {format(new Date(fechaInicio), "d 'de' MMMM yyyy", { locale: es })}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-background rounded-lg border">
-                    <Label className="text-xs text-muted-foreground">Fecha de fin</Label>
-                    <p className="font-semibold text-sm mt-1">
-                      {format(new Date(fechaFin), "d 'de' MMMM yyyy", { locale: es })}
-                    </p>
-                  </div>
-                </div>
-                
-                {duracionDias && (
-                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Duración total</span>
-                      <Badge variant="default" className="font-semibold">
-                        {duracionDias} día{duracionDias > 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Alert>
-            <AlertDescription>
-              Las fechas se definieron durante la selección de inventario.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <CampaignDateVisualizer
+            fechaInicio={fechaInicio}
+            fechaFin={fechaFin}
+            duracionDias={duracionDias || undefined}
+          />
+        </div>
       </div>
     );
   };
