@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { Propuesta } from "@/hooks/usePropuestas";
 import { FloatingCartItem } from "@/components/cart/FloatingCart";
+import { PropuestaPDFExport } from "./PropuestaPDFExport";
+import { PropuestasComparador } from "./PropuestasComparador";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,6 +119,16 @@ export function PropuestasDrawer({
               Propuestas guardadas para comparar antes de reservar
             </SheetDescription>
           </SheetHeader>
+
+          {/* Comparison button */}
+          {propuestas.length >= 2 && (
+            <div className="mt-4">
+              <PropuestasComparador
+                propuestas={propuestas}
+                onLoadPropuesta={onLoadPropuesta}
+              />
+            </div>
+          )}
 
           <div className="mt-6">
             {isLoading ? (
@@ -220,6 +232,7 @@ export function PropuestasDrawer({
 
                             {/* Actions */}
                             <div className="flex gap-2 pt-2">
+                              <PropuestaPDFExport propuesta={propuesta} />
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -229,8 +242,7 @@ export function PropuestasDrawer({
                                   setDeleteConfirmId(propuesta.id);
                                 }}
                               >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Eliminar
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
@@ -241,7 +253,7 @@ export function PropuestasDrawer({
                                 }}
                               >
                                 <Upload className="h-4 w-4 mr-1" />
-                                Cargar en Carrito
+                                Cargar
                               </Button>
                             </div>
                           </div>
