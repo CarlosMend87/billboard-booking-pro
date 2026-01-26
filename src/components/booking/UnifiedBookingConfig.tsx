@@ -490,10 +490,25 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     const fechaInicio = item.config.fechaInicio || config.fechaInicio;
     const fechaFin = item.config.fechaFin || config.fechaFin;
     
-    // For catorcenal, show selected catorcenas
+    // Calculate duration in days
+    const calcularDuracion = () => {
+      if (!fechaInicio || !fechaFin) return null;
+      const inicio = new Date(fechaInicio);
+      const fin = new Date(fechaFin);
+      const diffTime = Math.abs(fin.getTime() - inicio.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      return diffDays;
+    };
+    
+    const duracionDias = calcularDuracion();
+    
+    // For catorcenal, show selected catorcenas with mini calendar
     if (item.modalidad === 'catorcenal') {
       const periodos = (item.config.periodo || config.periodo)?.split(',') || [];
       const selectedCatorcenas = catorcenas2024.filter(c => periodos.includes(c.periodo));
+      
+      const rangeStart = selectedCatorcenas.length > 0 ? new Date(selectedCatorcenas[0].inicio) : undefined;
+      const rangeEnd = selectedCatorcenas.length > 0 ? new Date(selectedCatorcenas[selectedCatorcenas.length - 1].fin) : undefined;
       
       return (
         <div className="space-y-4">
@@ -503,7 +518,7 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
           </h4>
           
           {selectedCatorcenas.length > 0 ? (
-            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
               <div className="flex flex-wrap gap-2">
                 {selectedCatorcenas.map(catorcena => (
                   <Badge key={catorcena.periodo} variant="secondary" className="text-sm">
@@ -511,9 +526,49 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
                   </Badge>
                 ))}
               </div>
-              <div className="text-sm text-muted-foreground">
-                Del {format(new Date(selectedCatorcenas[0].inicio), "d 'de' MMMM yyyy", { locale: es })} al{' '}
-                {format(new Date(selectedCatorcenas[selectedCatorcenas.length - 1].fin), "d 'de' MMMM yyyy", { locale: es })}
+              
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                {/* Mini calendar showing the range */}
+                <div className="border rounded-lg bg-background overflow-hidden">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: rangeStart, to: rangeEnd }}
+                    month={rangeStart}
+                    className="pointer-events-none scale-90 origin-top-left"
+                    disabled
+                    classNames={{
+                      day_range_middle: "bg-primary/20 text-foreground",
+                      day_range_start: "bg-primary text-primary-foreground",
+                      day_range_end: "bg-primary text-primary-foreground",
+                    }}
+                  />
+                </div>
+                
+                {/* Date summary */}
+                <div className="flex-1 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-background rounded-lg border">
+                      <Label className="text-xs text-muted-foreground">Inicio</Label>
+                      <p className="font-semibold text-sm mt-1">
+                        {format(rangeStart!, "d MMM yyyy", { locale: es })}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-background rounded-lg border">
+                      <Label className="text-xs text-muted-foreground">Fin</Label>
+                      <p className="font-semibold text-sm mt-1">
+                        {format(rangeEnd!, "d MMM yyyy", { locale: es })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Duración total</span>
+                      <Badge variant="default" className="font-semibold">
+                        {selectedCatorcenas.length} catorcena{selectedCatorcenas.length > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
@@ -527,7 +582,10 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
       );
     }
     
-    // For other modalities, show readonly date range
+    // For other modalities, show readonly date range with mini calendar
+    const rangeStart = fechaInicio ? new Date(fechaInicio) : undefined;
+    const rangeEnd = fechaFin ? new Date(fechaFin) : undefined;
+    
     return (
       <div className="space-y-4">
         <h4 className="font-medium flex items-center gap-2">
@@ -537,18 +595,50 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
         
         {fechaInicio && fechaFin ? (
           <div className="p-4 bg-muted/50 rounded-lg">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Fecha de inicio</Label>
-                <p className="font-medium mt-1">
-                  {format(new Date(fechaInicio), "d 'de' MMMM yyyy", { locale: es })}
-                </p>
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              {/* Mini calendar showing the range */}
+              <div className="border rounded-lg bg-background overflow-hidden">
+                <Calendar
+                  mode="range"
+                  selected={{ from: rangeStart, to: rangeEnd }}
+                  month={rangeStart}
+                  className="pointer-events-none scale-90 origin-top-left"
+                  disabled
+                  classNames={{
+                    day_range_middle: "bg-primary/20 text-foreground",
+                    day_range_start: "bg-primary text-primary-foreground",
+                    day_range_end: "bg-primary text-primary-foreground",
+                  }}
+                />
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Fecha de fin</Label>
-                <p className="font-medium mt-1">
-                  {format(new Date(fechaFin), "d 'de' MMMM yyyy", { locale: es })}
-                </p>
+              
+              {/* Date summary */}
+              <div className="flex-1 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-background rounded-lg border">
+                    <Label className="text-xs text-muted-foreground">Fecha de inicio</Label>
+                    <p className="font-semibold text-sm mt-1">
+                      {format(new Date(fechaInicio), "d 'de' MMMM yyyy", { locale: es })}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-background rounded-lg border">
+                    <Label className="text-xs text-muted-foreground">Fecha de fin</Label>
+                    <p className="font-semibold text-sm mt-1">
+                      {format(new Date(fechaFin), "d 'de' MMMM yyyy", { locale: es })}
+                    </p>
+                  </div>
+                </div>
+                
+                {duracionDias && (
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Duración total</span>
+                      <Badge variant="default" className="font-semibold">
+                        {duracionDias} día{duracionDias > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
