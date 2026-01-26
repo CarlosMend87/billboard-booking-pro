@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { GlobalFloatingCart } from "@/components/cart/GlobalFloatingCart";
 import Index from "./pages/Index";
 import AdvertiserHome from "./pages/AdvertiserHome";
 import AddBillboard from "./pages/AddBillboard";
@@ -115,6 +116,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            {/* Global Floating Cart - persists across navigation */}
+            <GlobalFloatingCart />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={

@@ -10,14 +10,10 @@ import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIP
 import { AdvancedFilters, AdvancedFiltersState } from "@/components/advertiser/AdvancedFilters";
 import { ScreenCompareDrawer } from "@/components/advertiser/ScreenCompareDrawer";
 import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
-import { FloatingCart } from "@/components/cart/FloatingCart";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
-import { SavePropuestaDialog } from "@/components/propuestas/SavePropuestaDialog";
-import { PropuestasDrawer } from "@/components/propuestas/PropuestasDrawer";
 import { useAvailableScreens } from "@/hooks/useAvailableScreens";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCartWithValidation } from "@/hooks/useCartWithValidation";
-import { usePropuestas } from "@/hooks/usePropuestas";
 import { useAuth } from "@/hooks/useAuth";
 import { Monitor, AlertCircle, Map, LayoutGrid, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -99,33 +95,14 @@ export default function AdvertiserHome() {
   // Favorites hook
   const { favorites, isFavorite, toggleFavorite, favoritesCount } = useFavorites();
 
-  // Cart with backend validation
+  // Cart with backend validation (used for local state only - global cart is in GlobalFloatingCart)
   const {
     items: cartItems,
-    isValidating: cartValidating,
     isTransferring: cartTransferring,
-    activeDates: cartDates,
     addToCart,
-    removeFromCart,
-    clearCart,
     revalidateCart,
     isInCart,
-    transferToBookingWizard,
-    loadFromPropuesta,
   } = useCartWithValidation();
-
-  // Propuestas hook
-  const {
-    propuestas,
-    isLoading: propuestasLoading,
-    isSaving: propuestaSaving,
-    savePropuesta,
-    deletePropuesta,
-  } = usePropuestas();
-
-  // Propuestas dialog state
-  const [savePropuestaOpen, setSavePropuestaOpen] = useState(false);
-  const [propuestasDrawerOpen, setPropuestasDrawerOpen] = useState(false);
 
   // Compare state
   const [compareScreens, setCompareScreens] = useState<string[]>([]);
@@ -360,13 +337,7 @@ export default function AdvertiserHome() {
     );
   }, [user, searchFilters.startDate, searchFilters.endDate, screens, addToCart]);
 
-  // Handle continue to reservation with transfer
-  const handleContinueReservation = useCallback(async () => {
-    const success = await transferToBookingWizard();
-    if (success) {
-      navigate("/booking-wizard");
-    }
-  }, [transferToBookingWizard, navigate]);
+  // Note: handleContinueReservation is now handled by GlobalFloatingCart
 
   // Get screens for compare drawer
   const screensToCompare = useMemo(() => {
@@ -608,45 +579,7 @@ export default function AdvertiserHome() {
         )}
       </main>
 
-      {/* Floating Cart Overlay */}
-      <FloatingCart
-        items={cartItems}
-        onRemoveItem={removeFromCart}
-        onClearCart={clearCart}
-        onContinueReservation={handleContinueReservation}
-        onSavePropuesta={() => setSavePropuestaOpen(true)}
-        onOpenPropuestas={() => setPropuestasDrawerOpen(true)}
-        isValidating={cartValidating}
-        activeDates={cartDates ? { startDate: cartDates.startDate, endDate: cartDates.endDate } : undefined}
-        propuestasCount={propuestas.length}
-      />
-
-      {/* Save Propuesta Dialog */}
-      <SavePropuestaDialog
-        open={savePropuestaOpen}
-        onOpenChange={setSavePropuestaOpen}
-        onSave={async (nombre, descripcion) => {
-          return savePropuesta({
-            nombre,
-            descripcion,
-            items: cartItems,
-            activeDates: cartDates,
-          });
-        }}
-        isSaving={propuestaSaving}
-        itemCount={cartItems.length}
-        total={cartItems.filter(i => i.isValid).reduce((sum, i) => sum + i.precio, 0)}
-      />
-
-      {/* Propuestas Drawer */}
-      <PropuestasDrawer
-        open={propuestasDrawerOpen}
-        onOpenChange={setPropuestasDrawerOpen}
-        propuestas={propuestas}
-        isLoading={propuestasLoading}
-        onLoadPropuesta={loadFromPropuesta}
-        onDeletePropuesta={deletePropuesta}
-      />
+      {/* Note: FloatingCart is now rendered globally in App.tsx via GlobalFloatingCart */}
 
       {/* Screen Detail Modal */}
       <ScreenDetailModal
