@@ -485,140 +485,83 @@ export function UnifiedBookingConfig({ item, onUpdate }: UnifiedBookingConfigPro
     </div>
   );
 
-  const renderProgramacion = () => (
-    <div className="space-y-4">
-      <h4 className="font-medium">Programación de Fechas</h4>
+  const renderProgramacion = () => {
+    // Show dates from cart item (already selected during exploration)
+    const fechaInicio = item.config.fechaInicio || config.fechaInicio;
+    const fechaFin = item.config.fechaFin || config.fechaFin;
+    
+    // For catorcenal, show selected catorcenas
+    if (item.modalidad === 'catorcenal') {
+      const periodos = (item.config.periodo || config.periodo)?.split(',') || [];
+      const selectedCatorcenas = catorcenas2024.filter(c => periodos.includes(c.periodo));
       
-      {item.modalidad === 'catorcenal' ? (
-        <div>
-          <Label>Selecciona catorcenas disponibles (máximo {config.catorcenas || 1})</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 max-h-64 overflow-y-auto">
-            {catorcenas2024.map((catorcena) => {
-              const isSelected = selectedDates.catorcenasSeleccionadas?.includes(catorcena.periodo) || false;
-              const fechaInicio = new Date(catorcena.inicio);
-              const fechaFin = new Date(catorcena.fin);
-              const formatDate = (date: Date) => date.toLocaleDateString('es-MX', { 
-                day: 'numeric', 
-                month: 'short' 
-              });
-              
-              return (
-                <Button
-                  key={catorcena.periodo}
-                  variant={isSelected ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleCatorcenaChange(catorcena.periodo)}
-                  className="justify-start p-3 h-auto"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <Badge 
-                      variant={isSelected ? 'secondary' : 'outline'} 
-                      className="text-xs font-mono"
-                    >
-                      C{catorcena.numero.toString().padStart(2, '0')}
-                    </Badge>
-                    <div className="text-left flex-1">
-                      <div className="text-xs font-medium">
-                        {formatDate(fechaInicio)} - {formatDate(fechaFin)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {catorcena.periodo}
-                      </div>
-                    </div>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
+      return (
+        <div className="space-y-4">
+          <h4 className="font-medium flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            Fechas de la Campaña
+          </h4>
           
-          {selectedDates.catorcenasSeleccionadas && selectedDates.catorcenasSeleccionadas.length > 0 && (
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CalendarIcon className="h-4 w-4 text-primary" />
-                <span className="font-medium">Catorcenas seleccionadas ({selectedDates.catorcenasSeleccionadas.length}):</span>
+          {selectedCatorcenas.length > 0 ? (
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {selectedCatorcenas.map(catorcena => (
+                  <Badge key={catorcena.periodo} variant="secondary" className="text-sm">
+                    C{catorcena.numero.toString().padStart(2, '0')}
+                  </Badge>
+                ))}
               </div>
-              <div className="space-y-1 text-sm">
-                {selectedDates.catorcenasSeleccionadas.map(periodo => {
-                  const catorcena = catorcenas2024.find(c => c.periodo === periodo);
-                  if (!catorcena) return null;
-                  return (
-                    <div key={periodo}>
-                      <strong>C{catorcena.numero.toString().padStart(2, '0')}</strong> - 
-                      Del {new Date(catorcena.inicio).toLocaleDateString('es-MX', { 
-                        day: 'numeric', 
-                        month: 'long',
-                        year: 'numeric' 
-                      })} al {new Date(catorcena.fin).toLocaleDateString('es-MX', { 
-                        day: 'numeric', 
-                        month: 'long',
-                        year: 'numeric' 
-                      })}
-                    </div>
-                  );
-                })}
+              <div className="text-sm text-muted-foreground">
+                Del {format(new Date(selectedCatorcenas[0].inicio), "d 'de' MMMM yyyy", { locale: es })} al{' '}
+                {format(new Date(selectedCatorcenas[selectedCatorcenas.length - 1].fin), "d 'de' MMMM yyyy", { locale: es })}
               </div>
             </div>
+          ) : (
+            <Alert>
+              <AlertDescription>
+                Las catorcenas se seleccionarán durante la exploración de inventario.
+              </AlertDescription>
+            </Alert>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Fecha de inicio</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal mt-2",
-                    !selectedDates.inicio && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDates.inicio ? (
-                    format(selectedDates.inicio, "PPP", { locale: es })
-                  ) : (
-                    <span>Selecciona una fecha</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDates.inicio}
-                  onSelect={(date) => handleDateChange('inicio', date)}
-                  className="rounded-md pointer-events-auto"
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+      );
+    }
+    
+    // For other modalities, show readonly date range
+    return (
+      <div className="space-y-4">
+        <h4 className="font-medium flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          Fechas de la Campaña
+        </h4>
+        
+        {fechaInicio && fechaFin ? (
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Fecha de inicio</Label>
+                <p className="font-medium mt-1">
+                  {format(new Date(fechaInicio), "d 'de' MMMM yyyy", { locale: es })}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Fecha de fin</Label>
+                <p className="font-medium mt-1">
+                  {format(new Date(fechaFin), "d 'de' MMMM yyyy", { locale: es })}
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Fecha de fin (calculada automáticamente)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  disabled
-                  className={cn(
-                    "w-full justify-start text-left font-normal mt-2",
-                    !selectedDates.fin && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDates.fin ? (
-                    format(selectedDates.fin, "PPP", { locale: es })
-                  ) : (
-                    <span>Selecciona fecha de inicio</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-            </Popover>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+        ) : (
+          <Alert>
+            <AlertDescription>
+              Las fechas se definieron durante la selección de inventario.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card>
