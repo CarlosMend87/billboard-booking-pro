@@ -167,6 +167,8 @@ export function useAvailableScreens(dateRange?: DateRange) {
             alto: Number(b.medidas.alto) || Number(b.medidas.alto_m) || undefined 
           } : undefined,
           foto: primaryImage,
+          // Modalidades de contratación
+          contratacion: b.contratacion,
         };
       });
 

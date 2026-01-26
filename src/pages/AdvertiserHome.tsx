@@ -7,6 +7,7 @@ import { ScreenSection } from "@/components/advertiser/ScreenSection";
 import { ScreenDetailModal, ScreenDetail } from "@/components/advertiser/ScreenDetailModal";
 import { ScreenMap } from "@/components/advertiser/ScreenMap";
 import { POIProximityFilter, POIFilterState } from "@/components/advertiser/POIProximityFilter";
+import { AdvancedFilters, AdvancedFiltersState } from "@/components/advertiser/AdvancedFilters";
 import { ScreenCompareDrawer } from "@/components/advertiser/ScreenCompareDrawer";
 import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
 import { FloatingCart } from "@/components/cart/FloatingCart";
@@ -141,6 +142,29 @@ export default function AdvertiserHome() {
     billboardIds: null,
   });
 
+  // Advanced filters state (including modalidades)
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFiltersState>({
+    billboardTypes: [],
+    modalidades: [],
+    proximityFilters: [],
+    priceRange: [0, 100000],
+    hasComputerVision: null,
+  });
+
+  const handleAdvancedFiltersChange = useCallback((newFilters: Partial<AdvancedFiltersState>) => {
+    setAdvancedFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const handleClearAdvancedFilters = useCallback(() => {
+    setAdvancedFilters({
+      billboardTypes: [],
+      modalidades: [],
+      proximityFilters: [],
+      priceRange: [0, 100000],
+      hasComputerVision: null,
+    });
+  }, []);
+
   // Check if dates are selected for cart functionality
   const hasValidDates = !!(searchFilters.startDate && searchFilters.endDate);
 
@@ -201,8 +225,18 @@ export default function AdvertiserHome() {
       result = result.filter((screen) => poiFilter.billboardIds!.includes(screen.id));
     }
 
+    // Filter by modalidades from advanced filters
+    if (advancedFilters.modalidades.length > 0) {
+      result = result.filter((screen) => {
+        if (!screen.contratacion) return false;
+        return advancedFilters.modalidades.some(modalidad => 
+          screen.contratacion![modalidad as keyof typeof screen.contratacion] === true
+        );
+      });
+    }
+
     return result;
-  }, [screens, searchFilters, selectedCategory, poiFilter.billboardIds]);
+  }, [screens, searchFilters, selectedCategory, poiFilter.billboardIds, advancedFilters.modalidades]);
 
   // Group filtered screens by city
   const screensByCity = useMemo(() => {
@@ -425,7 +459,12 @@ export default function AdvertiserHome() {
             selected={selectedCategory}
             onSelect={setSelectedCategory}
           />
-          <div className="hidden md:block pl-4">
+          <div className="hidden md:flex items-center gap-2 pl-4">
+            <AdvancedFilters
+              filters={advancedFilters}
+              onFiltersChange={handleAdvancedFiltersChange}
+              onClearFilters={handleClearAdvancedFilters}
+            />
             <POIProximityFilter
               filter={poiFilter}
               onFilterChange={setPoiFilter}
@@ -433,8 +472,13 @@ export default function AdvertiserHome() {
           </div>
         </div>
         <div className="pr-6 md:pr-10 lg:pr-20 flex gap-2">
-          {/* Mobile POI Filter */}
-          <div className="md:hidden">
+          {/* Mobile Filters */}
+          <div className="md:hidden flex items-center gap-1">
+            <AdvancedFilters
+              filters={advancedFilters}
+              onFiltersChange={handleAdvancedFiltersChange}
+              onClearFilters={handleClearAdvancedFilters}
+            />
             <POIProximityFilter
               filter={poiFilter}
               onFilterChange={setPoiFilter}
