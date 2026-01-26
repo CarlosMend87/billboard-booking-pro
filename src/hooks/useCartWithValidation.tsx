@@ -26,6 +26,7 @@ interface DateRange {
 const CART_STORAGE_KEY = "dooh_floating_cart";
 const DATES_STORAGE_KEY = "dooh_cart_dates";
 const LEGACY_CART_KEY = "cart";
+const CART_META_KEY = "dooh_floating_cart_meta_v1";
 
 // Debounce timeout for DB sync
 const DB_SYNC_DEBOUNCE = 1000;
@@ -41,6 +42,46 @@ export function useCartWithValidation() {
   
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedFromDb = useRef(false);
+  const latestItemsRef = useRef<FloatingCartItem[]>([]);
+  const latestDatesRef = useRef<DateRange | null>(null);
+
+  const writeCartMeta = useCallback((updatedAtIso: string) => {
+    try {
+      localStorage.setItem(CART_META_KEY, JSON.stringify({ updatedAt: updatedAtIso }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const readCartMetaUpdatedAt = useCallback((): Date | null => {
+    try {
+      const raw = localStorage.getItem(CART_META_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { updatedAt?: string };
+      if (!parsed?.updatedAt) return null;
+      const d = new Date(parsed.updatedAt);
+      return Number.isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const persistCartToStorage = useCallback((nextItems: FloatingCartItem[], nextDates: DateRange | null) => {
+    const nowIso = new Date().toISOString();
+    if (nextItems.length > 0) {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextItems));
+    } else {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    }
+
+    if (nextDates) {
+      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(nextDates));
+    } else {
+      localStorage.removeItem(DATES_STORAGE_KEY);
+    }
+
+    writeCartMeta(nowIso);
+  }, [writeCartMeta]);
 
   // Handle real-time conflict detection
   const handleConflictDetected = useCallback((conflictedItemIds: string[]) => {
@@ -72,7 +113,7 @@ export function useCartWithValidation() {
       // Use raw query to avoid type issues with new table
       const { data, error } = await supabase
         .from("user_carts" as any)
-        .select("items, active_dates")
+        .select("items, active_dates, updated_at")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -83,7 +124,7 @@ export function useCartWithValidation() {
 
       if (data) {
         // Parse items from JSON - cast through unknown for type safety
-        const record = data as unknown as { items: any[]; active_dates: any };
+        const record = data as unknown as { items: any[]; active_dates: any; updated_at?: string };
         const dbItems = record.items || [];
         const parsedItems: FloatingCartItem[] = dbItems.map((item: any) => ({
           ...item,
@@ -98,17 +139,21 @@ export function useCartWithValidation() {
           endDate: new Date(dbDates.endDate),
         } : null;
 
-        // Update state
-        if (parsedItems.length > 0) {
+        // Decide fuente de verdad:
+        // - Si hay carrito local (misma sesión/dispositivo) y es más nuevo, NO dejar que la BD lo sobreescriba.
+        // - Si no hay carrito local, o la BD es más nueva, hidratar desde BD.
+        const localUpdatedAt = readCartMetaUpdatedAt();
+        const dbUpdatedAt = record.updated_at ? new Date(record.updated_at) : null;
+
+        const localHasCart = latestItemsRef.current.length > 0 || Boolean(localStorage.getItem(CART_STORAGE_KEY));
+        const dbIsNewer = !!(dbUpdatedAt && (!localUpdatedAt || dbUpdatedAt.getTime() > localUpdatedAt.getTime()));
+
+        const shouldHydrateFromDb = !localHasCart || dbIsNewer;
+
+        if (shouldHydrateFromDb) {
           setItems(parsedItems);
-          if (parsedDates) {
-            setActiveDates(parsedDates);
-          }
-          // Also update localStorage
-          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(parsedItems));
-          if (parsedDates) {
-            localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(parsedDates));
-          }
+          setActiveDates(parsedDates);
+          persistCartToStorage(parsedItems, parsedDates);
         }
       }
       
@@ -118,7 +163,7 @@ export function useCartWithValidation() {
     } finally {
       setIsLoadingFromDb(false);
     }
-  }, [user?.id]);
+  }, [user?.id, persistCartToStorage, readCartMetaUpdatedAt]);
 
   // Save cart to database (debounced)
   const saveCartToDatabase = useCallback(async (
@@ -190,19 +235,31 @@ export function useCartWithValidation() {
           fechaFin: new Date(item.fechaFin),
         }));
         setItems(cartItems);
+        latestItemsRef.current = cartItems;
       }
       
       if (savedDates) {
         const dates = JSON.parse(savedDates);
-        setActiveDates({
+        const parsedDates = {
           startDate: new Date(dates.startDate),
           endDate: new Date(dates.endDate),
-        });
+        };
+        setActiveDates(parsedDates);
+        latestDatesRef.current = parsedDates;
       }
     } catch (err) {
       console.error("Error loading cart from storage:", err);
     }
   }, []);
+
+  // Keep refs in sync (para evitar carreras en rehidratación y acciones rápidas)
+  useEffect(() => {
+    latestItemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    latestDatesRef.current = activeDates;
+  }, [activeDates]);
 
   // Load from database when user is authenticated
   useEffect(() => {
@@ -216,23 +273,19 @@ export function useCartWithValidation() {
   // Save to localStorage and schedule DB sync when items change
   useEffect(() => {
     if (items.length > 0) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      // Persistencia local inmediata + marca de versión
+      persistCartToStorage(items, activeDates);
       scheduleDatabaseSync(items, activeDates);
     } else {
-      localStorage.removeItem(CART_STORAGE_KEY);
+      persistCartToStorage([], null);
       if (user?.id) {
         // Clear from DB too
         saveCartToDatabase([], null);
       }
     }
-  }, [items, activeDates, scheduleDatabaseSync, saveCartToDatabase, user?.id]);
+  }, [items, activeDates, scheduleDatabaseSync, saveCartToDatabase, user?.id, persistCartToStorage]);
 
-  // Save dates to localStorage when they change
-  useEffect(() => {
-    if (activeDates) {
-      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(activeDates));
-    }
-  }, [activeDates]);
+  // Nota: la persistencia de fechas ya se maneja en persistCartToStorage para evitar estados inconsistentes.
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -333,16 +386,22 @@ export function useCartWithValidation() {
 
   // Remove item from cart
   const removeFromCart = useCallback((itemId: string) => {
-    setItems(prev => prev.filter(item => item.id !== itemId));
+    // Evita “revivir” por debounce: persistimos local inmediato y dejamos que el sync escriba a BD.
+    const nextItems = latestItemsRef.current.filter(item => item.id !== itemId);
+    setItems(nextItems);
+    persistCartToStorage(nextItems, latestDatesRef.current);
     toast.success("Pantalla eliminada del carrito");
-  }, []);
+  }, [persistCartToStorage]);
 
   // Clear entire cart
   const clearCart = useCallback(() => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
+    }
     setItems([]);
     setActiveDates(null);
-    localStorage.removeItem(CART_STORAGE_KEY);
-    localStorage.removeItem(DATES_STORAGE_KEY);
+    persistCartToStorage([], null);
     
     // Clear from database
     if (user?.id) {
@@ -350,7 +409,7 @@ export function useCartWithValidation() {
     }
     
     toast.success("Carrito limpiado");
-  }, [user?.id, saveCartToDatabase]);
+  }, [user?.id, saveCartToDatabase, persistCartToStorage]);
 
   // Revalidate all items when dates change
   const revalidateCart = useCallback(async (newDates: DateRange) => {
@@ -469,17 +528,14 @@ export function useCartWithValidation() {
     if (propuestaDates) {
       setActiveDates(propuestaDates);
     }
-    
-    // Save to localStorage
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(propuestaItems));
-    if (propuestaDates) {
-      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(propuestaDates));
-    }
+
+    // Save to localStorage (versionado)
+    persistCartToStorage(propuestaItems, propuestaDates);
     
     toast.success("Propuesta cargada en el carrito", {
       description: `${propuestaItems.length} pantalla${propuestaItems.length !== 1 ? 's' : ''} agregada${propuestaItems.length !== 1 ? 's' : ''}`,
     });
-  }, []);
+  }, [persistCartToStorage]);
 
   return {
     items,
