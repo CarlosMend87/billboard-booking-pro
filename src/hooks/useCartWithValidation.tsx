@@ -83,7 +83,7 @@ export function useCartWithValidation() {
     writeCartMeta(nowIso);
   }, [writeCartMeta]);
 
-  // Handle real-time conflict detection
+  // Handle real-time conflict detection (defined before use by useRealtimeCartConflicts)
   const handleConflictDetected = useCallback((conflictedItemIds: string[]) => {
     setHasConflicts(true);
     
@@ -97,7 +97,7 @@ export function useCartWithValidation() {
     );
   }, []);
 
-  // Subscribe to real-time conflicts
+  // Subscribe to real-time conflicts - important: call hook unconditionally
   useRealtimeCartConflicts({
     items,
     onConflictDetected: handleConflictDetected,
