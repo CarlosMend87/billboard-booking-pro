@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,97 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildLegacyCartFromFloatingItems } from "@/lib/cartLegacy";
 
 type WizardStep = 1 | 2 | 3;
 
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
-  const { cart, addItem, updateQuantity, removeItem, clearCart } = useCartContext();
+  const { cart, addItem, updateQuantity, removeItem, clearCart, loadCart } = useCartContext();
   const { createReservationsFromCart, loading } = useReservations();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const [unavailableAssetIds, setUnavailableAssetIds] = useState<Set<string>>(new Set());
+
+  const lastExploreUrl = useMemo(() => {
+    return localStorage.getItem("dooh_last_explore_url") || "/explorar";
+  }, []);
   
   const [itemConfigs, setItemConfigs] = useState<{[key: string]: CartItemConfig}>({});
+
+  // Hidratación robusta: si CartContext viene vacío, intentar reconstruir desde el carrito persistido de /explorar
+  useEffect(() => {
+    if (cart.items.length > 0) return;
+
+    try {
+      const rawFloating = localStorage.getItem("dooh_floating_cart");
+      if (!rawFloating) return;
+
+      const parsed = JSON.parse(rawFloating) as any[];
+      const floatingItems = parsed.map((item) => ({
+        ...item,
+        fechaInicio: new Date(item.fechaInicio),
+        fechaFin: new Date(item.fechaFin),
+      }));
+
+      const legacy = buildLegacyCartFromFloatingItems(floatingItems);
+      if (legacy.items.length > 0) {
+        loadCart(legacy);
+        toast({
+          title: "Carrito restaurado",
+          description: "Recuperamos tu selección para continuar la reserva.",
+        });
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Revalidación al entrar (no borra items; solo marca y bloquea avanzar)
+  useEffect(() => {
+    const run = async () => {
+      if (cart.items.length === 0) return;
+
+      try {
+        const results = await Promise.all(
+          cart.items.map(async (item) => {
+            const start = item.config?.fechaInicio;
+            const end = item.config?.fechaFin;
+            if (!start || !end) return { assetId: item.asset.id, ok: false };
+
+            const { data, error } = await supabase.rpc("check_billboard_availability", {
+              p_billboard_id: item.asset.id,
+              p_start_date: new Date(start).toISOString().split("T")[0],
+              p_end_date: new Date(end).toISOString().split("T")[0],
+            });
+
+            if (error) return { assetId: item.asset.id, ok: false };
+            return { assetId: item.asset.id, ok: Boolean(data) };
+          })
+        );
+
+        const bad = new Set(results.filter((r) => !r.ok).map((r) => r.assetId));
+        setUnavailableAssetIds(bad);
+
+        if (bad.size > 0) {
+          toast({
+            title: "Hay pantallas no disponibles",
+            description: "Actualiza fechas o elimina pantallas marcadas para continuar.",
+            variant: "destructive",
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    run();
+  }, [cart.items]);
+
+  const hasBlockingAvailabilityIssues = unavailableAssetIds.size > 0;
   
   const handleConfigUpdate = (itemId: string, config: CartItemConfig) => {
     setItemConfigs(prev => ({ ...prev, [itemId]: config }));
@@ -140,10 +219,14 @@ export default function BookingWizard() {
       {cart.items.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No hay anuncios en tu carrito</p>
-            <Button asChild>
-              <Link to="/disponibilidad-anuncios">Agregar Anuncios</Link>
-            </Button>
+            <p className="text-muted-foreground mb-4">
+              Tu carrito está vacío o no se pudo restaurar. Vuelve a “Explorar” y agrega pantallas para continuar.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Button asChild variant="outline">
+                <Link to={lastExploreUrl}>Volver a explorar</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -151,6 +234,7 @@ export default function BookingWizard() {
           {cart.items.map((item) => {
             const availableModalidades = getAvailableModalidades(item);
             const hasMultipleModalidades = availableModalidades.length > 1;
+            const isUnavailable = unavailableAssetIds.has(item.asset.id);
             
             return (
               <Card key={item.id}>
@@ -165,6 +249,11 @@ export default function BookingWizard() {
                             <Badge variant="outline" className="text-xs">
                               ID: {formatShortId(item.asset.id)}
                             </Badge>
+                              {isUnavailable && (
+                                <Badge variant="destructive" className="text-xs">
+                                  No disponible
+                                </Badge>
+                              )}
                           </div>
                         </div>
                         <Button
@@ -498,8 +587,18 @@ export default function BookingWizard() {
             </Button>
             
             <Button
-              onClick={() => setCurrentStep(Math.min(3, currentStep + 1) as WizardStep)}
-              disabled={currentStep === 3 || cart.items.length === 0}
+              onClick={() => {
+                if (hasBlockingAvailabilityIssues) {
+                  toast({
+                    title: "No puedes continuar",
+                    description: "Hay pantallas marcadas como no disponibles. Ajusta fechas o elimínalas.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setCurrentStep(Math.min(3, currentStep + 1) as WizardStep);
+              }}
+              disabled={currentStep === 3 || cart.items.length === 0 || hasBlockingAvailabilityIssues}
             >
               Siguiente
               <ArrowRight className="h-4 w-4 ml-2" />

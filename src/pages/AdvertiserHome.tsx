@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { AirbnbHeader } from "@/components/advertiser/AirbnbHeader";
 import { AirbnbSearchBar, SearchFilters } from "@/components/advertiser/AirbnbSearchBar";
 import { CategoryFilter } from "@/components/advertiser/CategoryFilter";
@@ -26,7 +26,11 @@ import { toast } from "sonner";
 export default function AdvertiserHome() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const locationRouter = useLocation();
   const { user } = useAuth();
+
+  const FILTERS_STORAGE_KEY = "dooh_explore_filters_v1";
+  const LAST_EXPLORE_URL_KEY = "dooh_last_explore_url";
   
   // Search filters state - read from URL on mount
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
@@ -35,6 +39,55 @@ export default function AdvertiserHome() {
     endDate: searchParams.get("endDate") ? new Date(searchParams.get("endDate")!) : undefined,
     screenTypes: searchParams.get("type")?.split(',').filter(Boolean) || [],
   });
+
+  // Persist last explore URL (para regresar desde wizard sin perder contexto)
+  useEffect(() => {
+    localStorage.setItem(LAST_EXPLORE_URL_KEY, `${locationRouter.pathname}${locationRouter.search}`);
+  }, [locationRouter.pathname, locationRouter.search]);
+
+  // Fallback de filtros: si la URL no trae params, restaurar desde localStorage y sincronizar URL
+  useEffect(() => {
+    const hasAnyParam = ["location", "startDate", "endDate", "type"].some((k) => searchParams.get(k));
+    if (hasAnyParam) return;
+
+    try {
+      const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as {
+        location?: string;
+        startDate?: string;
+        endDate?: string;
+        screenTypes?: string[];
+      };
+
+      const restored: SearchFilters = {
+        location: stored.location || "",
+        startDate: stored.startDate ? new Date(stored.startDate) : undefined,
+        endDate: stored.endDate ? new Date(stored.endDate) : undefined,
+        screenTypes: stored.screenTypes || [],
+      };
+
+      // Evita sobrescribir si ya hay estado “real”
+      const isAlreadyEmpty =
+        !searchFilters.location &&
+        !searchFilters.startDate &&
+        !searchFilters.endDate &&
+        searchFilters.screenTypes.length === 0;
+
+      if (isAlreadyEmpty) {
+        setSearchFilters(restored);
+        const params = new URLSearchParams();
+        if (restored.location) params.set("location", restored.location);
+        if (restored.startDate) params.set("startDate", restored.startDate.toISOString());
+        if (restored.endDate) params.set("endDate", restored.endDate.toISOString());
+        if (restored.screenTypes.length > 0) params.set("type", restored.screenTypes.join(","));
+        navigate(`/explorar?${params.toString()}`, { replace: true });
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
 
   // Use the new hook that filters by date availability
   const { screens, loading, error, getScreenById } = useAvailableScreens({
@@ -179,6 +232,17 @@ export default function AdvertiserHome() {
 
   const handleSearch = (filters: SearchFilters) => {
     setSearchFilters(filters);
+
+    // Persist filtros (para refresh/back sin URL)
+    localStorage.setItem(
+      FILTERS_STORAGE_KEY,
+      JSON.stringify({
+        location: filters.location,
+        startDate: filters.startDate?.toISOString(),
+        endDate: filters.endDate?.toISOString(),
+        screenTypes: filters.screenTypes,
+      })
+    );
     
     // Update URL params
     const params = new URLSearchParams();
