@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ShoppingCart, X, Trash2, ChevronUp, ChevronDown, AlertTriangle, Loader2, Calendar, MapPin, ArrowRight, Save, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,27 +57,25 @@ export function FloatingCart({
   activeDates,
   propuestasCount = 0,
 }: FloatingCartProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [wasExpanded, setWasExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const prevItemCountRef = useRef(items.length);
 
-  // Auto-expand when first item is added
+  // Auto-expand when items are added, keep state stable
   useEffect(() => {
-    if (items.length > 0 && !wasExpanded) {
+    // If items were added (count increased), expand
+    if (items.length > prevItemCountRef.current && items.length > 0) {
       setIsExpanded(true);
-      setWasExpanded(true);
     }
-    if (items.length === 0) {
-      setIsExpanded(false);
-      setWasExpanded(false);
-    }
-  }, [items.length, wasExpanded]);
+    prevItemCountRef.current = items.length;
+  }, [items.length]);
 
   const validItems = items.filter(item => item.isValid);
   const invalidItems = items.filter(item => !item.isValid);
   const total = validItems.reduce((sum, item) => sum + item.precio, 0);
   const canCheckout = validItems.length > 0 && invalidItems.length === 0 && !isValidating;
 
-  if (items.length === 0 && !isExpanded) return null;
+  // Only hide when truly empty
+  if (items.length === 0) return null;
 
   return (
     <AnimatePresence>
@@ -198,26 +196,26 @@ export function FloatingCart({
                               : "bg-destructive/5 border-destructive/30"
                           )}
                         >
-                          <div className="flex gap-3">
-                            {/* Content */}
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                              {/* Name with tooltip */}
+                          <div className="flex items-start gap-3">
+                            {/* Content - structured layout */}
+                            <div className="flex-1 min-w-0 space-y-2">
+                              {/* Row 1: Name */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <p className="font-medium text-sm leading-tight line-clamp-2">
+                                  <p className="font-semibold text-sm leading-tight line-clamp-1">
                                     {item.nombre}
                                   </p>
                                 </TooltipTrigger>
-                                <TooltipContent side="left" className="max-w-[250px]">
+                                <TooltipContent side="left" className="max-w-[280px]">
                                   <p className="font-medium">{item.nombre}</p>
                                 </TooltipContent>
                               </Tooltip>
                               
-                              {/* Location with tooltip */}
+                              {/* Row 2: Location */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <MapPin className="h-3 w-3 shrink-0" />
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
                                     <span className="truncate">{item.ubicacion}</span>
                                   </div>
                                 </TooltipTrigger>
@@ -226,9 +224,15 @@ export function FloatingCart({
                                 </TooltipContent>
                               </Tooltip>
                               
-                              {/* Type and Price row */}
-                              <div className="flex items-center justify-between gap-2 pt-1">
-                                <Badge variant="outline" className="text-xs capitalize h-5">
+                              {/* Row 3: Dates */}
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                                <span>{formatDate(item.fechaInicio)} → {formatDate(item.fechaFin)}</span>
+                              </div>
+                              
+                              {/* Row 4: Type badge and Price - aligned row */}
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+                                <Badge variant="outline" className="text-[10px] uppercase font-medium h-5 px-1.5">
                                   {item.tipo}
                                 </Badge>
                                 <span className="font-bold text-sm text-primary">
@@ -236,28 +240,22 @@ export function FloatingCart({
                                 </span>
                               </div>
                               
-                              {/* Dates */}
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
-                                <Calendar className="h-3 w-3 shrink-0" />
-                                <span>{formatDate(item.fechaInicio)} - {formatDate(item.fechaFin)}</span>
-                              </div>
-                              
-                              {/* Validation error */}
+                              {/* Validation error - only if invalid */}
                               {!item.isValid && item.validationError && (
-                                <div className="flex items-start gap-1.5 mt-2 p-2 rounded-lg bg-destructive/10">
-                                  <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
-                                  <span className="text-xs text-destructive leading-tight">
+                                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-destructive/10 mt-1">
+                                  <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                                  <span className="text-xs text-destructive font-medium">
                                     {item.validationError}
                                   </span>
                                 </div>
                               )}
                             </div>
                             
-                            {/* Remove button */}
+                            {/* Remove button - aligned top right */}
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 self-start"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 -mt-0.5 -mr-1"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onRemoveItem(item.id);
