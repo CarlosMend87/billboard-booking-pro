@@ -132,7 +132,32 @@ export default function BookingWizard() {
         }
       }
       
+      // Clear both CartContext and floating cart persistence
       clearCart();
+      
+      // Also clear the floating cart from localStorage and database
+      localStorage.removeItem("dooh_floating_cart");
+      localStorage.removeItem("dooh_cart_dates");
+      localStorage.removeItem("dooh_floating_cart_meta_v1");
+      
+      // Clear from database if user is authenticated
+      if (user?.id) {
+        try {
+          await supabase
+            .from("user_carts" as any)
+            .upsert({
+              user_id: user.id,
+              items: [],
+              active_dates: null,
+              updated_at: new Date().toISOString(),
+            } as any, {
+              onConflict: "user_id",
+            });
+        } catch (dbError) {
+          console.error('Error clearing cart from database:', dbError);
+        }
+      }
+      
       toast({
         title: "Reservas Creadas",
         description: "Tus reservas han sido enviadas a los propietarios. Recibirás un correo de confirmación con el resumen.",
