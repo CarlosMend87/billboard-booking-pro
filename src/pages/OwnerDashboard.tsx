@@ -26,12 +26,14 @@ import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoMana
 import { AnunciantesManager } from "@/components/owner/AnunciantesManager";
 import { ReporteDescuentos } from "@/components/owner/ReporteDescuentos";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { BulkBillboardUpload } from "@/components/owner/BulkBillboardUpload";
 import Papa from "papaparse";
 
 export default function OwnerDashboard() {
   const { billboards, loading, deleteBillboard, deleteAllBillboards, updateBillboard, fetchBillboards } = useBillboards();
   const { user } = useAuth();
+  const { empresa, empresaUsers } = useEmpresa();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -111,11 +113,23 @@ export default function OwnerDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Dashboard Propietario
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  Dashboard Propietario
+                </h1>
+                {empresa && (
+                  <Badge variant="secondary" className="text-sm">
+                    {empresa.nombre}
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground mt-2">
                 Gestiona tus pantallas publicitarias y monitorea su rendimiento financiero
+                {empresaUsers.length > 1 && (
+                  <span className="ml-2 text-xs">
+                    • {empresaUsers.length} usuarios en esta empresa
+                  </span>
+                )}
               </p>
             </div>
             

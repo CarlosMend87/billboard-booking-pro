@@ -16,13 +16,15 @@ import {
   Upload,
   LogOut,
   UserPlus,
-  FileText
+  FileText,
+  Building2
 } from "lucide-react";
 import UserManagement from "@/components/superadmin/UserManagement";
 import RoleManagement from "@/components/superadmin/RoleManagement"; 
 import AuditLogs from "@/components/superadmin/AuditLogs";
 import SecuritySettings from "@/components/superadmin/SecuritySettings";
 import DataManagement from "@/components/superadmin/DataManagement";
+import EmpresasManager from "@/components/superadmin/EmpresasManager";
 
 export default function SuperAdminDashboard() {
   const { user, signOut } = useAuth();
@@ -149,10 +151,14 @@ export default function SuperAdminDashboard() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="users" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Usuarios</span>
+            </TabsTrigger>
+            <TabsTrigger value="empresas" className="flex items-center space-x-2">
+              <Building2 className="w-4 h-4" />
+              <span>Empresas</span>
             </TabsTrigger>
             <TabsTrigger value="roles" className="flex items-center space-x-2">
               <Shield className="w-4 h-4" />
@@ -174,6 +180,10 @@ export default function SuperAdminDashboard() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="empresas">
+            <EmpresasManager />
           </TabsContent>
 
           <TabsContent value="roles">
