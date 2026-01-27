@@ -13,6 +13,7 @@ import { BillboardForm } from "@/components/owner/BillboardForm";
 import { FinancialSummary } from "@/components/owner/FinancialSummary";
 import { PerformanceChart } from "@/components/owner/PerformanceChart";
 import { AlertsPanel } from "@/components/owner/AlertsPanel";
+import { BillboardAvailabilityCalendar } from "@/components/owner/BillboardAvailabilityCalendar";
 import { QuickStatusChange } from "@/components/owner/QuickStatusChange";
 import { BillboardMap } from "@/components/owner/BillboardMap";
 import { ExportReports } from "@/components/owner/ExportReports";
@@ -162,8 +163,9 @@ export default function OwnerDashboard() {
         </div>
 
         <Tabs defaultValue="resumen" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="financiero">Financiero</TabsTrigger>
             <TabsTrigger value="agentes">Agentes</TabsTrigger>
             <TabsTrigger value="descuentos">Descuentos</TabsTrigger>
@@ -601,6 +603,10 @@ export default function OwnerDashboard() {
                 </div>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="calendario" className="space-y-6">
+            <BillboardAvailabilityCalendar billboards={billboards} />
           </TabsContent>
 
           <TabsContent value="financiero" className="space-y-6">
