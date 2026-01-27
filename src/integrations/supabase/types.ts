@@ -187,6 +187,7 @@ export type Database = {
           created_at: string
           digital: Json | null
           direccion: string
+          empresa_id: string | null
           fotos: string[] | null
           has_computer_vision: boolean | null
           id: string
@@ -210,6 +211,7 @@ export type Database = {
           created_at?: string
           digital?: Json | null
           direccion: string
+          empresa_id?: string | null
           fotos?: string[] | null
           has_computer_vision?: boolean | null
           id?: string
@@ -233,6 +235,7 @@ export type Database = {
           created_at?: string
           digital?: Json | null
           direccion?: string
+          empresa_id?: string | null
           fotos?: string[] | null
           has_computer_vision?: boolean | null
           id?: string
@@ -250,7 +253,15 @@ export type Database = {
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "billboards_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bonificaciones: {
         Row: {
@@ -429,6 +440,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      empresas: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       marcas: {
         Row: {
@@ -677,6 +709,7 @@ export type Database = {
           created_by: string | null
           email: string | null
           empresa: string | null
+          empresa_id: string | null
           id: string
           last_login_at: string | null
           name: string | null
@@ -694,6 +727,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           empresa?: string | null
+          empresa_id?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null
@@ -711,6 +745,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           empresa?: string | null
+          empresa_id?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null
@@ -722,7 +757,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       propuestas: {
         Row: {
@@ -1233,6 +1276,7 @@ export type Database = {
           created_at: string
           digital: Json | null
           direccion: string
+          empresa_id: string | null
           fotos: string[] | null
           has_computer_vision: boolean | null
           id: string
@@ -1280,6 +1324,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_empresa_id: { Args: { user_uuid?: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1313,6 +1358,10 @@ export type Database = {
       }
       setup_superadmin: { Args: { admin_email: string }; Returns: string }
       update_last_login: { Args: { user_uuid: string }; Returns: undefined }
+      user_belongs_to_empresa: {
+        Args: { empresa_uuid: string }
+        Returns: boolean
+      }
       user_has_permission: {
         Args: {
           perm: Database["public"]["Enums"]["permission"]
