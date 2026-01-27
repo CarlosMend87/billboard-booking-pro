@@ -13,7 +13,7 @@ import { ScreenProposalPDF } from "@/components/advertiser/ScreenProposalPDF";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { useAvailableScreens } from "@/hooks/useAvailableScreens";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useCartWithValidation } from "@/hooks/useCartWithValidation";
+import { useCartValidation } from "@/context/CartValidationContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Monitor, AlertCircle, Map, LayoutGrid, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,14 +95,14 @@ export default function AdvertiserHome() {
   // Favorites hook
   const { favorites, isFavorite, toggleFavorite, favoritesCount } = useFavorites();
 
-  // Cart with backend validation (used for local state only - global cart is in GlobalFloatingCart)
+  // Cart with backend validation - using shared context
   const {
     items: cartItems,
     isTransferring: cartTransferring,
     addToCart,
     revalidateCart,
     isInCart,
-  } = useCartWithValidation();
+  } = useCartValidation();
 
   // Compare state
   const [compareScreens, setCompareScreens] = useState<string[]>([]);

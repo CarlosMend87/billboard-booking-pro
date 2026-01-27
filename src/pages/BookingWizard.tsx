@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle, ShoppingCart, Trash2, X } from "lucide-react";
 import { useCartContext } from "@/context/CartContext";
+import { useCartValidation } from "@/context/CartValidationContext";
 import { UnifiedBookingConfig } from "@/components/booking/UnifiedBookingConfig";
 import { formatPrice } from "@/lib/pricing";
 import { formatShortId } from "@/lib/utils";
@@ -23,6 +24,7 @@ type WizardStep = 1 | 2 | 3;
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const { cart, addItem, updateQuantity, removeItem, clearCart, loadCart } = useCartContext();
+  const { clearCart: clearFloatingCart } = useCartValidation();
   const { createReservationsFromCart, loading } = useReservations();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -135,28 +137,8 @@ export default function BookingWizard() {
       // Clear both CartContext and floating cart persistence
       clearCart();
       
-      // Also clear the floating cart from localStorage and database
-      localStorage.removeItem("dooh_floating_cart");
-      localStorage.removeItem("dooh_cart_dates");
-      localStorage.removeItem("dooh_floating_cart_meta_v1");
-      
-      // Clear from database if user is authenticated
-      if (user?.id) {
-        try {
-          await supabase
-            .from("user_carts" as any)
-            .upsert({
-              user_id: user.id,
-              items: [],
-              active_dates: null,
-              updated_at: new Date().toISOString(),
-            } as any, {
-              onConflict: "user_id",
-            });
-        } catch (dbError) {
-          console.error('Error clearing cart from database:', dbError);
-        }
-      }
+      // Clear the floating cart from context (this will also clear localStorage and DB)
+      clearFloatingCart();
       
       toast({
         title: "Reservas Creadas",
