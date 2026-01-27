@@ -39,6 +39,7 @@ export function useCartWithValidation() {
   const [activeDates, setActiveDates] = useState<DateRange | null>(null);
   const [isLoadingFromDb, setIsLoadingFromDb] = useState(false);
   const [hasConflicts, setHasConflicts] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasLoadedFromDb = useRef(false);
@@ -154,12 +155,16 @@ export function useCartWithValidation() {
           setItems(parsedItems);
           setActiveDates(parsedDates);
           persistCartToStorage(parsedItems, parsedDates);
+          latestItemsRef.current = parsedItems;
+          latestDatesRef.current = parsedDates;
         }
       }
       
       hasLoadedFromDb.current = true;
+      setIsHydrated(true);
     } catch (err) {
       console.error("Error loading cart:", err);
+      setIsHydrated(true); // Marcar como hidratado aún en error para evitar bloqueo
     } finally {
       setIsLoadingFromDb(false);
     }
@@ -250,7 +255,13 @@ export function useCartWithValidation() {
     } catch (err) {
       console.error("Error loading cart from storage:", err);
     }
-  }, []);
+    
+    // Si no hay usuario autenticado, marcar como hidratado inmediatamente
+    // (el useEffect del usuario hará lo mismo, pero esto es más rápido)
+    if (!user?.id) {
+      setIsHydrated(true);
+    }
+  }, [user?.id]);
 
   // Keep refs in sync (para evitar carreras en rehidratación y acciones rápidas)
   useEffect(() => {
@@ -267,11 +278,17 @@ export function useCartWithValidation() {
       loadCartFromDatabase();
     } else {
       hasLoadedFromDb.current = false;
+      // Si no hay usuario, marcar como hidratado para permitir persistencia local
+      setIsHydrated(true);
     }
   }, [user?.id, loadCartFromDatabase]);
 
   // Save to localStorage and schedule DB sync when items change
+  // IMPORTANTE: Solo sincronizar DESPUÉS de la hidratación para evitar borrar datos de la BD
   useEffect(() => {
+    // No sincronizar si no se ha hidratado todavía
+    if (!isHydrated) return;
+    
     if (items.length > 0) {
       // Persistencia local inmediata + marca de versión
       persistCartToStorage(items, activeDates);
@@ -283,7 +300,7 @@ export function useCartWithValidation() {
         saveCartToDatabase([], null);
       }
     }
-  }, [items, activeDates, scheduleDatabaseSync, saveCartToDatabase, user?.id, persistCartToStorage]);
+  }, [items, activeDates, scheduleDatabaseSync, saveCartToDatabase, user?.id, persistCartToStorage, isHydrated]);
 
   // Nota: la persistencia de fechas ya se maneja en persistCartToStorage para evitar estados inconsistentes.
 
