@@ -33,7 +33,7 @@ export function ScreenSection({
 }: ScreenSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const checkScroll = () => {
     if (scrollRef.current) {
@@ -48,11 +48,7 @@ export function ScreenSection({
     const element = scrollRef.current;
     if (element) {
       element.addEventListener("scroll", checkScroll);
-      window.addEventListener("resize", checkScroll);
-      return () => {
-        element.removeEventListener("scroll", checkScroll);
-        window.removeEventListener("resize", checkScroll);
-      };
+      return () => element.removeEventListener("scroll", checkScroll);
     }
   }, [screens]);
 
@@ -68,88 +64,60 @@ export function ScreenSection({
 
   if (screens.length === 0) return null;
 
-  // Determine if we need scrolling based on screen count
-  const needsScroll = screens.length > 5;
-
   return (
     <section className="relative">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
-        {needsScroll && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "rounded-full h-8 w-8 border-border",
-                !canScrollLeft && "opacity-50 cursor-not-allowed"
-              )}
-              onClick={() => scroll("left")}
-              disabled={!canScrollLeft}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "rounded-full h-8 w-8 border-border",
-                !canScrollRight && "opacity-50 cursor-not-allowed"
-              )}
-              onClick={() => scroll("right")}
-              disabled={!canScrollRight}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              "rounded-full h-8 w-8 border-border",
+              !canScrollLeft && "opacity-50 cursor-not-allowed"
+            )}
+            onClick={() => scroll("left")}
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              "rounded-full h-8 w-8 border-border",
+              !canScrollRight && "opacity-50 cursor-not-allowed"
+            )}
+            onClick={() => scroll("right")}
+            disabled={!canScrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {needsScroll ? (
-        // Horizontal scroll for many screens
-        <div
-          ref={scrollRef}
-          className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {screens.map((screen) => (
-            <div key={screen.id} className="flex-shrink-0 w-[260px] sm:w-[280px] md:w-[300px]">
-              <ScreenCard
-                {...screen}
-                isFavorite={favoriteIds.includes(screen.id)}
-                isInCompare={compareIds.includes(screen.id)}
-                isInCart={cartIds.includes(screen.id)}
-                onClick={() => onScreenClick?.(screen.id)}
-                onFavorite={onFavorite}
-                onCompare={onCompare}
-                onAddToCart={onAddToCart}
-                canAddToCart={canAddToCart}
-                addToCartDisabledReason={addToCartDisabledReason}
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        // Grid layout for fewer screens - fills available width
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-          {screens.map((screen) => (
-            <div key={screen.id}>
-              <ScreenCard
-                {...screen}
-                isFavorite={favoriteIds.includes(screen.id)}
-                isInCompare={compareIds.includes(screen.id)}
-                isInCart={cartIds.includes(screen.id)}
-                onClick={() => onScreenClick?.(screen.id)}
-                onFavorite={onFavorite}
-                onCompare={onCompare}
-                onAddToCart={onAddToCart}
-                canAddToCart={canAddToCart}
-                addToCartDisabledReason={addToCartDisabledReason}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      <div
+        ref={scrollRef}
+        className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {screens.map((screen) => (
+          <div key={screen.id} className="flex-shrink-0 w-[260px] sm:w-[280px] md:w-[300px]">
+            <ScreenCard
+              {...screen}
+              isFavorite={favoriteIds.includes(screen.id)}
+              isInCompare={compareIds.includes(screen.id)}
+              isInCart={cartIds.includes(screen.id)}
+              onClick={() => onScreenClick?.(screen.id)}
+              onFavorite={onFavorite}
+              onCompare={onCompare}
+              onAddToCart={onAddToCart}
+              canAddToCart={canAddToCart}
+              addToCartDisabledReason={addToCartDisabledReason}
+            />
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
