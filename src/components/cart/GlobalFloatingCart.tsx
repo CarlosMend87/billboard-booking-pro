@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { FloatingCart } from "./FloatingCart";
-import { useCartWithValidation } from "@/hooks/useCartWithValidation";
+import { useCartValidation } from "@/context/CartValidationContext";
 import { usePropuestas } from "@/hooks/usePropuestas";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
@@ -41,7 +41,7 @@ export function GlobalFloatingCart() {
     clearCart,
     transferToBookingWizard,
     loadFromPropuesta,
-  } = useCartWithValidation();
+  } = useCartValidation();
 
   const {
     propuestas,
