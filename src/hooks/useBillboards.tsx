@@ -11,19 +11,45 @@ export type UpdateBillboard = TablesUpdate<"billboards">;
 export function useBillboards() {
   const [billboards, setBillboards] = useState<Billboard[]>([]);
   const [loading, setLoading] = useState(false);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Get user's empresa_id first
+  useEffect(() => {
+    const fetchEmpresaId = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('empresa_id')
+        .eq('user_id', user.id)
+        .single();
+      
+      setEmpresaId(data?.empresa_id || null);
+    };
+    
+    fetchEmpresaId();
+  }, [user]);
 
   const fetchBillboards = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Query by empresa_id if available, otherwise by owner_id
+      let query = supabase
         .from('billboards')
         .select('*')
-        .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
+      
+      if (empresaId) {
+        query = query.eq('empresa_id', empresaId);
+      } else {
+        query = query.eq('owner_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setBillboards(data || []);
@@ -38,7 +64,7 @@ export function useBillboards() {
     }
   };
 
-  const createBillboard = async (billboardData: Omit<CreateBillboard, 'owner_id'>) => {
+  const createBillboard = async (billboardData: Omit<CreateBillboard, 'owner_id' | 'empresa_id'>) => {
     if (!user) return;
 
     setLoading(true);
@@ -47,7 +73,8 @@ export function useBillboards() {
         .from('billboards')
         .insert({
           ...billboardData,
-          owner_id: user.id
+          owner_id: user.id,
+          empresa_id: empresaId
         })
         .select()
         .single();
@@ -203,8 +230,10 @@ export function useBillboards() {
   };
 
   useEffect(() => {
-    fetchBillboards();
-  }, [user]);
+    if (user && empresaId !== undefined) {
+      fetchBillboards();
+    }
+  }, [user, empresaId]);
 
   return {
     billboards,

@@ -35,6 +35,8 @@ interface User {
   phone: string | null;
   avatar_url: string | null;
   empresa: string | null;
+  empresa_id: string | null;
+  empresa_nombre?: string | null;
 }
 
 export default function UserManagement() {
@@ -67,6 +69,13 @@ export default function UserManagement() {
     try {
       setLoading(true);
       
+      // First get all empresas for mapping
+      const { data: empresasData } = await supabase
+        .from('empresas')
+        .select('id, nombre');
+      
+      const empresasMap = new Map(empresasData?.map(e => [e.id, e.nombre]) || []);
+      
       let query = supabase.from('profiles').select('*');
       
       if (searchTerm) {
@@ -93,7 +102,12 @@ export default function UserManagement() {
           variant: "destructive",
         });
       } else {
-        setUsers(data || []);
+        // Add empresa_nombre to each user
+        const usersWithEmpresa = (data || []).map(user => ({
+          ...user,
+          empresa_nombre: user.empresa_id ? empresasMap.get(user.empresa_id) : null
+        }));
+        setUsers(usersWithEmpresa);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -632,6 +646,7 @@ export default function UserManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuario</TableHead>
+                  <TableHead>Empresa</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Último acceso</TableHead>
@@ -650,6 +665,15 @@ export default function UserManagement() {
                           <div className="text-xs text-muted-foreground">{user.phone}</div>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.empresa_nombre ? (
+                        <Badge variant="outline" className="bg-accent/10">
+                          {user.empresa_nombre}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Sin empresa</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {getRoleBadge(user.role)}
