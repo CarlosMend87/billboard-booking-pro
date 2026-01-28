@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.55.0';
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,10 +8,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
-const SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
-const SENDGRID_FROM_EMAIL = "carlos@adavailable.com";
-const SENDGRID_FROM_NAME = "AdAvailable";
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const FROM_EMAIL = "AdAvailable <onboarding@resend.dev>";
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -33,36 +32,22 @@ interface ReservationEmailRequest {
   total: number;
 }
 
-interface SendGridEmail {
-  to: string;
-  subject: string;
-  html: string;
-}
-
-async function sendEmail(emailData: SendGridEmail): Promise<void> {
-  console.log('Sending email via SendGrid to:', emailData.to);
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  console.log('Sending email via Resend to:', to);
   
-  const response = await fetch(SENDGRID_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: emailData.to }] }],
-      from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
-      subject: emailData.subject,
-      content: [{ type: 'text/html', value: emailData.html }],
-    }),
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: [to],
+    subject: subject,
+    html: html,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('SendGrid error response:', errorText);
-    throw new Error(`SendGrid API error: ${response.status} - ${errorText}`);
+  if (error) {
+    console.error('Resend error:', error);
+    throw new Error(`Resend API error: ${JSON.stringify(error)}`);
   }
 
-  console.log('Email sent successfully via SendGrid');
+  console.log('Email sent successfully via Resend');
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -166,12 +151,7 @@ async function sendEmailToAdvertiser(email: string, reservations: any[], total: 
     </html>
   `;
 
-  await sendEmail({
-    to: email,
-    subject: '✅ Confirmación de Reservas - Resumen de tu Selección',
-    html,
-  });
-  
+  await sendEmail(email, '✅ Confirmación de Reservas - Resumen de tu Selección', html);
   console.log('Email sent successfully to advertiser:', email);
 }
 
@@ -241,12 +221,7 @@ async function sendEmailToOwner(ownerId: string, reservations: any[]): Promise<v
     </html>
   `;
 
-  await sendEmail({
-    to: profile.email,
-    subject: '🔔 Nueva Solicitud de Reserva - Acción Requerida',
-    html,
-  });
-  
+  await sendEmail(profile.email, '🔔 Nueva Solicitud de Reserva - Acción Requerida', html);
   console.log(`Email sent successfully to owner: ${profile.email}`);
 }
 
