@@ -16,6 +16,7 @@ interface CreateAgentRequest {
   codigo_agente: string;
   owner_id: string;
   rol_agente?: string;
+  app_origin?: string; // Frontend origin for email links
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -46,6 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
       codigo_agente,
       owner_id,
       rol_agente = 'supervisor',
+      app_origin = 'https://adavailable.lovable.app',
     }: CreateAgentRequest = await req.json();
 
     console.log("Creating agent user:", { email, nombre_completo, rol_agente });
@@ -124,6 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 5. Send email with credentials
     try {
+      const dashboardUrl = `${app_origin}/agente-dashboard`;
       const emailResponse = await resend.emails.send({
         from: "AdAvailable <onboarding@resend.dev>",
         to: [email],
@@ -142,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             <p><strong>Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después de tu primer inicio de sesión.</p>
             
-            <p>Puedes acceder a tu dashboard en: <a href="${supabaseUrl.replace('https://hkckgwptmycyebrcffxk.supabase.co', window.location.origin)}/agente-dashboard">${window.location.origin}/agente-dashboard</a></p>
+            <p>Puedes acceder a tu dashboard en: <a href="${dashboardUrl}">${dashboardUrl}</a></p>
             
             <p>Si tienes alguna pregunta, no dudes en contactar a tu supervisor.</p>
             
