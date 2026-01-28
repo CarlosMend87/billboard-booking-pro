@@ -21,6 +21,15 @@ import { buildLegacyCartFromFloatingItems } from "@/lib/cartLegacy";
 
 type WizardStep = 1 | 2 | 3;
 
+/**
+ * Generate user-namespaced storage key for cart data
+ * Prevents cart data leakage between users
+ */
+function getCartStorageKey(userId: string | undefined, suffix: string): string {
+  if (!userId) return `cart_anonymous_${suffix}`;
+  return `cart_anunciante_${userId}_${suffix}`;
+}
+
 export default function BookingWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const { cart, addItem, updateQuantity, removeItem, clearCart, loadCart } = useCartContext();
@@ -39,11 +48,14 @@ export default function BookingWizard() {
   const [itemConfigs, setItemConfigs] = useState<{[key: string]: CartItemConfig}>({});
 
   // Hidratación robusta: si CartContext viene vacío, intentar reconstruir desde el carrito persistido de /explorar
+  // Uses user-namespaced keys for proper isolation
   useEffect(() => {
     if (cart.items.length > 0) return;
 
     try {
-      const rawFloating = localStorage.getItem("dooh_floating_cart");
+      // Use user-namespaced key
+      const cartKey = getCartStorageKey(user?.id, "items");
+      const rawFloating = localStorage.getItem(cartKey);
       if (!rawFloating) return;
 
       const parsed = JSON.parse(rawFloating) as any[];
@@ -65,7 +77,7 @@ export default function BookingWizard() {
       // ignore
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   // Revalidación al entrar (no borra items; solo marca y bloquea avanzar)
   useEffect(() => {
