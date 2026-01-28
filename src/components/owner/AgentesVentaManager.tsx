@@ -62,6 +62,7 @@ export function AgentesVentaManager({ ownerId }: { ownerId: string }) {
           telefono: data.telefono || null,
           codigo_agente: data.codigo_agente,
           owner_id: ownerId,
+          app_origin: window.location.origin,
         },
       });
 
