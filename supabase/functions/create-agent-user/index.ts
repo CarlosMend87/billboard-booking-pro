@@ -15,6 +15,7 @@ interface CreateAgentRequest {
   telefono?: string;
   codigo_agente: string;
   owner_id: string;
+  rol_agente?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -44,9 +45,10 @@ const handler = async (req: Request): Promise<Response> => {
       telefono,
       codigo_agente,
       owner_id,
+      rol_agente = 'supervisor',
     }: CreateAgentRequest = await req.json();
 
-    console.log("Creating agent user:", { email, nombre_completo });
+    console.log("Creating agent user:", { email, nombre_completo, rol_agente });
 
     // 1. Create user in auth.users
     const { data: authData, error: authError } =
@@ -66,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Auth user created:", authData.user.id);
 
-    // 2. Create agente record
+    // 2. Create agente record with role
     const { data: agenteData, error: agenteError } = await supabaseAdmin
       .from("agentes_venta")
       .insert({
@@ -77,6 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
         telefono: telefono || null,
         codigo_agente,
         activo: true,
+        rol_agente: rol_agente,
       })
       .select()
       .single();

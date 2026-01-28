@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_permissions_log: {
+        Row: {
+          action: string
+          agent_id: string
+          created_at: string | null
+          id: string
+          permitted: boolean
+          resource_id: string | null
+          resource_type: string | null
+        }
+        Insert: {
+          action: string
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          permitted: boolean
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Update: {
+          action?: string
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          permitted?: boolean
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_permissions_log_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agentes_venta"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agentes_venta: {
         Row: {
           activo: boolean | null
@@ -25,6 +63,7 @@ export type Database = {
           id: string
           nombre_completo: string
           owner_id: string
+          rol_agente: Database["public"]["Enums"]["agent_role"]
           telefono: string | null
           updated_at: string | null
         }
@@ -38,6 +77,7 @@ export type Database = {
           id?: string
           nombre_completo: string
           owner_id: string
+          rol_agente?: Database["public"]["Enums"]["agent_role"]
           telefono?: string | null
           updated_at?: string | null
         }
@@ -51,6 +91,7 @@ export type Database = {
           id?: string
           nombre_completo?: string
           owner_id?: string
+          rol_agente?: Database["public"]["Enums"]["agent_role"]
           telefono?: string | null
           updated_at?: string | null
         }
@@ -1226,6 +1267,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agent_can: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      agent_has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["agent_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       calculate_distance_meters: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
@@ -1246,6 +1298,10 @@ export type Database = {
       create_campaign_from_reserva: {
         Args: { reserva_id: string }
         Returns: string
+      }
+      get_agent_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["agent_role"]
       }
       get_all_users: {
         Args: {
@@ -1371,6 +1427,11 @@ export type Database = {
       }
     }
     Enums: {
+      agent_role:
+        | "administrador"
+        | "aprobador"
+        | "gestor_disponibilidad"
+        | "supervisor"
       app_role: "superadmin" | "admin" | "owner" | "advertiser" | "agente"
       permission:
         | "manage_users"
@@ -1510,6 +1571,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agent_role: [
+        "administrador",
+        "aprobador",
+        "gestor_disponibilidad",
+        "supervisor",
+      ],
       app_role: ["superadmin", "admin", "owner", "advertiser", "agente"],
       permission: [
         "manage_users",
