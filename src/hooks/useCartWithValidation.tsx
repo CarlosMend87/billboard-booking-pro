@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FloatingCartItem } from "@/components/cart/FloatingCart";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useRealtimeCartConflicts } from "./useRealtimeCartConflicts";
 import { buildLegacyCartFromFloatingItems } from "@/lib/cartLegacy";
 
@@ -22,17 +23,21 @@ interface DateRange {
   endDate: Date;
 }
 
-// Storage keys
-const CART_STORAGE_KEY = "dooh_floating_cart";
-const DATES_STORAGE_KEY = "dooh_cart_dates";
-const LEGACY_CART_KEY = "cart";
-const CART_META_KEY = "dooh_floating_cart_meta_v1";
+/**
+ * CRITICAL: Storage keys are namespaced per user to prevent data leakage
+ * Format: cart_anunciante_<user_id>
+ */
+function getStorageKey(userId: string | undefined, suffix: string): string {
+  if (!userId) return `cart_anonymous_${suffix}`;
+  return `cart_anunciante_${userId}_${suffix}`;
+}
 
 // Debounce timeout for DB sync
 const DB_SYNC_DEBOUNCE = 1000;
 
 export function useCartWithValidation() {
   const { user } = useAuth();
+  const { role } = useUserRole();
   const [items, setItems] = useState<FloatingCartItem[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -46,15 +51,29 @@ export function useCartWithValidation() {
   const latestItemsRef = useRef<FloatingCartItem[]>([]);
   const latestDatesRef = useRef<DateRange | null>(null);
 
+  // Dynamic storage keys based on user ID (namespaced for isolation)
+  const CART_STORAGE_KEY = getStorageKey(user?.id, "items");
+  const DATES_STORAGE_KEY = getStorageKey(user?.id, "dates");
+  const CART_META_KEY = getStorageKey(user?.id, "meta");
+  const LEGACY_CART_KEY = getStorageKey(user?.id, "legacy");
+
+  /**
+   * CRITICAL: Check if cart operations are allowed
+   * Cart is ONLY for advertisers - block all operations for other roles
+   */
+  const isCartAllowed = role === 'advertiser';
+
   const writeCartMeta = useCallback((updatedAtIso: string) => {
+    if (!isCartAllowed) return;
     try {
       localStorage.setItem(CART_META_KEY, JSON.stringify({ updatedAt: updatedAtIso }));
     } catch {
       // ignore
     }
-  }, []);
+  }, [CART_META_KEY, isCartAllowed]);
 
   const readCartMetaUpdatedAt = useCallback((): Date | null => {
+    if (!isCartAllowed) return null;
     try {
       const raw = localStorage.getItem(CART_META_KEY);
       if (!raw) return null;
@@ -65,9 +84,11 @@ export function useCartWithValidation() {
     } catch {
       return null;
     }
-  }, []);
+  }, [CART_META_KEY, isCartAllowed]);
 
   const persistCartToStorage = useCallback((nextItems: FloatingCartItem[], nextDates: DateRange | null) => {
+    if (!isCartAllowed) return;
+    
     const nowIso = new Date().toISOString();
     if (nextItems.length > 0) {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextItems));
@@ -82,7 +103,7 @@ export function useCartWithValidation() {
     }
 
     writeCartMeta(nowIso);
-  }, [writeCartMeta]);
+  }, [writeCartMeta, CART_STORAGE_KEY, DATES_STORAGE_KEY, isCartAllowed]);
 
   // Handle real-time conflict detection (defined before use by useRealtimeCartConflicts)
   const handleConflictDetected = useCallback((conflictedItemIds: string[]) => {
@@ -105,9 +126,10 @@ export function useCartWithValidation() {
     enabled: items.length > 0,
   });
 
-  // Load cart from database for authenticated users
+  // Load cart from database for authenticated ADVERTISERS only
   const loadCartFromDatabase = useCallback(async () => {
-    if (!user?.id || hasLoadedFromDb.current) return;
+    // CRITICAL: Only load cart for advertisers
+    if (!user?.id || !isCartAllowed || hasLoadedFromDb.current) return;
     
     setIsLoadingFromDb(true);
     try {
@@ -168,14 +190,15 @@ export function useCartWithValidation() {
     } finally {
       setIsLoadingFromDb(false);
     }
-  }, [user?.id, persistCartToStorage, readCartMetaUpdatedAt]);
+  }, [user?.id, isCartAllowed, persistCartToStorage, readCartMetaUpdatedAt, CART_STORAGE_KEY]);
 
-  // Save cart to database (debounced)
+  // Save cart to database (debounced) - ONLY for advertisers
   const saveCartToDatabase = useCallback(async (
     cartItems: FloatingCartItem[], 
     dates: DateRange | null
   ) => {
-    if (!user?.id) return;
+    // CRITICAL: Only save cart for advertisers
+    if (!user?.id || !isCartAllowed) return;
 
     try {
       // Prepare items for JSON storage (convert Dates to strings)
@@ -210,7 +233,7 @@ export function useCartWithValidation() {
     } catch (err) {
       console.error("Error saving cart:", err);
     }
-  }, [user?.id]);
+  }, [user?.id, isCartAllowed]);
 
   // Debounced DB sync
   const scheduleDatabaseSync = useCallback((
@@ -226,8 +249,14 @@ export function useCartWithValidation() {
     }, DB_SYNC_DEBOUNCE);
   }, [saveCartToDatabase]);
 
-  // Load cart on mount - first from localStorage, then from DB
+  // Load cart on mount - first from localStorage, then from DB (ONLY for advertisers)
   useEffect(() => {
+    // CRITICAL: Don't load cart for non-advertisers
+    if (!isCartAllowed) {
+      setIsHydrated(true);
+      return;
+    }
+    
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       const savedDates = localStorage.getItem(DATES_STORAGE_KEY);
@@ -257,11 +286,10 @@ export function useCartWithValidation() {
     }
     
     // Si no hay usuario autenticado, marcar como hidratado inmediatamente
-    // (el useEffect del usuario hará lo mismo, pero esto es más rápido)
     if (!user?.id) {
       setIsHydrated(true);
     }
-  }, [user?.id]);
+  }, [user?.id, isCartAllowed, CART_STORAGE_KEY, DATES_STORAGE_KEY]);
 
   // Keep refs in sync (para evitar carreras en rehidratación y acciones rápidas)
   useEffect(() => {
@@ -272,16 +300,16 @@ export function useCartWithValidation() {
     latestDatesRef.current = activeDates;
   }, [activeDates]);
 
-  // Load from database when user is authenticated
+  // Load from database when user is authenticated (ONLY for advertisers)
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isCartAllowed) {
       loadCartFromDatabase();
     } else {
       hasLoadedFromDb.current = false;
-      // Si no hay usuario, marcar como hidratado para permitir persistencia local
+      // Si no hay usuario o no es anunciante, marcar como hidratado
       setIsHydrated(true);
     }
-  }, [user?.id, loadCartFromDatabase]);
+  }, [user?.id, isCartAllowed, loadCartFromDatabase]);
 
   // Save to localStorage and schedule DB sync when items change
   // IMPORTANTE: Solo sincronizar DESPUÉS de la hidratación para evitar borrar datos de la BD
@@ -339,11 +367,17 @@ export function useCartWithValidation() {
     }
   }, []);
 
-  // Add item to cart with backend validation
+  // Add item to cart with backend validation (ONLY for advertisers)
   const addToCart = useCallback(async (
     params: AddToCartParams,
     dates: DateRange
   ): Promise<{ success: boolean; error?: string }> => {
+    // CRITICAL: Block cart operations for non-advertisers
+    if (!isCartAllowed) {
+      console.warn("Cart operations are only allowed for advertisers");
+      return { success: false, error: "Operación no permitida" };
+    }
+    
     if (!dates.startDate || !dates.endDate) {
       toast.error("Selecciona fechas antes de agregar al carrito");
       return { success: false, error: "Fechas requeridas" };
@@ -399,7 +433,7 @@ export function useCartWithValidation() {
     } finally {
       setIsValidating(false);
     }
-  }, [items, checkAvailabilityBackend]);
+  }, [items, checkAvailabilityBackend, isCartAllowed]);
 
   // Remove item from cart
   const removeFromCart = useCallback((itemId: string) => {
@@ -476,8 +510,14 @@ export function useCartWithValidation() {
     return items.some(item => item.billboardId === billboardId);
   }, [items]);
 
-  // Transfer cart data to legacy CartContext format for BookingWizard
+  // Transfer cart data to legacy CartContext format for BookingWizard (ONLY for advertisers)
   const transferToBookingWizard = useCallback(async (): Promise<boolean> => {
+    // CRITICAL: Block transfer for non-advertisers
+    if (!isCartAllowed) {
+      console.warn("Cart transfer is only allowed for advertisers");
+      return false;
+    }
+    
     const validItems = items.filter(i => i.isValid);
     
     if (validItems.length === 0) {
@@ -516,6 +556,7 @@ export function useCartWithValidation() {
       }
 
       const legacyCart = buildLegacyCartFromFloatingItems(stillValid);
+      // Use namespaced key for legacy cart
       localStorage.setItem(LEGACY_CART_KEY, JSON.stringify(legacyCart));
       setItems(revalidated);
 
@@ -527,7 +568,7 @@ export function useCartWithValidation() {
     } finally {
       setIsTransferring(false);
     }
-  }, [items, checkAvailabilityBackend]);
+  }, [items, checkAvailabilityBackend, isCartAllowed, LEGACY_CART_KEY]);
 
   // Clear conflict state when cart is cleared or items change
   useEffect(() => {

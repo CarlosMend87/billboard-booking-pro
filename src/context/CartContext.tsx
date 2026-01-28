@@ -170,6 +170,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     campaignInfo: state.campaignInfo
   };
 
+  /**
+   * NOTE: This legacy CartContext is only used by BookingWizard.
+   * The new useCartWithValidation hook handles the advertiser cart with proper 
+   * user-namespaced keys. This context still uses 'cart' key for backward 
+   * compatibility with BookingWizard hydration, but the key is set by 
+   * useCartWithValidation when transferring to BookingWizard.
+   */
+
   // Load cart and campaign info from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
