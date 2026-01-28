@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
-import { AgentesVentaManager } from "@/components/owner/AgentesVentaManager";
+import { AgentRoleManager } from "@/components/owner/AgentRoleManager";
 import { CodigosDescuentoManager } from "@/components/owner/CodigosDescuentoManager";
 import { AnunciantesManager } from "@/components/owner/AnunciantesManager";
 import { ReporteDescuentos } from "@/components/owner/ReporteDescuentos";
@@ -628,7 +628,7 @@ export default function OwnerDashboard() {
           </TabsContent>
 
           <TabsContent value="agentes" className="space-y-6">
-            {user && <AgentesVentaManager ownerId={user.id} />}
+            <AgentRoleManager />
           </TabsContent>
 
           <TabsContent value="descuentos" className="space-y-6">
