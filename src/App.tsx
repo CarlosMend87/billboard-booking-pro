@@ -24,7 +24,20 @@ import SuperAdminAuth from "./pages/SuperAdminAuth";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Prevent refetch on window focus - stops reload when switching tabs
+      refetchOnWindowFocus: false,
+      // Prevent refetch on reconnect
+      refetchOnReconnect: false,
+      // Keep data fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Retry failed requests only once
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
