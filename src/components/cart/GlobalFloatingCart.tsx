@@ -13,7 +13,6 @@ import { FloatingCartItem } from "./FloatingCart";
 // Routes where the floating cart should be visible (ONLY for advertisers)
 const CART_VISIBLE_ROUTES = [
   "/explorar",
-  "/disponibilidad-anuncios",
   "/progreso-campaña",
 ];
 
