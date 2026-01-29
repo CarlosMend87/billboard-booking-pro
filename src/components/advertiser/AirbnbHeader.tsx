@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const navTabs = [
-  { label: "Pantallas", href: "/disponibilidad-anuncios" },
+  { label: "Pantallas", href: "/explorar" },
   { label: "Campañas", href: "/progreso-campaña" },
   { label: "Reportes", href: "/reportes" },
   { label: "Servicios", href: "/servicios" },
@@ -93,7 +93,7 @@ export function AirbnbHeader() {
                       <Link to="/progreso-campaña">Mis campañas</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/disponibilidad-anuncios">Explorar pantallas</Link>
+                      <Link to="/explorar">Explorar pantallas</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>

@@ -275,7 +275,8 @@ export default function AdvertiserHome() {
 
   const handleReserve = (screen: ScreenDetail) => {
     setModalOpen(false);
-    navigate(`/disponibilidad-anuncios?screen=${screen.id}`);
+    // Screen is already on /explorar, just close modal - user can add to cart from here
+    handleAddToCart(screen.id);
   };
 
   // Handle favorite toggle

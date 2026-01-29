@@ -1,6 +1,15 @@
 import { InventoryAsset } from "@/lib/mockInventory";
-import { CampaignInfo } from "@/context/CampaignContext";
 
+// Campaign types (previously in CampaignContext)
+export type CampaignSearchMethod = 'mensual' | 'dia' | 'spot' | 'full' | 'catorcenal';
+
+export interface CampaignInfo {
+  id?: string;
+  nombre: string;
+  propuesta: string;
+  presupuesto: number;
+  metodo: CampaignSearchMethod;
+}
 export type CartItemModalidad = 
   | 'mensual' 
   | 'catorcenal' 

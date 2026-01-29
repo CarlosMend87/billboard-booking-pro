@@ -13,7 +13,6 @@ import Index from "./pages/Index";
 import AdvertiserHome from "./pages/AdvertiserHome";
 import AddBillboard from "./pages/AddBillboard";
 import BookingWizard from "./pages/BookingWizard";
-import DisponibilidadAnuncios from "./pages/DisponibilidadAnuncios";
 import ProgresoCampaña from "./pages/ProgresoCampaña";
 import Auth from "./pages/Auth";
 import OwnerDashboard from "./pages/OwnerDashboard";
@@ -155,11 +154,8 @@ const App = () => (
                   <BookingWizard />
                 </ProtectedRoute>
               } />
-              <Route path="/disponibilidad-anuncios" element={
-                <ProtectedRoute>
-                  <DisponibilidadAnuncios />
-                </ProtectedRoute>
-              } />
+              {/* Redirect legacy route to /explorar */}
+              <Route path="/disponibilidad-anuncios" element={<Navigate to="/explorar" replace />} />
               <Route path="/progreso-campaña" element={
                 <ProtectedRoute>
                   <ProgresoCampaña />

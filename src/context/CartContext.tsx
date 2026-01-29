@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { InventoryAsset } from '@/lib/mockInventory';
-import { CartItem, CartItemModalidad, CartItemConfig, Cart } from '@/types/cart';
-import { CampaignInfo } from '@/context/CampaignContext';
+import { CartItem, CartItemModalidad, CartItemConfig, Cart, CampaignInfo } from '@/types/cart';
 import { 
   totalTradicional, 
   totalDigitalSpot, 

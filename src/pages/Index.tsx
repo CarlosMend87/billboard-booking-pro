@@ -73,7 +73,7 @@ const Index = () => {
                     Encuentra y reserva espacios publicitarios disponibles
                   </p>
                   <Button asChild variant="secondary" className="w-full">
-                    <Link to="/disponibilidad-anuncios">
+                    <Link to="/explorar">
                       <MapPin className="h-4 w-4 mr-2" />
                       Ver Disponibilidad
                     </Link>
@@ -139,7 +139,7 @@ const Index = () => {
                     Encuentra y reserva espacios publicitarios disponibles
                   </p>
                   <Button asChild variant="secondary" className="w-full">
-                    <Link to="/disponibilidad-anuncios">
+                    <Link to="/explorar">
                       <MapPin className="h-4 w-4 mr-2" />
                       Ver Disponibilidad
                     </Link>
