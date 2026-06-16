@@ -580,6 +580,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_available_billboards: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          contratacion: Json
+          created_at: string
+          digital: Json | null
+          direccion: string
+          fotos: string[] | null
+          has_computer_vision: boolean | null
+          id: string
+          last_detection_count: number | null
+          last_detection_date: string | null
+          lat: number
+          lng: number
+          medidas: Json
+          nombre: string
+          owner_id: string
+          precio: Json
+          status: string
+          tipo: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "billboards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_current_user_profile: {
         Args: never
         Returns: {
