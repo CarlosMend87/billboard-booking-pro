@@ -214,11 +214,14 @@ export function useBillboards() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Bucket es privado: generamos URL firmada con expiración larga (1 año)
+      const { data: signed, error: signedError } = await supabase.storage
         .from('billboard-images')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365);
 
-      return publicUrl;
+      if (signedError) throw signedError;
+
+      return signed?.signedUrl ?? null;
     } catch (error: any) {
       toast({
         title: "Error",
