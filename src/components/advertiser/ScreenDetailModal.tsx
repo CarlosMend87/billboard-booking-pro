@@ -548,7 +548,20 @@ export function ScreenDetailModal({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCVDialog} onOpenChange={setShowCVDialog}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-emerald-600" />
+              Computer Vision · Detección en tiempo real
+            </DialogTitle>
+          </DialogHeader>
+          <img src={cvImage} alt="Computer Vision detection" className="w-full h-auto" />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
