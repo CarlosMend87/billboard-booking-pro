@@ -306,10 +306,16 @@ export function ScreenDetailModal({
               </Badge>
             )}
             {screen.has_computer_vision && (
-              <Badge className="bg-emerald-500 text-white">
-                <Eye className="h-3 w-3 mr-1" />
-                Computer Vision
-              </Badge>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowCVDialog(true); }}
+                className="focus:outline-none"
+              >
+                <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Computer Vision
+                </Badge>
+              </button>
             )}
           </div>
         </div>
