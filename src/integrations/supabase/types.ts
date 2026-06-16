@@ -575,6 +575,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -620,6 +641,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_superadmin_permission: {
         Args: { perm: string; user_uuid: string }
         Returns: boolean
@@ -645,6 +673,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "owner" | "advertiser" | "agente" | "admin"
       permission:
         | "manage_users"
         | "manage_roles"
@@ -783,6 +812,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "advertiser", "agente", "admin"],
       permission: [
         "manage_users",
         "manage_roles",
