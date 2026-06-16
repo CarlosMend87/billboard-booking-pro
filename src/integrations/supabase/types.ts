@@ -353,6 +353,45 @@ export type Database = {
         }
         Relationships: []
       }
+      propuestas: {
+        Row: {
+          active_dates: Json | null
+          created_at: string
+          descripcion: string | null
+          id: string
+          item_count: number
+          items: Json
+          nombre: string
+          total_estimado: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_dates?: Json | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          item_count?: number
+          items?: Json
+          nombre: string
+          total_estimado?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_dates?: Json | null
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          item_count?: number
+          items?: Json
+          nombre?: string
+          total_estimado?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reservas: {
         Row: {
           advertiser_id: string
