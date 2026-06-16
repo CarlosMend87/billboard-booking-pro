@@ -65,6 +65,7 @@ export type Database = {
           created_at: string
           digital: Json | null
           direccion: string
+          empresa_id: string | null
           fotos: string[] | null
           has_computer_vision: boolean | null
           id: string
@@ -86,6 +87,7 @@ export type Database = {
           created_at?: string
           digital?: Json | null
           direccion: string
+          empresa_id?: string | null
           fotos?: string[] | null
           has_computer_vision?: boolean | null
           id?: string
@@ -107,6 +109,7 @@ export type Database = {
           created_at?: string
           digital?: Json | null
           direccion?: string
+          empresa_id?: string | null
           fotos?: string[] | null
           has_computer_vision?: boolean | null
           id?: string
@@ -612,6 +615,7 @@ export type Database = {
           created_at: string
           digital: Json | null
           direccion: string
+          empresa_id: string | null
           fotos: string[] | null
           has_computer_vision: boolean | null
           id: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.billboards ADD COLUMN IF NOT EXISTS empresa_id uuid;
