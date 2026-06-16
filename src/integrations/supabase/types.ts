@@ -65,7 +65,10 @@ export type Database = {
           digital: Json | null
           direccion: string
           fotos: string[] | null
+          has_computer_vision: boolean | null
           id: string
+          last_detection_count: number | null
+          last_detection_date: string | null
           lat: number
           lng: number
           medidas: Json
@@ -82,7 +85,10 @@ export type Database = {
           digital?: Json | null
           direccion: string
           fotos?: string[] | null
+          has_computer_vision?: boolean | null
           id?: string
+          last_detection_count?: number | null
+          last_detection_date?: string | null
           lat: number
           lng: number
           medidas?: Json
@@ -99,7 +105,10 @@ export type Database = {
           digital?: Json | null
           direccion?: string
           fotos?: string[] | null
+          has_computer_vision?: boolean | null
           id?: string
+          last_detection_count?: number | null
+          last_detection_date?: string | null
           lat?: number
           lng?: number
           medidas?: Json
@@ -121,9 +130,11 @@ export type Database = {
           fecha_fin: string
           fecha_inicio: string
           id: string
+          metodo_busqueda: string | null
           nombre: string
           presupuesto_total: number
           presupuesto_usado: number | null
+          propuesta: Json | null
           reserva_id: string
           status: string | null
           updated_at: string
@@ -136,9 +147,11 @@ export type Database = {
           fecha_fin: string
           fecha_inicio: string
           id?: string
+          metodo_busqueda?: string | null
           nombre: string
           presupuesto_total: number
           presupuesto_usado?: number | null
+          propuesta?: Json | null
           reserva_id: string
           status?: string | null
           updated_at?: string
@@ -151,9 +164,11 @@ export type Database = {
           fecha_fin?: string
           fecha_inicio?: string
           id?: string
+          metodo_busqueda?: string | null
           nombre?: string
           presupuesto_total?: number
           presupuesto_usado?: number | null
+          propuesta?: Json | null
           reserva_id?: string
           status?: string | null
           updated_at?: string
