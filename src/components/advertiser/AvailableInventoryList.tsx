@@ -28,7 +28,7 @@ import { formatPrice, esElegibleRotativo } from "@/lib/pricing";
 import { formatShortId } from "@/lib/utils";
 import { CartItemModalidad, CartItemConfig } from "@/types/cart";
 import { supabase } from "@/integrations/supabase/client";
-import admobilizeImage from "@/assets/admobilize-detection.png";
+import admobilizeImage from "@/assets/computer-vision-detection.png";
 import { BillboardViewsMetric } from "@/components/advertiser/BillboardViewsMetric";
 import { useBillboardLock } from "@/hooks/useBillboardLock";
 
