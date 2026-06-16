@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import cvImage from "@/assets/computer-vision-detection.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -72,6 +73,7 @@ export function ScreenDetailModal({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isAvailable, setIsAvailable] = useState(false);
+  const [showCVDialog, setShowCVDialog] = useState(false);
   const { user } = useAuth();
 
   // Sync with active dates from parent
@@ -222,6 +224,7 @@ export function ScreenDetailModal({
   const precios = getPreciosPorModalidad();
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 gap-0">
         {/* Header */}
@@ -304,10 +307,16 @@ export function ScreenDetailModal({
               </Badge>
             )}
             {screen.has_computer_vision && (
-              <Badge className="bg-emerald-500 text-white">
-                <Eye className="h-3 w-3 mr-1" />
-                Computer Vision
-              </Badge>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowCVDialog(true); }}
+                className="focus:outline-none"
+              >
+                <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Computer Vision
+                </Badge>
+              </button>
             )}
           </div>
         </div>
@@ -540,7 +549,20 @@ export function ScreenDetailModal({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCVDialog} onOpenChange={setShowCVDialog}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-emerald-600" />
+              Computer Vision · Detección en tiempo real
+            </DialogTitle>
+          </DialogHeader>
+          <img src={cvImage} alt="Computer Vision detection" className="w-full h-auto" />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
