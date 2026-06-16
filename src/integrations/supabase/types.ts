@@ -60,6 +60,7 @@ export type Database = {
       }
       billboards: {
         Row: {
+          admobilize_config: Json | null
           contratacion: Json
           created_at: string
           digital: Json | null
@@ -80,6 +81,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admobilize_config?: Json | null
           contratacion?: Json
           created_at?: string
           digital?: Json | null
@@ -100,6 +102,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admobilize_config?: Json | null
           contratacion?: Json
           created_at?: string
           digital?: Json | null
@@ -604,6 +607,7 @@ export type Database = {
       get_available_billboards: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
+          admobilize_config: Json | null
           contratacion: Json
           created_at: string
           digital: Json | null
