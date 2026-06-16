@@ -73,6 +73,7 @@ export function ScreenDetailModal({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [isAvailable, setIsAvailable] = useState(false);
+  const [showCVDialog, setShowCVDialog] = useState(false);
   const { user } = useAuth();
 
   // Sync with active dates from parent
