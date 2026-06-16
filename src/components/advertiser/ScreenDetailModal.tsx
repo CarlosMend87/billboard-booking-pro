@@ -224,6 +224,7 @@ export function ScreenDetailModal({
   const precios = getPreciosPorModalidad();
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 gap-0">
         {/* Header */}
