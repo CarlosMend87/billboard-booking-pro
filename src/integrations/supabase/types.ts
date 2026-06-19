@@ -199,6 +199,27 @@ export type Database = {
           },
         ]
       }
+      empresas: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notificaciones: {
         Row: {
           campaña_id: string | null
@@ -308,6 +329,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           email: string | null
+          empresa_id: string | null
           id: string
           last_login_at: string | null
           name: string | null
@@ -324,6 +346,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          empresa_id?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null
@@ -340,6 +363,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          empresa_id?: string | null
           id?: string
           last_login_at?: string | null
           name?: string | null
@@ -351,7 +375,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       propuestas: {
         Row: {
